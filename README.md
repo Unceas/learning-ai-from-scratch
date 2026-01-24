@@ -5,6 +5,7 @@ A day-by-day learning repository covering **Artificial Intelligence & Machine Le
 ## Roadmap
 
 - Python basics
+- ✔ Day 2: Python basics completed
 - Linear Regression (from scratch)
 - Classification algorithms
 - Model evaluation
