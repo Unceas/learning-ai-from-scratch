@@ -79,5 +79,8 @@ A day-by-day learning repository covering **Artificial Intelligence & Machine Le
 ### Day 29
 - Implemented Logistic Regression Training (Gradient Descent + BCE)
 
+- ### Day 30
+- Added notes on bias-variance tradeoff
+
 > 📅 Progress is updated daily with new notes, code, and experiments.
 
