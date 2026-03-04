@@ -78,9 +78,12 @@ A day-by-day learning repository covering **Artificial Intelligence & Machine Le
 - Implemented Binary Cross Entropy (BCE) Loss
 ### Day 29
 - Implemented Logistic Regression Training (Gradient Descent + BCE)
-
-- ### Day 30
+### Day 30
 - Added notes on bias-variance tradeoff
+### Day 31
+- Implemented confusion matrix for classification evaluation
+### Day 32
+- Implemented accuracy, precision and recall metrics
 
 > 📅 Progress is updated daily with new notes, code, and experiments.
 
