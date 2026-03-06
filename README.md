@@ -86,7 +86,7 @@ A day-by-day learning repository covering **Artificial Intelligence & Machine Le
 - Implemented accuracy, precision and recall metrics
 ### Day 33
 - Implemented F1 score calculation
-- ### Day 34
+### Day 34
 - Implemented TPR and FPR calculations
 
 > 📅 Progress is updated daily with new notes, code, and experiments.
