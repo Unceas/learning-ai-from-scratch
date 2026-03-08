@@ -90,6 +90,8 @@ A day-by-day learning repository covering **Artificial Intelligence & Machine Le
 - Implemented TPR and FPR calculations
 ### Day 35
 - Implemented ROC curve point calculation
+### Day 36
+- Added ROC curve visualization using matplotlib
 
 > 📅 Progress is updated daily with new notes, code, and experiments.
 
