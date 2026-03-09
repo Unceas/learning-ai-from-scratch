@@ -92,6 +92,8 @@ A day-by-day learning repository covering **Artificial Intelligence & Machine Le
 - Implemented ROC curve point calculation
 ### Day 36
 - Added ROC curve visualization using matplotlib
+### Day 37
+- Implemented single neuron forward pass with sigmoid activation
 
 > 📅 Progress is updated daily with new notes, code, and experiments.
 
