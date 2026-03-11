@@ -94,6 +94,8 @@ A day-by-day learning repository covering **Artificial Intelligence & Machine Le
 - Added ROC curve visualization using matplotlib
 ### Day 37
 - Implemented single neuron forward pass with sigmoid activation
+### Day 38
+- Implemented neural network layer forward pass
 
 > 📅 Progress is updated daily with new notes, code, and experiments.
 
