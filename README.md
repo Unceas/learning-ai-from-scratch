@@ -96,6 +96,8 @@ A day-by-day learning repository covering **Artificial Intelligence & Machine Le
 - Implemented single neuron forward pass with sigmoid activation
 ### Day 38
 - Implemented neural network layer forward pass
+### Day 39
+- Implemented two layer neural network forward pass
 
 > 📅 Progress is updated daily with new notes, code, and experiments.
 
