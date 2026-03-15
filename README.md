@@ -100,6 +100,8 @@ A day-by-day learning repository covering **Artificial Intelligence & Machine Le
 - Implemented two layer neural network forward pass
 ### Day 40
 - Implemented sigmoid derivative for neural network backpropagation
+### Day 41
+- Implemented basic prediction error for backpropagation
 
 > 📅 Progress is updated daily with new notes, code, and experiments.
 
