@@ -20,88 +20,90 @@ A day-by-day learning repository covering **Artificial Intelligence & Machine Le
 
 ## Daily Logs
 
-### Day 1
+# Day 1
 – What is AI, ML, high-level goals
-### Day 2
+# Day 2
 - Python Basics (variables, loops, functions)
-### Day 3
+# Day 3
 - Linear Regression Intuition (y = mx + c)
-### Day 4
+# Day 4
 - Implemented Simple Linear Model (manual prediction)
-### Day 5
+# Day 5
 - Concept of Error and Loss
-### Day 6
+# Day 6
 - Idea of Model Training
-### Day 7
+# Day 7
 - Implemented Mean Absolute Error (MAE)
-### Day 8
+# Day 8
 - Gradient Descent Intuition
-### Day 9
+# Day 9
 - Single Gradient Descent Update Step
-### Day 10
+# Day 10
 - Gradient Descent Loop (Multiple Iterations)
-### Day 11
+# Day 11
 - Gradient Descent with Multiple Data Points
-### Day 12
+# Day 12
 - Loss Tracking During Training
-### Day 13
+# Day 13
 - Implemented Mean Squared Error (MSE)
-### Day 14
+# Day 14
 - Combined Gradient Descent with MSE
-### Day 15
+# Day 15
 - Refactored Training into Reusable Function
-### Day 16
+# Day 16
 - Train + Predict Workflow
-### Day 17
+# Day 17
 - Gradient Descent Using Proper Derivatives (Batch Update)
-### Day 18
+# Day 18
 - Training on Slightly Noisy Realistic Dataset
-### Day 19
+# Day 19
 - Overfitting vs Underfitting Concepts
-### Day 20
+# Day 20
 - Train-Test Split Concept
-### Day 21
+# Day 21
 - Implemented Simple Train-Test Split in Code
-### Day 22
+# Day 22
 - Model Evaluation using MSE on Test Data
-### Day 23
+# Day 23
 - Visualized Linear Regression using Matplotlib
-### Day 24
+# Day 24
 - Visualized Train vs Test Data
-### Day 25
+# Day 25
 - Classification vs Regression Concepts
-### Day 26
+# Day 26
 - Implemented Sigmoid Function
-### Day 27
+# Day 27
 - Logistic Prediction using Sigmoid
-### Day 28
+# Day 28
 - Implemented Binary Cross Entropy (BCE) Loss
-### Day 29
+# Day 29
 - Implemented Logistic Regression Training (Gradient Descent + BCE)
-### Day 30
+# Day 30
 - Added notes on bias-variance tradeoff
-### Day 31
+# Day 31
 - Implemented confusion matrix for classification evaluation
-### Day 32
+# Day 32
 - Implemented accuracy, precision and recall metrics
-### Day 33
+# Day 33
 - Implemented F1 score calculation
-### Day 34
+# Day 34
 - Implemented TPR and FPR calculations
-### Day 35
+# Day 35
 - Implemented ROC curve point calculation
-### Day 36
+# Day 36
 - Added ROC curve visualization using matplotlib
-### Day 37
+# Day 37
 - Implemented single neuron forward pass with sigmoid activation
-### Day 38
+# Day 38
 - Implemented neural network layer forward pass
-### Day 39
+# Day 39
 - Implemented two layer neural network forward pass
-### Day 40
+# Day 40
 - Implemented sigmoid derivative for neural network backpropagation
-### Day 41
+# Day 41
 - Implemented basic prediction error for backpropagation
+# Day 42
+- Implemented gradient descent weight update step
 
 > 📅 Progress is updated daily with new notes, code, and experiments.
 
