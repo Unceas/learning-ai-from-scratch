@@ -104,6 +104,8 @@ A day-by-day learning repository covering **Artificial Intelligence & Machine Le
 - Implemented basic prediction error for backpropagation
 ### Day 42
 - Implemented gradient descent weight update step
+### Day 43
+- Implemented single neuron training step with gradient update
 
 > 📅 Progress is updated daily with new notes, code, and experiments.
 
