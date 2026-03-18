@@ -18,6 +18,13 @@ A day-by-day learning repository covering **Artificial Intelligence & Machine Le
 - Model evaluation
 - Mini projects
 
+## Mini Projects
+
+### Linear Regression from Scratch
+- Trained using gradient descent
+- Predicts continuous values
+- No external ML libraries used
+
 ## Daily Logs
 
 ### Day 1
@@ -106,6 +113,8 @@ A day-by-day learning repository covering **Artificial Intelligence & Machine Le
 - Implemented gradient descent weight update step
 ### Day 43
 - Implemented single neuron training step with gradient update
+### Day 44
+- Built mini linear regression project with training and prediction
 
 > 📅 Progress is updated daily with new notes, code, and experiments.
 
