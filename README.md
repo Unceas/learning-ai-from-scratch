@@ -24,6 +24,11 @@ A day-by-day learning repository covering **Artificial Intelligence & Machine Le
 - Trained using gradient descent
 - Predicts continuous values
 - No external ML libraries used
+### Linear Regression with CSV Input
+- Reads dataset from CSV file
+- Trains model using gradient descent
+- Performs prediction on new data
+
 
 ## Daily Logs
 
