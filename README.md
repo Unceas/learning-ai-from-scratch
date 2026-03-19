@@ -120,6 +120,8 @@ A day-by-day learning repository covering **Artificial Intelligence & Machine Le
 - Implemented single neuron training step with gradient update
 ### Day 44
 - Built mini linear regression project with training and prediction
+### Day 45
+- Added CSV-based training pipeline for linear regression
 
 > 📅 Progress is updated daily with new notes, code, and experiments.
 
