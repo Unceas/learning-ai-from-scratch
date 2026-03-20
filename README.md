@@ -28,6 +28,11 @@ A day-by-day learning repository covering **Artificial Intelligence & Machine Le
 - Reads dataset from CSV file
 - Trains model using gradient descent
 - Performs prediction on new data
+### Logistic Regression Classification
+- Predicts binary outcome (pass/fail)
+- Uses sigmoid activation
+- Trained using gradient descent
+- Reads dataset from CSV
 
 
 ## Daily Logs
@@ -122,6 +127,8 @@ A day-by-day learning repository covering **Artificial Intelligence & Machine Le
 - Built mini linear regression project with training and prediction
 ### Day 45
 - Added CSV-based training pipeline for linear regression
+### Day 46
+- 
 
 > 📅 Progress is updated daily with new notes, code, and experiments.
 
