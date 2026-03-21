@@ -128,7 +128,9 @@ A day-by-day learning repository covering **Artificial Intelligence & Machine Le
 ### Day 45
 - Added CSV-based training pipeline for linear regression
 ### Day 46
-- 
+- Built logistic regression classification project with CSV input
+### Day 47
+- Added accuracy evaluation and visualization to classification project
 
 > 📅 Progress is updated daily with new notes, code, and experiments.
 
