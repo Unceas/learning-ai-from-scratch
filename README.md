@@ -29,10 +29,10 @@ A day-by-day learning repository covering **Artificial Intelligence & Machine Le
 - Trains model using gradient descent
 - Performs prediction on new data
 ### Logistic Regression Classification
-- Predicts binary outcome (pass/fail)
-- Uses sigmoid activation
-- Trained using gradient descent
-- Reads dataset from CSV
+- CSV-based dataset
+- Gradient descent training
+- Accuracy evaluation
+- Visualization with decision boundary
 
 
 ## Daily Logs
