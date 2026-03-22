@@ -131,6 +131,8 @@ A day-by-day learning repository covering **Artificial Intelligence & Machine Le
 - Built logistic regression classification project with CSV input
 ### Day 47
 - Added accuracy evaluation and visualization to classification project
+### Day 48
+- Added feature scaling using normalization for improved model training
 
 > 📅 Progress is updated daily with new notes, code, and experiments.
 
