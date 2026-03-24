@@ -135,6 +135,8 @@ A day-by-day learning repository covering **Artificial Intelligence & Machine Le
 - Added feature scaling using normalization for improved model training
 ### Day 49
 - Implemented neural network training using gradient descent and sigmoid derivative
+### Day 50
+- Implemented two-layer neural network training with loss visualization
 
 > 📅 Progress is updated daily with new notes, code, and experiments.
 
