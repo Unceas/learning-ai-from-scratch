@@ -1,142 +1,168 @@
-# Learning AI From Scratch
+# 🧠 Learning AI from Scratch
 
-A day-by-day learning repository covering **Artificial Intelligence & Machine Learning fundamentals** with hands-on Python implementations.
+A structured, from-scratch journey into Machine Learning and Neural Networks — without relying on high-level libraries.
+
+---
+
+## 🚀 Overview
+
+This repository documents a **day-by-day progression** of building core ML concepts from first principles, including:
+
+* Linear Regression
+* Logistic Regression
+* Gradient Descent
+* Evaluation Metrics
+* Neural Networks
+* Mini ML Projects
+
+The focus is on **understanding internals**, not just using libraries.
+
+---
+
+## 📁 Project Structure
+
+```
+learning-ai-from-scratch/
+
+├── fundamentals/        # Core ML concepts and theory
+├── regression/          # Linear regression + gradient descent
+├── classification/      # Logistic regression + evaluation
+├── neural_networks/     # Neural network forward & training
+├── data/                # CSV datasets
+├── README.md
+```
+
+---
 
 ## 📘 Learning Focus
 
-- Implementing Machine Learning algorithms from scratch
-- Understanding optimization and loss functions
-- Building regression and classification models step-by-step
-- Avoiding high-level libraries to strengthen fundamentals
+* Implementing ML algorithms from scratch
+* Understanding optimization (gradient descent)
+* Building regression and classification models
+* Exploring neural network fundamentals
+* Writing clean, modular, and scalable code
 
-## Roadmap
+---
 
-- Python basics
-- ✔ Day 2: Python basics completed
-- Linear Regression (from scratch)
-- Classification algorithms
-- Model evaluation
-- Mini projects
+## 📅 Progress Log
 
-## Mini Projects
+### 🧩 Fundamentals
 
-### Linear Regression from Scratch
-- Trained using gradient descent
-- Predicts continuous values
-- No external ML libraries used
-### Linear Regression with CSV Input
-- Reads dataset from CSV file
-- Trains model using gradient descent
-- Performs prediction on new data
-### Logistic Regression Classification
-- CSV-based dataset
-- Gradient descent training
-- Accuracy evaluation
-- Visualization with decision boundary
+* Python basics
+* Linear regression intuition
+* Error and loss concepts
+* Gradient descent intuition
+* Overfitting vs Underfitting
+* Train-Test Split
+* Bias-Variance Tradeoff
 
+---
 
-## Daily Logs
+### 📈 Regression
 
-### Day 1
-– What is AI, ML, high-level goals
-### Day 2
-- Python Basics (variables, loops, functions)
-### Day 3
-- Linear Regression Intuition (y = mx + c)
-### Day 4
-- Implemented Simple Linear Model (manual prediction)
-### Day 5
-- Concept of Error and Loss
-### Day 6
-- Idea of Model Training
-### Day 7
-- Implemented Mean Absolute Error (MAE)
-### Day 8
-- Gradient Descent Intuition
-### Day 9
-- Single Gradient Descent Update Step
-### Day 10
-- Gradient Descent Loop (Multiple Iterations)
-### Day 11
-- Gradient Descent with Multiple Data Points
-### Day 12
-- Loss Tracking During Training
-### Day 13
-- Implemented Mean Squared Error (MSE)
-### Day 14
-- Combined Gradient Descent with MSE
-### Day 15
-- Refactored Training into Reusable Function
-### Day 16
-- Train + Predict Workflow
-### Day 17
-- Gradient Descent Using Proper Derivatives (Batch Update)
-### Day 18
-- Training on Slightly Noisy Realistic Dataset
-### Day 19
-- Overfitting vs Underfitting Concepts
-### Day 20
-- Train-Test Split Concept
-### Day 21
-- Implemented Simple Train-Test Split in Code
-### Day 22
-- Model Evaluation using MSE on Test Data
-### Day 23
-- Visualized Linear Regression using Matplotlib
-### Day 24
-- Visualized Train vs Test Data
-### Day 25
-- Classification vs Regression Concepts
-#v Day 26
-- Implemented Sigmoid Function
-### Day 27
-- Logistic Prediction using Sigmoid
-### Day 28
-- Implemented Binary Cross Entropy (BCE) Loss
-### Day 29
-- Implemented Logistic Regression Training (Gradient Descent + BCE)
-### Day 30
-- Added notes on bias-variance tradeoff
-### Day 31
-- Implemented confusion matrix for classification evaluation
-### Day 32
-- Implemented accuracy, precision and recall metrics
-### Day 33
-- Implemented F1 score calculation
-### Day 34
-- Implemented TPR and FPR calculations
-### Day 35
-- Implemented ROC curve point calculation
-### Day 36
-- Added ROC curve visualization using matplotlib
-### Day 37
-- Implemented single neuron forward pass with sigmoid activation
-### Day 38
-- Implemented neural network layer forward pass
-### Day 39
-- Implemented two layer neural network forward pass
-### Day 40
-- Implemented sigmoid derivative for neural network backpropagation
-### Day 41
-- Implemented basic prediction error for backpropagation
-### Day 42
-- Implemented gradient descent weight update step
-### Day 43
-- Implemented single neuron training step with gradient update
-### Day 44
-- Built mini linear regression project with training and prediction
-### Day 45
-- Added CSV-based training pipeline for linear regression
-### Day 46
-- Built logistic regression classification project with CSV input
-### Day 47
-- Added accuracy evaluation and visualization to classification project
-### Day 48
-- Added feature scaling using normalization for improved model training
-### Day 49
-- Implemented neural network training using gradient descent and sigmoid derivative
-### Day 50
-- Implemented two-layer neural network training with loss visualization
+* Linear model implementation
+* Mean Absolute Error (MAE)
+* Mean Squared Error (MSE)
+* Gradient descent (step → loop → full training)
+* Training with multiple data points
+* Loss tracking
+* Function-based training
+* Prediction system
+* Training on noisy data
+* Model evaluation (MSE on test set)
+* Visualization of regression line
+* CSV-based training pipeline
+* Mini Linear Regression Project
 
-> 📅 Progress is updated daily with new notes, code, and experiments.
+---
 
+### 📊 Classification
+
+* Sigmoid function
+* Logistic prediction
+* Binary Cross Entropy (BCE)
+* Logistic regression training
+* Confusion matrix
+* Accuracy, Precision, Recall
+* F1 Score
+* TPR / FPR
+* ROC curve points
+* ROC visualization
+* Logistic regression with CSV dataset
+* Accuracy evaluation
+* Decision boundary visualization
+* Feature scaling (Normalization)
+
+---
+
+### 🧠 Neural Networks
+
+* Single neuron forward pass
+* Layer of neurons
+* Two-layer neural network
+* Sigmoid derivative
+* Backpropagation basics
+* Gradient updates
+* Single neuron training
+* Multi-layer neural network training
+* Loss tracking visualization
+
+---
+
+## 🧪 Mini Projects
+
+### 🔹 Linear Regression from Scratch
+
+* Trained using gradient descent
+* Predicts continuous values
+* Supports CSV input
+
+### 🔹 Logistic Regression Classification
+
+* Binary classification (Pass/Fail)
+* Uses sigmoid activation
+* Gradient descent training
+* Accuracy evaluation
+* Decision boundary visualization
+* Feature scaling included
+
+---
+
+## ⚙️ Tech Stack
+
+* Python (no ML libraries like sklearn)
+* Matplotlib (for visualization)
+* CSV (data handling)
+
+---
+
+## 🎯 Key Takeaways
+
+* ML models are built from simple mathematical operations
+* Gradient descent is the core optimization engine
+* Proper evaluation is as important as training
+* Feature scaling significantly impacts performance
+* Neural networks are layered compositions of simple units
+
+---
+
+## Future Improvements
+
+* Modular pipeline for all models
+* Multi-feature datasets
+* Neural network training improvements
+* Real-world dataset integration
+* Model comparison (Logistic vs Neural Network)
+
+---
+
+## 📌 Note
+
+This repository focuses on **learning depth over library usage**.
+All implementations are intentionally built from scratch to strengthen fundamentals.
+
+---
+
+## ⭐ If you find this useful
+
+Consider starring the repo — it helps track progress and visibility.
