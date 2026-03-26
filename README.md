@@ -109,6 +109,13 @@ learning-ai-from-scratch/
 
 ---
 
+### Model Comparison
+- Compared Logistic Regression vs Neural Network
+- Same dataset used for fair evaluation
+- Demonstrates difference in model capacity
+
+---
+
 ## 🧪 Mini Projects
 
 ### 🔹 Linear Regression from Scratch
