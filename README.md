@@ -133,6 +133,11 @@ learning-ai-from-scratch/
 * Decision boundary visualization
 * Feature scaling included
 
+### 🔹 Model Comparison Visualization
+* Compared Logistic Regression vs Neural Network
+* Visualized probability curves
+* Demonstrates model behavior differences
+
 ---
 
 ## ⚙️ Tech Stack
