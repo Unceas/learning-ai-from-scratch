@@ -1,12 +1,12 @@
 # 🧠 Learning AI from Scratch
 
-A structured, from-scratch journey into Machine Learning and Neural Networks — without relying on high-level libraries.
+A structured, from-scratch journey into Machine Learning and Neural Networks — without high-level libraries.
 
 ---
 
 ## 🚀 Overview
 
-This repository documents a **day-by-day progression** of building core ML concepts from first principles, including:
+This repository documents a **day-by-day progression** of core ML concepts:
 
 * Linear Regression
 * Logistic Regression
@@ -15,7 +15,7 @@ This repository documents a **day-by-day progression** of building core ML conce
 * Neural Networks
 * Mini ML Projects
 
-The focus is on **understanding internals**, not just using libraries.
+Focus: **understanding internals, not just using libraries**
 
 ---
 
@@ -24,11 +24,11 @@ The focus is on **understanding internals**, not just using libraries.
 ```
 learning-ai-from-scratch/
 
-├── fundamentals/        # Core ML concepts and theory
-├── regression/          # Linear regression + gradient descent
-├── classification/      # Logistic regression + evaluation
-├── neural_networks/     # Neural network forward & training
-├── data/                # CSV datasets
+├── fundamentals/
+├── regression/
+├── classification/
+├── neural_networks/
+├── data/
 ├── README.md
 ```
 
@@ -36,11 +36,11 @@ learning-ai-from-scratch/
 
 ## 📘 Learning Focus
 
-* Implementing ML algorithms from scratch
-* Understanding optimization (gradient descent)
-* Building regression and classification models
-* Exploring neural network fundamentals
-* Writing clean, modular, and scalable code
+* ML algorithms from scratch
+* Optimization (gradient descent)
+* Regression & classification models
+* Neural network fundamentals
+* Clean, modular code
 
 ---
 
@@ -50,131 +50,119 @@ learning-ai-from-scratch/
 
 * Python basics
 * Linear regression intuition
-* Error and loss concepts
+* Loss & error concepts
 * Gradient descent intuition
-* Overfitting vs Underfitting
-* Train-Test Split
-* Bias-Variance Tradeoff
+* Overfitting vs underfitting
+* Train-test split
+* Bias-variance tradeoff
 
 ---
 
 ### 📈 Regression
 
-* Linear model implementation
-* Mean Absolute Error (MAE)
-* Mean Squared Error (MSE)
-* Gradient descent (step → loop → full training)
-* Training with multiple data points
+* Linear model + prediction
+* MAE, MSE
+* Gradient descent (step → full training)
+* Multi-data training
 * Loss tracking
-* Function-based training
-* Prediction system
-* Training on noisy data
-* Model evaluation (MSE on test set)
-* Visualization of regression line
-* CSV-based training pipeline
-* Mini Linear Regression Project
+* Model evaluation (MSE)
+* Visualization
+* CSV training pipeline
+* Mini regression project
 
 ---
 
 ### 📊 Classification
 
 * Sigmoid function
-* Logistic prediction
-* Binary Cross Entropy (BCE)
-* Logistic regression training
+* Logistic regression
+* BCE loss
 * Confusion matrix
-* Accuracy, Precision, Recall
-* F1 Score
-* TPR / FPR
-* ROC curve points
-* ROC visualization
-* Logistic regression with CSV dataset
-* Accuracy evaluation
+* Accuracy, precision, recall, F1
+* TPR / FPR + ROC
+* CSV-based classification
 * Decision boundary visualization
-* Feature scaling (Normalization)
+* Feature scaling
 
 ---
 
 ### 🧠 Neural Networks
 
-* Single neuron forward pass
-* Layer of neurons
-* Two-layer neural network
+* Single neuron
+* Multi-neuron layers
+* Two-layer network
 * Sigmoid derivative
-* Backpropagation basics
+* Backprop basics
 * Gradient updates
-* Single neuron training
-* Multi-layer neural network training
-* Loss tracking visualization
+* Training (single + multi-layer)
+* Loss visualization
 
 ---
 
-### Model Comparison
-- Compared Logistic Regression vs Neural Network
-- Same dataset used for fair evaluation
-- Demonstrates difference in model capacity
+### 🔍 Model Comparison
+
+* Logistic vs Neural Network
+* Same dataset comparison
+* Visualization of probability curves
 
 ---
 
 ## 🧪 Mini Projects
 
-### 🔹 Linear Regression from Scratch
+### 🔹 Linear Regression
 
-* Trained using gradient descent
-* Predicts continuous values
-* Supports CSV input
-
-### 🔹 Logistic Regression Classification
-
-* Binary classification (Pass/Fail)
-* Uses sigmoid activation
 * Gradient descent training
-* Accuracy evaluation
-* Decision boundary visualization
-* Feature scaling included
+* CSV input
+* Continuous prediction
 
-### 🔹 Model Comparison Visualization
-* Compared Logistic Regression vs Neural Network
-* Visualized probability curves
-* Demonstrates model behavior differences
+### 🔹 Logistic Classification
+
+* Binary classification
+* Accuracy evaluation
+* Decision boundary
+* Feature scaling
+
+### 🔹 Model Comparison
+
+* Logistic vs Neural Network
+* Probability curve visualization
 
 ---
 
 ## ⚙️ Tech Stack
 
-* Python (no ML libraries like sklearn)
-* Matplotlib (for visualization)
-* CSV (data handling)
+* Python (no ML libraries)
+* Matplotlib
+* CSV
 
 ---
 
 ## 🎯 Key Takeaways
 
-* ML models are built from simple mathematical operations
-* Gradient descent is the core optimization engine
-* Proper evaluation is as important as training
-* Feature scaling significantly impacts performance
-* Neural networks are layered compositions of simple units
+* ML = math + optimization
+* Gradient descent drives learning
+* Evaluation is critical
+* Feature scaling improves stability
+* Neural networks = layered functions
 
 ---
 
-## Future Improvements
+## 🚧 Future Improvements
 
-* Modular pipeline for all models
+* Modular ML pipeline
 * Multi-feature datasets
-* Neural network training improvements
-* Real-world dataset integration
-* Model comparison (Logistic vs Neural Network)
+* Neural network tuning
+* Real-world datasets
+* Model comparisons
 
 ---
 
 ## 📌 Note
 
-This repository focuses on **learning depth over library usage**.
-All implementations are intentionally built from scratch to strengthen fundamentals.
+Built entirely from scratch to strengthen **core ML understanding**.
 
 ---
 
 ## ⭐ If you find this useful
 
-Consider starring the repo — it helps track progress and visibility.
+Star the repo to support the journey.
