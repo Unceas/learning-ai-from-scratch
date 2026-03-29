@@ -83,7 +83,8 @@ learning-ai-from-scratch/
 * CSV-based classification
 * Decision boundary visualization
 * Feature scaling
-
+* Non-linear classification (XOR)
+* Neural network learns non-linear patterns
 ---
 
 ### 🧠 Neural Networks
