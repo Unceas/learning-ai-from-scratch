@@ -31,6 +31,15 @@ class LogisticModel:
             self.w[1] -= self.lr * dw[1]/len(X)
             self.b -= self.lr * db/len(X)
 
+
+    def accuracy(self, X, y):
+    correct = 0
+    for xi, yi in zip(X, y):
+        if self.predict(xi) == yi:
+            correct += 1
+    return correct / len(X)
+
+    
     def predict(self, x):
         z = self.w[0]*x[0] + self.w[1]*x[1] + self.b
         return 1 if self.sigmoid(z) >= 0.5 else 0
