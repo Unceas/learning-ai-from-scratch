@@ -4,6 +4,8 @@
 - Multi-feature input (hours, sleep, attendance)
 - Logistic regression from scratch
 - Accuracy evaluation
+- Feature scaling (Min-Max normalization)
+- Improved training stability
 
 ## Goal
 Predict pass/fail based on student behavior
