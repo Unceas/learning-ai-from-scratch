@@ -19,7 +19,25 @@ def load_data(path):
     return X, y
 
 
+def normalize(X):
+    cols = list(zip(*X))
+
+    min_vals = [min(col) for col in cols]
+    max_vals = [max(col) for col in cols]
+
+    X_norm = []
+
+    for row in X:
+        new_row = []
+        for i in range(len(row)):
+            val = (row[i] - min_vals[i]) / (max_vals[i] - min_vals[i])
+            new_row.append(val)
+        X_norm.append(new_row)
+
+    return X_norm, min_vals, max_vals
+
 X, y = load_data("data/student_data.csv")
+X, min_vals, max_vals = normalize(X)
 
 model = LogisticModel()
 model.train(X, y)
