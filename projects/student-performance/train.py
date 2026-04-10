@@ -51,7 +51,12 @@ X, y = load_data("data/student_data.csv")
 X, min_vals, max_vals = normalize(X)
 
 model = LogisticModel()
-model.train(X, y)
+X_train, X_test, y_train, y_test = train_test_split(X, y)
+
+model.train(X_train, y_train)
+
+print("Train Accuracy:", model.accuracy(X_train, y_train))
+print("Test Accuracy:", model.accuracy(X_test, y_test))
 
 print("Accuracy:", model.accuracy(X, y))
 
