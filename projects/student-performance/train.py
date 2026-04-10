@@ -18,6 +18,17 @@ def load_data(path):
 
     return X, y
 
+def train_test_split(X, y, split_ratio=0.8):
+    split = int(len(X) * split_ratio)
+
+    X_train = X[:split]
+    y_train = y[:split]
+
+    X_test = X[split:]
+    y_test = y[split:]
+
+    return X_train, X_test, y_train, y_test
+
 
 def normalize(X):
     cols = list(zip(*X))
