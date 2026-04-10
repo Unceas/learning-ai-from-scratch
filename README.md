@@ -2,6 +2,8 @@
 
 A structured, from-scratch journey into Machine Learning and Neural Networks — without high-level libraries.
 
+Built with a focus on clarity, fundamentals, and real-world application.
+
 ---
 
 ## 🚀 Overview
@@ -29,6 +31,7 @@ learning-ai-from-scratch/
 ├── classification/
 ├── neural_networks/
 ├── data/
+├── projects/
 ├── README.md
 ```
 
@@ -85,6 +88,9 @@ learning-ai-from-scratch/
 * Feature scaling
 * Non-linear classification (XOR)
 * Neural network learns non-linear patterns
+* Feature scaling (Min-Max normalization)
+* Train-test split for proper evaluation
+
 ---
 
 ### 🧠 Neural Networks
@@ -128,6 +134,13 @@ learning-ai-from-scratch/
 * Logistic vs Neural Network
 * Probability curve visualization
 
+### 🔹 Student Performance Predictor
+
+* Multi-feature input (hours, sleep, attendance)
+* Logistic regression from scratch
+* Feature scaling (normalization)
+* Train-test split evaluation
+
 ---
 
 ## ⚙️ Tech Stack
@@ -150,11 +163,11 @@ learning-ai-from-scratch/
 
 ## 🚧 Future Improvements
 
-* Modular ML pipeline
-* Multi-feature datasets
-* Neural network tuning
+* End-to-end ML pipeline
 * Real-world datasets
-* Model comparisons
+* Neural network improvements
+* Model comparison studies
+* Simple deployment (UI/app)
 
 ---
 
