@@ -1,3 +1,4 @@
+import random
 import csv
 from model import LogisticModel
 
@@ -19,13 +20,19 @@ def load_data(path):
     return X, y
 
 def train_test_split(X, y, split_ratio=0.8):
+
+    data = list(zip(X, y))
+    random.shuffle(data)
+
+    X, y = zip(*data)
+
     split = int(len(X) * split_ratio)
 
-    X_train = X[:split]
-    y_train = y[:split]
+    X_train = list(X[:split])
+    y_train = list(y[:split])
 
-    X_test = X[split:]
-    y_test = y[split:]
+    X_test = list(X[split:])
+    y_test = list(y[split:])
 
     return X_train, X_test, y_train, y_test
 
