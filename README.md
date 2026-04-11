@@ -140,6 +140,8 @@ learning-ai-from-scratch/
 * Logistic regression from scratch
 * Feature scaling (normalization)
 * Train-test split evaluation
+* Data shuffling before train-test split
+* Reduced bias in model evaluation
 
 ---
 
