@@ -54,6 +54,8 @@ def normalize(X):
 
     return X_norm, min_vals, max_vals
 
+
+
 X, y = load_data("data/student_data.csv")
 X, min_vals, max_vals = normalize(X)
 
@@ -70,3 +72,10 @@ print("Accuracy:", model.accuracy(X, y))
 # test
 test = [5, 7, 80]
 print("Prediction for", test, ":", model.predict(test))
+
+print("\nFeature Importance:")
+
+features = ["hours", "sleep", "attendance"]
+
+for i in range(len(model.w)):
+    print(features[i], ":", round(model.w[i], 4))
