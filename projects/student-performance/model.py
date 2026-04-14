@@ -37,6 +37,23 @@ class LogisticModel:
         z = sum(self.w[i]*x[i] for i in range(3)) + self.b
         return 1 if self.sigmoid(z) >= 0.5 else 0
 
+
+    def confusion_matrix(self, X, y):
+    tp = tn = fp = fn = 0
+
+    for xi, yi in zip(X, y):
+        pred = self.predict(xi)
+
+        if pred == 1 and yi == 1:
+            tp += 1
+        elif pred == 0 and yi == 0:
+            tn += 1
+        elif pred == 1 and yi == 0:
+            fp += 1
+        elif pred == 0 and yi == 1:
+            fn += 1
+
+    return tp, tn, fp, fn
     def accuracy(self, X, y):
         correct = 0
         for xi, yi in zip(X, y):
