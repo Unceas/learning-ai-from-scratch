@@ -69,6 +69,12 @@ print("Test Accuracy:", model.accuracy(X_test, y_test))
 
 print("Accuracy:", model.accuracy(X, y))
 
+precision = tp / (tp + fp) if (tp + fp) else 0
+recall = tp / (tp + fn) if (tp + fn) else 0
+
+print("Precision:", round(precision, 3))
+print("Recall:", round(recall, 3))
+
 # test
 test = [5, 7, 80]
 print("Prediction for", test, ":", model.predict(test))
