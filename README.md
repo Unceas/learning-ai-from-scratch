@@ -142,6 +142,7 @@ learning-ai-from-scratch/
 * Train-test split evaluation
 * Data shuffling before train-test split
 * Reduced bias in model evaluation
+* Confusion Matrix
 
 ---
 
