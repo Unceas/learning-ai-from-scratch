@@ -37,6 +37,9 @@ def train_test_split(X, y, split_ratio=0.8):
     return X_train, X_test, y_train, y_test
 
 
+
+
+
 def normalize(X):
     cols = list(zip(*X))
 
@@ -74,6 +77,15 @@ recall = tp / (tp + fn) if (tp + fn) else 0
 
 print("Precision:", round(precision, 3))
 print("Recall:", round(recall, 3))
+
+precision = tp / (tp + fp) if (tp + fp) else 0
+recall = tp / (tp + fn) if (tp + fn) else 0
+
+f1 = (2 * precision * recall) / (precision + recall) if (precision + recall) else 0
+
+print("Precision:", round(precision, 3))
+print("Recall:", round(recall, 3))
+print("F1 Score:", round(f1, 3))
 
 # test
 test = [5, 7, 80]
