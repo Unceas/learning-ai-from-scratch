@@ -97,3 +97,5 @@ features = ["hours", "sleep", "attendance"]
 
 for i in range(len(model.w)):
     print(features[i], ":", round(model.w[i], 4))
+
+model.save_model("model.json")
