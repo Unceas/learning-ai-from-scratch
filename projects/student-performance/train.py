@@ -99,3 +99,10 @@ for i in range(len(model.w)):
     print(features[i], ":", round(model.w[i], 4))
 
 model.save_model("model.json")
+
+
+new_model = LogisticModel()
+new_model.load_model("model.json")
+
+print("\nLoaded Model Prediction:",
+      new_model.predict(test))
