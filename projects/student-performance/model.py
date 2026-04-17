@@ -1,4 +1,5 @@
 import math
+import json
 
 class LogisticModel:
 
@@ -10,6 +11,15 @@ class LogisticModel:
 
     def sigmoid(self, x):
         return 1/(1+math.exp(-x))
+
+    def save_model(self, path):
+    data = {
+        "weights": self.w,
+        "bias": self.b
+    }
+
+    with open(path, "w") as f:
+        json.dump(data, f)
 
     def train(self, X, y):
 
@@ -52,6 +62,8 @@ class LogisticModel:
             fp += 1
         elif pred == 0 and yi == 1:
             fn += 1
+
+        
 
     return tp, tn, fp, fn
     def accuracy(self, X, y):
