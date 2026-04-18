@@ -136,13 +136,13 @@ learning-ai-from-scratch/
 
 ### 🔹 Student Performance Predictor
 
-* Multi-feature input (hours, sleep, attendance)
-* Logistic regression from scratch
-* Feature scaling (normalization)
-* Train-test split evaluation
-* Data shuffling before train-test split
-* Reduced bias in model evaluation
-* Confusion Matrix
+- Multi-feature input (hours, sleep, attendance)
+- Logistic regression from scratch
+- Feature scaling (Min-Max normalization)
+- Train-test split with data shuffling
+- Evaluation: accuracy, precision, recall, F1, confusion matrix
+- Model saving/loading (JSON persistence)
+- CLI-based user input prediction
 
 ---
 
