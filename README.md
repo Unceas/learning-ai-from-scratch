@@ -143,6 +143,8 @@ learning-ai-from-scratch/
 - Evaluation: accuracy, precision, recall, F1, confusion matrix
 - Model saving/loading (JSON persistence)
 - CLI-based user input prediction
+- Simple web UI using Streamlit
+- Interactive real-time prediction interface
 
 ---
 
