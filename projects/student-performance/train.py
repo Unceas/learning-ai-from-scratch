@@ -10,11 +10,13 @@ def load_data(path):
         next(reader)
 
         for row in reader:
-            X.append([
-                float(row[0]),   # hours
-                float(row[1]),   # sleep
-                float(row[2])    # attendance
-            ])
+            hours = float(row[0])
+            sleep = float(row[1])
+            attendance = float(row[2])
+            
+            efficiency = hours * attendance
+            
+            X.append([hours, sleep, attendance, efficiency])
             y.append(int(row[3]))
 
     return X, y
