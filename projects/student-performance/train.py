@@ -2,6 +2,7 @@ import random
 import csv
 from model import LogisticModel
 
+# ---------------- LOAD DATA ----------------
 def load_data(path):
     X, y = [], []
 
@@ -13,16 +14,17 @@ def load_data(path):
             hours = float(row[0])
             sleep = float(row[1])
             attendance = float(row[2])
-            
+
             efficiency = hours * attendance
-            
+
             X.append([hours, sleep, attendance, efficiency])
             y.append(int(row[3]))
 
     return X, y
 
-def train_test_split(X, y, split_ratio=0.8):
 
+# ---------------- TRAIN TEST SPLIT ----------------
+def train_test_split(X, y, split_ratio=0.8):
     data = list(zip(X, y))
     random.shuffle(data)
 
@@ -39,9 +41,7 @@ def train_test_split(X, y, split_ratio=0.8):
     return X_train, X_test, y_train, y_test
 
 
-
-
-
+# ---------------- NORMALIZATION ----------------
 def normalize(X):
     cols = list(zip(*X))
 
@@ -60,26 +60,30 @@ def normalize(X):
     return X_norm, min_vals, max_vals
 
 
-
+# ---------------- MAIN ----------------
 X, y = load_data("data/student_data.csv")
+
+# normalize
 X, min_vals, max_vals = normalize(X)
 
-model = LogisticModel()
+# split
 X_train, X_test, y_train, y_test = train_test_split(X, y)
 
+# train
+model = LogisticModel()
 model.train(X_train, y_train)
 
+# ---------------- EVALUATION ----------------
 print("Train Accuracy:", model.accuracy(X_train, y_train))
 print("Test Accuracy:", model.accuracy(X_test, y_test))
 
-print("Accuracy:", model.accuracy(X, y))
+# confusion matrix
+tp, tn, fp, fn = model.confusion_matrix(X_test, y_test)
 
-precision = tp / (tp + fp) if (tp + fp) else 0
-recall = tp / (tp + fn) if (tp + fn) else 0
+print("\nConfusion Matrix:")
+print("TP:", tp, "TN:", tn, "FP:", fp, "FN:", fn)
 
-print("Precision:", round(precision, 3))
-print("Recall:", round(recall, 3))
-
+# precision, recall, f1
 precision = tp / (tp + fp) if (tp + fp) else 0
 recall = tp / (tp + fn) if (tp + fn) else 0
 
@@ -89,20 +93,34 @@ print("Precision:", round(precision, 3))
 print("Recall:", round(recall, 3))
 print("F1 Score:", round(f1, 3))
 
-# test
-test = [5, 7, 80]
-print("Prediction for", test, ":", model.predict(test))
 
+# ---------------- TEST INPUT ----------------
+test_raw = [5, 7, 80]
+
+efficiency = test_raw[0] * test_raw[2]
+test_raw.append(efficiency)
+
+test = [
+    (test_raw[i] - min_vals[i]) / (max_vals[i] - min_vals[i])
+    for i in range(len(test_raw))
+]
+
+print("\nPrediction for", test_raw, ":", model.predict(test))
+
+
+# ---------------- FEATURE IMPORTANCE ----------------
 print("\nFeature Importance:")
 
-features = ["hours", "sleep", "attendance"]
+features = ["hours", "sleep", "attendance", "efficiency"]
 
 for i in range(len(model.w)):
     print(features[i], ":", round(model.w[i], 4))
 
+
+# ---------------- SAVE MODEL ----------------
 model.save_model("model.json")
 
-
+# ---------------- LOAD MODEL TEST ----------------
 new_model = LogisticModel()
 new_model.load_model("model.json")
 
