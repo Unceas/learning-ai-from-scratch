@@ -6,7 +6,7 @@ class LogisticModel:
     def __init__(self, lr=0.01, epochs=500):
         self.lr = lr
         self.epochs = epochs
-        self.w = [0, 0, 0]
+        self.w = [0, 0, 0, 0]
         self.b = 0
 
     def sigmoid(self, x):
