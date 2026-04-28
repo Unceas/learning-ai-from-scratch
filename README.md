@@ -150,6 +150,7 @@ Predicts whether a student will pass or fail based on:
 - Evaluation: accuracy, precision, recall, F1, confusion matrix
 - Model saving/loading (JSON)
 - CLI + Streamlit UI
+- HyperParameter Tuning 
 
 ---
 
