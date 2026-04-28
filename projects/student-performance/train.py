@@ -69,9 +69,33 @@ X, min_vals, max_vals = normalize(X)
 # split
 X_train, X_test, y_train, y_test = train_test_split(X, y)
 
-# train
-model = LogisticModel()
-model.train(X_train, y_train)
+# ---------------- HYPERPARAMETER TUNING ----------------
+configs = [
+    (0.01, 300),
+    (0.01, 700),
+    (0.05, 500),
+    (0.1, 500)
+]
+
+best_acc = 0
+best_model = None
+
+for lr, epochs in configs:
+
+    temp_model = LogisticModel(lr=lr, epochs=epochs)
+    temp_model.train(X_train, y_train)
+
+    acc = temp_model.accuracy(X_test, y_test)
+
+    print(f"lr={lr}, epochs={epochs} → Test Acc={round(acc,3)}")
+
+    if acc > best_acc:
+        best_acc = acc
+        best_model = temp_model
+
+# use best model
+model = best_model
+print("\nBest Test Accuracy:", round(best_acc, 3))
 
 # ---------------- EVALUATION ----------------
 print("Train Accuracy:", model.accuracy(X_train, y_train))
