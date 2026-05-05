@@ -134,75 +134,10 @@ learning-ai-from-scratch/
 * Logistic vs Neural Network
 * Probability curve visualization
 
-# 🎓 Student Performance Predictor
+###  Student Performance Predictor
 
-Predicts whether a student will pass or fail based on:
-- Study hours
-- Sleep hours
-- Attendance
-
----
-
-## 🚀 Features
-- Logistic regression from scratch
-- Feature scaling (Min-Max normalization)
-- Train-test split with shuffling
-- Evaluation: accuracy, precision, recall, F1, confusion matrix
-- Model saving/loading (JSON)
-- CLI + Streamlit UI
-- HyperParameter Tuning 
-
----
-
-## ▶️ Run Project
-
-### 1. Train model
-```
-python train.py 
-````
-### 2. Run CLI app
-```
-python app.py
-```
-### 3. Run Web UI
-```
-streamlit run app_streamlit.py
-```
-## 📊 Example Input
-Hours: 5
-Sleep: 7
-Attendance: 80
-
-## 🎯 Goal
-Understand and implement ML systems from scratch without libraries
-
----
-
-## ⚙️ Tech Stack
-
-* Python (no ML libraries)
-* Matplotlib
-* CSV
-
----
-
-## 🎯 Key Takeaways
-
-* ML = math + optimization
-* Gradient descent drives learning
-* Evaluation is critical
-* Feature scaling improves stability
-* Neural networks = layered functions
-
----
-
-## 🚧 Future Improvements
-
-* End-to-end ML pipeline
-* Real-world datasets
-* Neural network improvements
-* Model comparison studies
-* Simple deployment (UI/app)
+- Fully structured ML project with evaluation, visualization, and UI
+- Poject demonstrating end-to-end ML pipeline
 
 ---
 
