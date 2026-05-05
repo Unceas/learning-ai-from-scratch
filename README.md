@@ -134,7 +134,7 @@ learning-ai-from-scratch/
 * Logistic vs Neural Network
 * Probability curve visualization
 
-###  Student Performance Predictor
+### 🔹 Student Performance Predictor
 
 - Fully structured ML project with evaluation, visualization, and UI
 - Poject demonstrating end-to-end ML pipeline
