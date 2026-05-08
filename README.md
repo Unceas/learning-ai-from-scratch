@@ -141,6 +141,12 @@ learning-ai-from-scratch/
 
 ---
 
+### 🔹 Spam Message Classifier
+- Text classification using logistic regression
+- Basic NLP pipeline with Bag-of-Words vectorization
+
+---
+
 ## 📌 Note
 
 Built entirely from scratch to strengthen **core ML understanding**.
