@@ -1,11 +1,12 @@
 import csv
 from model import LogisticModel
+import json
 
 messages = []
 labels = []
 
 # ---------- LOAD ----------
-with open("data/messages.csv") as f:
+with open("C:\Users\kayus\OneDrive\Desktop\learning-ai-from-scratch\projects\spam-classifier\data\messages.csv") as f:
     reader = csv.reader(f)
     next(reader)
 
@@ -51,6 +52,15 @@ test_msg = "free money now"
 test_vector = vectorize(test_msg)
 
 prediction = model.predict(test_vector)
+
+
+with open("vocab.json", "w") as f:
+    json.dump(vocab, f)
+
+model.save_model("model.json")
+
+print("\nVocabulary saved.")
+
 
 print("Message:", test_msg)
 print("Prediction:", "SPAM" if prediction == 1 else "NOT SPAM")
