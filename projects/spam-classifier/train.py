@@ -6,7 +6,7 @@ messages = []
 labels = []
 
 # ---------- LOAD ----------
-with open("C:\Users\kayus\OneDrive\Desktop\learning-ai-from-scratch\projects\spam-classifier\data\messages.csv") as f:
+with open("data/messages.csv") as f:
     reader = csv.reader(f)
     next(reader)
 
