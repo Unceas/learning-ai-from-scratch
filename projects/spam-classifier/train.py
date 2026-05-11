@@ -1,6 +1,7 @@
 import csv
 from model import LogisticModel
 import json
+import re
 
 messages = []
 labels = []
@@ -18,14 +19,14 @@ with open("data/messages.csv") as f:
 vocab = set()
 
 for msg in messages:
-    vocab.update(msg.split())
+    vocab.update(preprocess(msg))
 
 vocab = list(vocab)
 
 # ---------- VECTORIZE ----------
 def vectorize(message):
 
-    words = message.lower().split()
+    words = preprocess(message)
 
     vector = []
 
@@ -54,6 +55,11 @@ test_vector = vectorize(test_msg)
 prediction = model.predict(test_vector)
 
 
+stopwords = {
+    "the", "is", "at", "on", "in",
+    "a", "an", "to", "for", "of"
+}
+
 with open("vocab.json", "w") as f:
     json.dump(vocab, f)
 
@@ -64,3 +70,18 @@ print("\nVocabulary saved.")
 
 print("Message:", test_msg)
 print("Prediction:", "SPAM" if prediction == 1 else "NOT SPAM")
+
+def preprocess(text):
+
+    # lowercase
+    text = text.lower()
+
+    # remove punctuation
+    text = re.sub(r'[^a-zA-Z0-9\s]', '', text)
+
+    words = text.split()
+
+    # remove stopwords
+    words = [w for w in words if w not in stopwords]
+
+    return words
