@@ -2,6 +2,7 @@ import csv
 from model import LogisticModel
 import json
 import re
+import random
 
 messages = []
 labels = []
@@ -39,13 +40,15 @@ def vectorize(message):
 X = [vectorize(msg) for msg in messages]
 y = labels
 
+X_train, X_test, y_train, y_test = train_test_split(X, y)
+
 # ---------- MODEL ----------
 model = LogisticModel()
 
 # dynamic weights
 model.w = [0] * len(vocab)
 
-model.train(X, y)
+model.train(X_train, y_train)
 
 # ---------- TEST ----------
 test_msg = "free money now"
@@ -85,3 +88,40 @@ def preprocess(text):
     words = [w for w in words if w not in stopwords]
 
     return words
+
+def train_test_split(X, y, split_ratio=0.8):
+
+    data = list(zip(X, y))
+    random.shuffle(data)
+
+    X, y = zip(*data)
+
+    split = int(len(X) * split_ratio)
+
+    X_train = list(X[:split])
+    y_train = list(y[:split])
+
+    X_test = list(X[split:])
+    y_test = list(y[split:])
+
+    return X_train, X_test, y_train, y_test
+
+train_acc = model.accuracy(X_train, y_train)
+test_acc = model.accuracy(X_test, y_test)
+
+print("Train Accuracy:", round(train_acc, 3))
+print("Test Accuracy:", round(test_acc, 3))
+
+tp, tn, fp, fn = model.confusion_matrix(X_test, y_test)
+
+precision = tp / (tp + fp) if (tp + fp) else 0
+recall = tp / (tp + fn) if (tp + fn) else 0
+
+f1 = (2 * precision * recall) / (precision + recall) if (precision + recall) else 0
+
+print("\nConfusion Matrix:")
+print("TP:", tp, "TN:", tn, "FP:", fp, "FN:", fn)
+
+print("Precision:", round(precision, 3))
+print("Recall:", round(recall, 3))
+print("F1 Score:", round(f1, 3))
