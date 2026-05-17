@@ -1,44 +1,82 @@
 import re
 
 # ---------- REQUIRED SKILLS ----------
-required_skills = {
-    "python",
-    "machine",
-    "learning",
-    "sql",
-    "react",
-    "fastapi",
-    "git"
+skill_map = {
+
+    "python": [
+        "python"
+    ],
+
+    "machine learning": [
+        "machine learning",
+        "ml",
+        "scikit",
+        "tensorflow",
+        "pytorch"
+    ],
+
+    "sql": [
+        "sql",
+        "mysql",
+        "postgresql"
+    ],
+
+    "react": [
+        "react",
+        "reactjs"
+    ],
+
+    "fastapi": [
+        "fastapi",
+        "api"
+    ],
+
+    "git": [
+        "git",
+        "github"
+    ]
 }
+
 
 # ---------- PREPROCESS ----------
 def preprocess(text):
+    cleaned_text = re.sub(r"[^a-zA-Z0-9+#.\s]", " ", text.lower())
+    cleaned_text = re.sub(r"\s+", " ", cleaned_text).strip()
 
-    text = text.lower()
+    return cleaned_text
 
-    text = re.sub(r'[^a-zA-Z0-9\s]', '', text)
 
-    words = text.split()
+def has_skill(text, aliases):
+    return any(re.search(rf"\b{re.escape(alias)}\b", text) for alias in aliases)
 
-    return words
 
 # ---------- ANALYZE ----------
 def analyze_resume(text):
 
-    words = preprocess(text)
+    text = text.lower()
 
-    found = set()
+    found = []
 
-    for word in words:
-        if word in required_skills:
-            found.add(word)
+    for skill, keywords in skill_map.items():
 
-    missing = required_skills - found
+        for keyword in keywords:
 
-    score = int((len(found) / len(required_skills)) * 100)
+            if keyword in text:
+                found.append(skill)
+                break
+
+    found = sorted(list(set(found)))
+
+    missing = sorted(
+        list(set(skill_map.keys()) - set(found))
+    )
+
+    score = int(
+        (len(found) / len(skill_map)) * 100
+    )
 
     return {
         "score": score,
-        "found": sorted(list(found)),
-        "missing": sorted(list(missing))
+        "found": found,
+        "missing": missing
     }
