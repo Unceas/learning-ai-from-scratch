@@ -38,6 +38,29 @@ skill_map = {
 }
 
 
+job_roles = {
+
+    "ML Engineer": [
+        "python",
+        "machine learning",
+        "sql",
+        "git"
+    ],
+
+    "Backend Developer": [
+        "python",
+        "fastapi",
+        "sql",
+        "git"
+    ],
+
+    "Frontend Developer": [
+        "react",
+        "git"
+    ]
+}
+
+
 # ---------- PREPROCESS ----------
 def preprocess(text):
     cleaned_text = re.sub(r"[^a-zA-Z0-9+#.\s]", " ", text.lower())
@@ -76,6 +99,41 @@ def analyze_resume(text):
     )
 
     return {
+        "score": score,
+        "found": found,
+        "missing": missing
+    }
+
+def analyze_for_role(text, role):
+
+    text = text.lower()
+
+    required = job_roles[role]
+
+    found = []
+
+    for skill in required:
+
+        keywords = skill_map[skill]
+
+        for keyword in keywords:
+
+            if keyword in text:
+                found.append(skill)
+                break
+
+    found = sorted(list(set(found)))
+
+    missing = sorted(
+        list(set(required) - set(found))
+    )
+
+    score = int(
+        (len(found) / len(required)) * 100
+    )
+
+    return {
+        "role": role,
         "score": score,
         "found": found,
         "missing": missing

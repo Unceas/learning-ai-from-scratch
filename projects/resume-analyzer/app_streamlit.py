@@ -1,14 +1,17 @@
 import streamlit as st
-from analyzer import analyze_resume
+from analyzer import analyze_for_role, job_roles
 from PyPDF2 import PdfReader
 
 
 # ---------- EXTRACT PDF TEXT ----------
 def extract_text_from_pdf(pdf_file):
+
     reader = PdfReader(pdf_file)
+
     text = ""
 
     for page in reader.pages:
+
         extracted = page.extract_text()
 
         if extracted:
@@ -17,18 +20,19 @@ def extract_text_from_pdf(pdf_file):
     return text
 
 
+# ---------- MAIN ----------
 def main():
-    # ---------- UI ----------
+
     st.set_page_config(
         page_title="AI Resume Analyzer",
-        layout="centered",
+        layout="centered"
     )
 
-    st.title("AI Resume Analyzer")
+    st.title("📄 AI Resume Analyzer")
 
     uploaded_file = st.file_uploader(
         "Upload Resume (PDF)",
-        type=["pdf"],
+        type=["pdf"]
     )
 
     if uploaded_file is None:
@@ -36,6 +40,7 @@ def main():
 
     try:
         resume_text = extract_text_from_pdf(uploaded_file)
+
     except Exception as exc:
         st.error(f"Could not read this PDF: {exc}")
         return
@@ -45,23 +50,38 @@ def main():
         return
 
     st.subheader("Extracted Resume Text")
+
     st.text_area(
         "Resume Content",
         resume_text,
-        height=250,
+        height=250
     )
 
+    # ---------- ROLE SELECT ----------
+    selected_role = st.selectbox(
+        "Select Job Role",
+        list(job_roles.keys())
+    )
+
+    # ---------- ANALYSIS ----------
     if st.button("Analyze Resume"):
-        result = analyze_resume(resume_text)
 
-        st.subheader(f"Resume Score: {result['score']}%")
+        result = analyze_for_role(
+            resume_text,
+            selected_role
+        )
 
-        st.write("### Skills Found")
+        st.subheader(
+            f"Resume Score: {result['score']}%"
+        )
+
+        st.write("### ✅ Skills Found")
         st.write(result["found"])
 
-        st.write("### Missing Skills")
+        st.write("### ❌ Missing Skills")
         st.write(result["missing"])
 
 
+# ---------- RUN ----------
 if __name__ == "__main__":
     main()
