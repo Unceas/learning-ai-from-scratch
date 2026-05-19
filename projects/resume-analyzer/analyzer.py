@@ -38,6 +38,7 @@ skill_map = {
 }
 
 
+# ---------- JOB ROLES ----------
 job_roles = {
 
     "ML Engineer": [
@@ -63,30 +64,45 @@ job_roles = {
 
 # ---------- PREPROCESS ----------
 def preprocess(text):
-    cleaned_text = re.sub(r"[^a-zA-Z0-9+#.\s]", " ", text.lower())
-    cleaned_text = re.sub(r"\s+", " ", cleaned_text).strip()
+
+    cleaned_text = re.sub(
+        r"[^a-zA-Z0-9+#.\s]",
+        " ",
+        text.lower()
+    )
+
+    cleaned_text = re.sub(
+        r"\s+",
+        " ",
+        cleaned_text
+    ).strip()
 
     return cleaned_text
 
 
+# ---------- SKILL CHECK ----------
 def has_skill(text, aliases):
-    return any(re.search(rf"\b{re.escape(alias)}\b", text) for alias in aliases)
+
+    return any(
+        re.search(
+            rf"\b{re.escape(alias)}\b",
+            text
+        )
+        for alias in aliases
+    )
 
 
-# ---------- ANALYZE ----------
+# ---------- GENERIC ANALYSIS ----------
 def analyze_resume(text):
 
-    text = text.lower()
+    text = preprocess(text)
 
     found = []
 
-    for skill, keywords in skill_map.items():
+    for skill, aliases in skill_map.items():
 
-        for keyword in keywords:
-
-            if keyword in text:
-                found.append(skill)
-                break
+        if has_skill(text, aliases):
+            found.append(skill)
 
     found = sorted(list(set(found)))
 
@@ -104,9 +120,11 @@ def analyze_resume(text):
         "missing": missing
     }
 
+
+# ---------- ROLE-BASED ANALYSIS ----------
 def analyze_for_role(text, role):
 
-    text = text.lower()
+    text = preprocess(text)
 
     required = job_roles[role]
 
@@ -114,13 +132,10 @@ def analyze_for_role(text, role):
 
     for skill in required:
 
-        keywords = skill_map[skill]
+        aliases = skill_map[skill]
 
-        for keyword in keywords:
-
-            if keyword in text:
-                found.append(skill)
-                break
+        if has_skill(text, aliases):
+            found.append(skill)
 
     found = sorted(list(set(found)))
 
@@ -138,3 +153,42 @@ def analyze_for_role(text, role):
         "found": found,
         "missing": missing
     }
+
+
+# ---------- FEEDBACK GENERATION ----------
+def generate_feedback(result):
+
+    score = result["score"]
+    missing = result["missing"]
+    role = result["role"]
+
+    feedback = []
+
+    if score >= 80:
+
+        feedback.append(
+            f"Strong alignment for {role} roles."
+        )
+
+    elif score >= 50:
+
+        feedback.append(
+            f"Moderate match for {role}. Resume can be improved."
+        )
+
+    else:
+
+        feedback.append(
+            f"Weak match for {role}. Major skill gaps detected."
+        )
+
+    if missing:
+
+        feedback.append(
+            "Recommended skills to improve:"
+        )
+
+        for skill in missing:
+            feedback.append(f"- {skill}")
+
+    return feedback
