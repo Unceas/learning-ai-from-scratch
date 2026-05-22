@@ -116,6 +116,15 @@ def main():
         else:
             st.write("No missing skills.")
 
+        #-------------DENSITY------------    
+            st.write("### 📈 Keyword Density")
+
+        for skill, density in result["keyword_scores"].items():
+
+            st.write(
+                f"{skill}: {density}"
+            )    
+
         # ---------- FEEDBACK ----------
         feedback = generate_feedback(result)
 

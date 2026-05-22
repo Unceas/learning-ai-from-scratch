@@ -91,6 +91,20 @@ def has_skill(text, aliases):
         for alias in aliases
     )
 
+def keyword_density(text, aliases):
+
+    total = 0
+
+    for alias in aliases:
+
+        matches = re.findall(
+            rf"\b{re.escape(alias)}\b",
+            text
+        )
+
+        total += len(matches)
+
+    return total
 
 # ---------- GENERIC ANALYSIS ----------
 def analyze_resume(text):
@@ -130,11 +144,24 @@ def analyze_for_role(text, role):
 
     found = []
 
+    keyword_scores = {}
+
+    total_density = 0
+
     for skill in required:
 
         aliases = skill_map[skill]
 
-        if has_skill(text, aliases):
+        density = keyword_density(
+            text,
+            aliases
+        )
+
+        keyword_scores[skill] = density
+
+        total_density += density
+
+        if density > 0:
             found.append(skill)
 
     found = sorted(list(set(found)))
@@ -143,15 +170,23 @@ def analyze_for_role(text, role):
         list(set(required) - set(found))
     )
 
+    base_score = (
+        len(found) / len(required)
+    ) * 100
+
+    # ATS optimization bonus
+    density_bonus = min(total_density * 2, 20)
+
     score = int(
-        (len(found) / len(required)) * 100
+        min(base_score + density_bonus, 100)
     )
 
     return {
         "role": role,
         "score": score,
         "found": found,
-        "missing": missing
+        "missing": missing,
+        "keyword_scores": keyword_scores
     }
 
 
