@@ -32,7 +32,25 @@ def main():
         layout="centered"
     )
 
-    st.title("📄 AI Resume Analyzer")
+    # ---------- SIDEBAR ----------
+    st.sidebar.title("AI Resume Analyzer")
+
+    st.sidebar.markdown("""
+    ### Features
+    - ATS Resume Scoring
+    - Semantic Skill Matching
+    - Keyword Density Analysis
+    - AI Feedback Generation
+    - PDF Resume Parsing
+    """)
+
+    # ---------- TITLE ----------
+    st.title("AI Resume Analyzer")
+
+    st.caption(
+        "ATS-style resume analysis with NLP-based "
+        "skill matching and optimization scoring."
+    )
 
     st.write(
         "Upload your resume and get ATS-style "
@@ -96,39 +114,47 @@ def main():
         )
 
         # ---------- SCORE ----------
-        st.subheader(
-            f"Resume Score: {result['score']}%"
+        st.metric(
+            label="Resume Score",
+            value=f"{result['score']}%"
         )
 
-        # ---------- FOUND ----------
-        st.write("### ✅ Skills Found")
+        # ---------- FOUND SKILLS ----------
+        st.write("## Skills Found")
 
         if result["found"]:
-            st.write(result["found"])
+
+            for skill in result["found"]:
+                st.success(skill)
+
         else:
             st.write("No matching skills found.")
 
-        # ---------- MISSING ----------
-        st.write("### ❌ Missing Skills")
+        # ---------- MISSING SKILLS ----------
+        st.write("## Missing Skills")
 
         if result["missing"]:
-            st.write(result["missing"])
+
+            for skill in result["missing"]:
+                st.warning(skill)
+
         else:
             st.write("No missing skills.")
 
-        #-------------DENSITY------------    
-            st.write("### 📈 Keyword Density")
+        # ---------- KEYWORD DENSITY ----------
+        st.write("## Keyword Density")
 
         for skill, density in result["keyword_scores"].items():
 
-            st.write(
-                f"{skill}: {density}"
-            )    
+            st.progress(
+                min(density / 5, 1.0),
+                text=f"{skill}: {density}"
+            )
 
         # ---------- FEEDBACK ----------
         feedback = generate_feedback(result)
 
-        st.write("### 🧠 AI Feedback")
+        st.write("## AI Feedback")
 
         for line in feedback:
             st.write(line)
