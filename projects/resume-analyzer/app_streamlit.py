@@ -1,3 +1,5 @@
+import pandas as pd
+import matplotlib.pyplot as plt
 import streamlit as st
 from analyzer import (
     analyze_for_role,
@@ -159,6 +161,36 @@ def main():
         for line in feedback:
             st.write(line)
 
+        # ---------- VISUAL ANALYTICS ----------
+        st.write("## Analytics Dashboard")
+
+        density_data = pd.DataFrame({
+            "Skill": list(result["keyword_scores"].keys()),
+            "Density": list(result["keyword_scores"].values())
+        })
+
+        st.bar_chart(
+            density_data.set_index("Skill")
+        )
+
+        st.write("## Score Interpretation")
+
+        score = result["score"]
+
+        if score >= 80:
+            st.success(
+                "Strong ATS alignment detected."
+            )
+
+        elif score >= 50:
+            st.warning(
+                "Moderate ATS alignment. Improvements recommended."
+            )
+
+        else:
+            st.error(
+                "Weak ATS alignment detected."
+            )
 
 # ---------- RUN ----------
 if __name__ == "__main__":
