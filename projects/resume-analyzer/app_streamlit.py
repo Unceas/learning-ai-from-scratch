@@ -4,6 +4,7 @@ import streamlit as st
 from analyzer import (
     analyze_for_role,
     generate_feedback,
+    match_job_description,
     job_roles
 )
 from PyPDF2 import PdfReader
@@ -106,7 +107,12 @@ def main():
         "Select Job Role",
         list(job_roles.keys())
     )
+    #---------JD---------------------
 
+    job_description = st.text_area(
+        "Paste Job Description",
+        height=200
+    )
     # ---------- ANALYSIS ----------
     if st.button("Analyze Resume"):
 
@@ -191,6 +197,35 @@ def main():
             st.error(
                 "Weak ATS alignment detected."
             )
+
+            # ---------- JOB DESCRIPTION MATCH ----------
+        if job_description.strip():
+
+            jd_result = match_job_description(
+                resume_text,
+                job_description
+            )
+
+            st.write("## Job Description Match")
+
+            st.metric(
+                "JD Match Score",
+                f"{jd_result['score']}%"
+            )
+
+            st.write("### Matching Keywords")
+
+            if jd_result["matched"]:
+
+                for word in jd_result["matched"][:20]:
+                    st.success(word)
+
+            st.write("### Missing JD Keywords")
+
+            if jd_result["missing"]:
+
+                for word in jd_result["missing"]:
+                    st.warning(word)
 
 # ---------- RUN ----------
 if __name__ == "__main__":

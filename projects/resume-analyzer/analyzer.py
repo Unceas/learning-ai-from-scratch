@@ -227,3 +227,32 @@ def generate_feedback(result):
             feedback.append(f"- {skill}")
 
     return feedback
+
+
+def match_job_description(
+    resume_text,
+    job_description
+):
+
+    resume_text = preprocess(resume_text)
+    job_description = preprocess(job_description)
+
+    resume_words = set(resume_text.split())
+    jd_words = set(job_description.split())
+
+    common = resume_words.intersection(jd_words)
+
+    missing = jd_words - resume_words
+
+    if len(jd_words) == 0:
+        score = 0
+    else:
+        score = int(
+            (len(common) / len(jd_words)) * 100
+        )
+
+    return {
+        "score": score,
+        "matched": sorted(list(common)),
+        "missing": sorted(list(missing))[:20]
+    }
