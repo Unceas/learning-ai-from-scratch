@@ -14,6 +14,8 @@ Modern ATS-style resume analysis platform with:
 
 - Resume scoring
 - JD matching
+- Strengths, gaps, and recommendations
+- Role coverage for ML, data, backend, frontend, full stack, DevOps, and AI
 - NLP preprocessing
 - Analytics dashboard
 - AI-generated feedback

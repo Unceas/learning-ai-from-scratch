@@ -35,10 +35,11 @@ if st.button("Match Job Description"):
     jd_result = match_job_description(resume_text, job_description)
 
     st.metric("JD Match Score", f"{jd_result['score']}%")
+    st.caption(jd_result["label"])
 
-    st.write("### Matching Keywords")
-    if jd_result["matched"]:
-        for word in jd_result["matched"][:20]:
+    st.write("### Strengths")
+    if jd_result["strengths"]:
+        for word in jd_result["strengths"][:20]:
             st.success(word)
     else:
         st.write("No overlap detected.")
@@ -49,3 +50,7 @@ if st.button("Match Job Description"):
             st.warning(word)
     else:
         st.write("No missing JD keywords.")
+
+    st.write("### Recommendations")
+    for line in jd_result["recommendations"]:
+        st.info(line)

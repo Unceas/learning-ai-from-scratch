@@ -1,4 +1,3 @@
-import pandas as pd
 import streamlit as st
 
 from analyzer import analyze_for_role, generate_feedback, job_roles
@@ -42,13 +41,14 @@ if st.button("Analyze Resume"):
     st.session_state["resume_analysis_feedback"] = feedback
 
     st.metric(label="Resume Score", value=f"{result['score']}%")
+    st.caption(result["label"])
 
-    st.write("## Skills Found")
-    if result["found"]:
-        for skill in result["found"]:
+    st.write("## Strengths")
+    if result["strengths"]:
+        for skill in result["strengths"]:
             st.success(skill)
     else:
-        st.write("No matching skills found.")
+        st.write("No strengths detected.")
 
     st.write("## Missing Skills")
     if result["missing"]:
@@ -61,25 +61,13 @@ if st.button("Analyze Resume"):
     for skill, density in result["keyword_scores"].items():
         st.progress(min(density / 5, 1.0), text=f"{skill}: {density}")
 
+    st.write("## Recommendations")
+    for line in result["recommendations"]:
+        st.info(line)
+
     st.write("## AI Feedback")
     for line in feedback:
         st.write(line)
 
-    st.write("## Quick Analytics")
-    density_data = pd.DataFrame(
-        {
-            "Skill": list(result["keyword_scores"].keys()),
-            "Density": list(result["keyword_scores"].values()),
-        }
-    )
-    st.bar_chart(density_data.set_index("Skill"))
-
-    score = result["score"]
-
     st.write("## Score Interpretation")
-    if score >= 80:
-        st.success("Strong ATS alignment detected.")
-    elif score >= 50:
-        st.warning("Moderate ATS alignment. Improvements recommended.")
-    else:
-        st.error("Weak ATS alignment detected.")
+    st.success(result["label"])
