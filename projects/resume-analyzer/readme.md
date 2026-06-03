@@ -4,9 +4,10 @@ An ATS-style resume analyzer built as a multi-page Streamlit dashboard.
 
 ## Demo
 
-![Dashboard](images/dashboard.png)
+Under Maintenance
+<!-- ![Dashboard](images/dashboard.png)
 
-![JD Matching](images/jd-matching.png)
+![JD Matching](images/jd-matching.png) -->
 
 ## Features
 
