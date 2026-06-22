@@ -15,6 +15,12 @@ A document intelligence system capable of processing research papers and extract
 - Streamlit
 - PyPDF2
 
+## Retrieval Engine
+
+The assistant ranks document chunks based on keyword overlap between the user query and document content.
+
+This provides lightweight question-answering without requiring an LLM.
+
 ## Project Structure
 
 ```text
