@@ -1,4 +1,5 @@
-import re
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
 
 
 def chunk_text(text, chunk_size=500):
@@ -14,39 +15,30 @@ def chunk_text(text, chunk_size=500):
     return chunks
 
 
-def score_chunk(query, chunk):
+def retrieve(query, chunks, top_k=3):
 
-    query_words = set(
-        re.findall(r"\w+", query.lower())
+    documents = chunks + [query]
+
+    vectorizer = TfidfVectorizer(
+        stop_words="english"
     )
 
-    chunk_words = set(
-        re.findall(r"\w+", chunk.lower())
+    tfidf = vectorizer.fit_transform(
+        documents
     )
 
-    return len(
-        query_words.intersection(chunk_words)
+    query_vector = tfidf[-1]
+
+    chunk_vectors = tfidf[:-1]
+
+    similarities = cosine_similarity(
+        query_vector,
+        chunk_vectors
+    )[0]
+
+    ranked = sorted(
+        zip(similarities, chunks),
+        reverse=True
     )
 
-
-def retrieve(query, chunks):
-
-    scored = []
-
-    for chunk in chunks:
-
-        score = score_chunk(
-            query,
-            chunk
-        )
-
-        scored.append(
-            (score, chunk)
-        )
-
-    scored.sort(
-        reverse=True,
-        key=lambda x: x[0]
-    )
-
-    return scored[:3]
+    return ranked[:top_k]

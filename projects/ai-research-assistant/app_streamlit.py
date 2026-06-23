@@ -38,10 +38,10 @@ if pdf:
             "Relevant Sections"
         )
 
-        for score, chunk in results:
+        for similarity, chunk in results:
 
             st.write(
-                f"Score: {score}"
+                f"Similarity: {similarity:.3f}"
             )
 
             st.info(chunk[:1000])
