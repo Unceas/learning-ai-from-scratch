@@ -21,6 +21,12 @@ The retrieval engine ranks document chunks using TF-IDF vectorization and cosine
 
 This improves relevance scoring beyond simple keyword matching.
 
+## Semantic Retrieval
+
+The assistant uses sentence embeddings and cosine similarity to perform semantic search across document chunks.
+
+This enables retrieval based on meaning rather than exact keyword overlap.
+
 ## Project Structure
 
 ```text

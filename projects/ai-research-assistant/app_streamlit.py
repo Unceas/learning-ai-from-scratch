@@ -1,10 +1,8 @@
 import streamlit as st
 
 from parser import extract_text
-from retrieval import (
-    chunk_text,
-    retrieve
-)
+from retrieval import chunk_text
+from embedding_retrieval import retrieve_semantic
 
 st.title("AI Research Assistant")
 
@@ -29,7 +27,7 @@ if pdf:
 
     if query:
 
-        results = retrieve(
+        results = retrieve_semantic(
             query,
             chunks
         )
@@ -41,7 +39,7 @@ if pdf:
         for similarity, chunk in results:
 
             st.write(
-                f"Similarity: {similarity:.3f}"
+                f"Semantic Similarity: {similarity:.3f}"
             )
 
             st.info(chunk[:1000])
