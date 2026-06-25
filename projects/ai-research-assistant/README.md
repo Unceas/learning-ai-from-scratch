@@ -27,6 +27,26 @@ The assistant uses sentence embeddings and cosine similarity to perform semantic
 
 This enables retrieval based on meaning rather than exact keyword overlap.
 
+## Retrieval-Augmented Answer Generation
+
+The assistant retrieves the most relevant document sections using semantic search and generates context-aware responses from the retrieved content.
+
+### Pipeline
+
+```text
+PDF
+ ↓
+Text Extraction
+ ↓
+Chunking
+ ↓
+Semantic Retrieval
+ ↓
+Context Assembly
+ ↓
+Answer Generation
+```
+
 ## Project Structure
 
 ```text
@@ -34,10 +54,12 @@ ai-research-assistant/
 ├── app_streamlit.py
 ├── parser.py
 ├── retrieval.py
+├── embedding_retrieval.py
+├── generator.py
 ├── requirements.txt
 ├── README.md
-└── data/
-    └── documents/
+├── data/
+└── documents/
 ```
 
 ## Run Locally
