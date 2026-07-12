@@ -2,7 +2,7 @@ import streamlit as st
 
 from parser import extract_text
 from retrieval import chunk_text
-from embedding_retrieval import retrieve_semantic
+from vector_store import index_chunks, search
 from generator import generate_answer
 
 st.title("AI Research Assistant")
@@ -28,10 +28,9 @@ if pdf:
 
     if query:
 
-        results = retrieve_semantic(
-            query,
-            chunks
-        )
+        index_chunks(chunks)
+
+        results = search(query)
 
         answer = generate_answer(
             query,
@@ -42,12 +41,8 @@ if pdf:
 
         st.write(answer)
 
-        with st.expander("Retrieved Context"):
+        st.subheader("Retrieved Context")
 
-            for similarity, chunk in results:
+        for chunk in results:
 
-                st.write(
-                    f"Similarity: {similarity:.3f}"
-                )
-
-                st.code(chunk)
+            st.info(chunk)

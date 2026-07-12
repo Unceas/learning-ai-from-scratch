@@ -4,7 +4,7 @@ def generate_answer(query, retrieved_chunks):
         return "No relevant information found."
 
     context = "\n\n".join(
-        chunk for _, chunk in retrieved_chunks
+        retrieved_chunks
     )
 
     answer = (

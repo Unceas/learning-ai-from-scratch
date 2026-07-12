@@ -27,6 +27,12 @@ The assistant uses sentence embeddings and cosine similarity to perform semantic
 
 This enables retrieval based on meaning rather than exact keyword overlap.
 
+## Vector Database
+
+The assistant indexes document chunks into ChromaDB and performs semantic retrieval using dense vector embeddings.
+
+This architecture mirrors modern Retrieval-Augmented Generation (RAG) systems used in production AI applications.
+
 ## Retrieval-Augmented Answer Generation
 
 The assistant retrieves the most relevant document sections using semantic search and generates context-aware responses from the retrieved content.
