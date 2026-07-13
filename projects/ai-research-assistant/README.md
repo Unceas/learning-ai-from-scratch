@@ -53,6 +53,12 @@ Context Assembly
 Answer Generation
 ```
 
+## Hybrid Retrieval
+
+The retrieval engine combines TF-IDF keyword search with semantic embedding search to improve document retrieval quality.
+
+This hybrid strategy captures both exact keyword matches and semantic similarity, providing more relevant context for answer generation.
+
 ## Project Structure
 
 ```text
@@ -61,6 +67,8 @@ ai-research-assistant/
 ├── parser.py
 ├── retrieval.py
 ├── embedding_retrieval.py
+├── vector_store.py
+├── hybrid_retrieval.py
 ├── generator.py
 ├── requirements.txt
 ├── README.md

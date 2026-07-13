@@ -2,7 +2,7 @@ import streamlit as st
 
 from parser import extract_text
 from retrieval import chunk_text
-from vector_store import index_chunks, search
+from hybrid_retrieval import hybrid_search
 from generator import generate_answer
 
 st.title("AI Research Assistant")
@@ -28,13 +28,11 @@ if pdf:
 
     if query:
 
-        index_chunks(chunks)
-
-        results = search(query)
+        results = hybrid_search(query, chunks)
 
         answer = generate_answer(
             query,
-            results
+            [chunk for chunk, _ in results]
         )
 
         st.subheader("Generated Answer")
@@ -43,6 +41,7 @@ if pdf:
 
         st.subheader("Retrieved Context")
 
-        for chunk in results:
+        for chunk, score in results:
 
+            st.write(f"Hybrid Score: {score:.3f}")
             st.info(chunk)
