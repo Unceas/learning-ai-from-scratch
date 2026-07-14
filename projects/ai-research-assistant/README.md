@@ -59,6 +59,18 @@ The retrieval engine combines TF-IDF keyword search with semantic embedding sear
 
 This hybrid strategy captures both exact keyword matches and semantic similarity, providing more relevant context for answer generation.
 
+## Document Indexing
+
+Each uploaded document is split into chunks and indexed with metadata.
+
+Stored metadata includes:
+
+- Document name
+- Chunk ID
+- Chunk content
+
+Metadata enables filtered retrieval across multiple documents and prepares the system for scalable document collections.
+
 ## Project Structure
 
 ```text
@@ -69,6 +81,7 @@ ai-research-assistant/
 ├── embedding_retrieval.py
 ├── vector_store.py
 ├── hybrid_retrieval.py
+├── document_store.py
 ├── generator.py
 ├── requirements.txt
 ├── README.md

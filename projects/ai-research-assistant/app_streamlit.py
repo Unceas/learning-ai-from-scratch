@@ -4,6 +4,11 @@ from parser import extract_text
 from retrieval import chunk_text
 from hybrid_retrieval import hybrid_search
 from generator import generate_answer
+from document_store import DocumentStore
+
+if "store" not in st.session_state:
+    st.session_state.store = DocumentStore()
+store = st.session_state.store
 
 st.title("AI Research Assistant")
 
@@ -18,8 +23,21 @@ if pdf:
 
     chunks = chunk_text(text)
 
+    # Avoid duplicate additions of the same document on rerun
+    existing_docs = {doc["document"] for doc in store.documents}
+    if pdf.name not in existing_docs:
+        store.add_document(
+            pdf.name,
+            chunks
+        )
+
     st.success(
         f"Document loaded ({len(chunks)} chunks)"
+    )
+
+    selected_document = st.selectbox(
+        "Search Scope",
+        ["All Documents", pdf.name]
     )
 
     query = st.text_input(
@@ -28,7 +46,12 @@ if pdf:
 
     if query:
 
-        results = hybrid_search(query, chunks)
+        if selected_document == "All Documents":
+            search_chunks = store.get_chunks()
+        else:
+            search_chunks = store.get_chunks(selected_document)
+
+        results = hybrid_search(query, search_chunks)
 
         answer = generate_answer(
             query,
