@@ -2,15 +2,19 @@ import streamlit as st
 
 from parser import extract_text
 from retrieval import chunk_text
-from hybrid_retrieval import hybrid_search
+import vector_store
 from generator import generate_answer
-from document_store import DocumentStore
-
-if "store" not in st.session_state:
-    st.session_state.store = DocumentStore()
-store = st.session_state.store
 
 st.title("AI Research Assistant")
+
+# Retrieve existing documents to populate the search scope and check duplicates
+existing = vector_store.collection.get()
+existing_metadatas = existing.get("metadatas") or []
+existing_docs = sorted(list(set(
+    meta["document"]
+    for meta in existing_metadatas
+    if meta and "document" in meta
+)))
 
 pdf = st.file_uploader(
     "Upload PDF",
@@ -23,21 +27,21 @@ if pdf:
 
     chunks = chunk_text(text)
 
-    # Avoid duplicate additions of the same document on rerun
-    existing_docs = {doc["document"] for doc in store.documents}
+    # Prevent duplicate uploads
     if pdf.name not in existing_docs:
-        store.add_document(
-            pdf.name,
-            chunks
-        )
+        vector_store.add_document(pdf.name, chunks)
+        st.success(f"Document '{pdf.name}' loaded and indexed ({len(chunks)} chunks).")
+        # Update existing docs list
+        existing_docs = sorted(list(set(existing_docs + [pdf.name])))
+    else:
+        st.info(f"Document '{pdf.name}' is already indexed.")
 
-    st.success(
-        f"Document loaded ({len(chunks)} chunks)"
-    )
+# Only display search UI if we have documents in the persistent store
+if existing_docs:
 
     selected_document = st.selectbox(
         "Search Scope",
-        ["All Documents", pdf.name]
+        ["All Documents"] + existing_docs
     )
 
     query = st.text_input(
@@ -46,25 +50,28 @@ if pdf:
 
     if query:
 
-        if selected_document == "All Documents":
-            search_chunks = store.get_chunks()
-        else:
-            search_chunks = store.get_chunks(selected_document)
+        # Search the persistent vector store with optional document filter
+        search_filter = None if selected_document == "All Documents" else selected_document
+        results = vector_store.search(
+            query,
+            filename=search_filter,
+            top_k=3
+        )
 
-        results = hybrid_search(query, search_chunks)
+        retrieved_chunks = results.get("documents", [[]])[0]
+        retrieved_metadatas = results.get("metadatas", [[]])[0]
 
         answer = generate_answer(
             query,
-            [chunk for chunk, _ in results]
+            retrieved_chunks
         )
 
         st.subheader("Generated Answer")
-
         st.write(answer)
 
         st.subheader("Retrieved Context")
-
-        for chunk, score in results:
-
-            st.write(f"Hybrid Score: {score:.3f}")
+        for chunk, meta in zip(retrieved_chunks, retrieved_metadatas):
+            doc_name = meta.get("document", "Unknown")
+            chunk_idx = meta.get("chunk", 0)
+            st.write(f"Source: {doc_name} (Chunk {chunk_idx})")
             st.info(chunk)

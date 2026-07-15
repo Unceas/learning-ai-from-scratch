@@ -1,10 +1,10 @@
 import chromadb
 from sentence_transformers import SentenceTransformer
 
-client = chromadb.Client()
+client = chromadb.PersistentClient(path="./vector_db")
 
 collection = client.get_or_create_collection(
-    "documents"
+    name="research_documents"
 )
 
 model = SentenceTransformer(
@@ -12,37 +12,43 @@ model = SentenceTransformer(
 )
 
 
-def index_chunks(chunks):
-    global collection
-
-    client.delete_collection(
-        "documents"
-    )
-
-    collection = client.get_or_create_collection(
-        "documents"
-    )
+def add_document(filename, chunks):
 
     embeddings = model.encode(chunks).tolist()
 
-    ids = [str(i) for i in range(len(chunks))]
-
     collection.add(
-        ids=ids,
+        ids=[
+            f"{filename}_{i}"
+            for i in range(len(chunks))
+        ],
+
         documents=chunks,
-        embeddings=embeddings
+
+        embeddings=embeddings,
+
+        metadatas=[
+            {
+                "document": filename,
+                "chunk": i
+            }
+
+            for i in range(len(chunks))
+        ]
     )
 
 
-def search(query, k=3):
+def search(query, filename=None, top_k=3):
 
-    query_embedding = model.encode(
+    embedding = model.encode(
         [query]
     ).tolist()
 
+    where_clause = {"document": filename} if filename else None
+
     result = collection.query(
-        query_embeddings=query_embedding,
-        n_results=k
+        query_embeddings=embedding,
+        n_results=top_k,
+        where=where_clause
     )
 
-    return result["documents"][0]
+    return result

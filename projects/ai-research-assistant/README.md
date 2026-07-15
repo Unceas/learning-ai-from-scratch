@@ -71,6 +71,17 @@ Stored metadata includes:
 
 Metadata enables filtered retrieval across multiple documents and prepares the system for scalable document collections.
 
+## Persistent Vector Database
+
+Document embeddings are stored using ChromaDB's persistent storage.
+
+Benefits:
+
+- Faster application startup
+- No repeated embedding generation
+- Scalable document collections
+- Metadata-based retrieval
+
 ## Project Structure
 
 ```text
@@ -78,15 +89,11 @@ ai-research-assistant/
 ├── app_streamlit.py
 ├── parser.py
 ├── retrieval.py
-├── embedding_retrieval.py
 ├── vector_store.py
-├── hybrid_retrieval.py
-├── document_store.py
 ├── generator.py
 ├── requirements.txt
-├── README.md
-├── data/
-└── documents/
+├── vector_db/
+└── README.md
 ```
 
 ## Run Locally
