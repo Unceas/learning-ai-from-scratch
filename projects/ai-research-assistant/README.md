@@ -82,6 +82,30 @@ Benefits:
 - Scalable document collections
 - Metadata-based retrieval
 
+## Retrieval-Augmented Generation (RAG)
+
+The assistant combines semantic retrieval with a large language model to generate grounded answers.
+
+Pipeline:
+
+```text
+PDF
+ ↓
+Chunking
+ ↓
+Embedding
+ ↓
+Vector Search
+ ↓
+Retrieved Context
+ ↓
+LLM
+ ↓
+Grounded Response
+```
+
+The language model is instructed to answer only from the retrieved document context and to avoid hallucinations when information is unavailable.
+
 ## Project Structure
 
 ```text
@@ -90,7 +114,8 @@ ai-research-assistant/
 ├── parser.py
 ├── retrieval.py
 ├── vector_store.py
-├── generator.py
+├── llm.py
+├── prompts.py
 ├── requirements.txt
 ├── vector_db/
 └── README.md

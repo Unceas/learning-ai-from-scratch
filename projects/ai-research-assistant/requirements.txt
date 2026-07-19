@@ -5,3 +5,5 @@ numpy
 sentence-transformers
 torch
 chromadb
+google-generativeai
+python-dotenv

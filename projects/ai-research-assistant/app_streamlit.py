@@ -3,7 +3,7 @@ import streamlit as st
 from parser import extract_text
 from retrieval import chunk_text
 import vector_store
-from generator import generate_answer
+from llm import generate_answer
 
 st.title("AI Research Assistant")
 
@@ -61,17 +61,22 @@ if existing_docs:
         retrieved_chunks = results.get("documents", [[]])[0]
         retrieved_metadatas = results.get("metadatas", [[]])[0]
 
+        contexts = [
+            chunk
+            for chunk in retrieved_chunks
+        ]
+
         answer = generate_answer(
             query,
-            retrieved_chunks
+            contexts
         )
 
-        st.subheader("Generated Answer")
+        st.subheader("Answer")
         st.write(answer)
 
-        st.subheader("Retrieved Context")
-        for chunk, meta in zip(retrieved_chunks, retrieved_metadatas):
-            doc_name = meta.get("document", "Unknown")
-            chunk_idx = meta.get("chunk", 0)
-            st.write(f"Source: {doc_name} (Chunk {chunk_idx})")
-            st.info(chunk)
+        with st.expander("Sources"):
+            for i, (chunk, meta) in enumerate(zip(contexts, retrieved_metadatas), 1):
+                doc_name = meta.get("document", "Unknown")
+                chunk_idx = meta.get("chunk", 0)
+                st.markdown(f"### Source {i} — {doc_name} (Chunk {chunk_idx})")
+                st.write(chunk)
