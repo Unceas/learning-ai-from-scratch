@@ -4,6 +4,11 @@ from parser import extract_text
 from retrieval import chunk_text
 import vector_store
 from llm import generate_answer
+from memory import ConversationMemory
+
+if "memory" not in st.session_state:
+    st.session_state.memory = ConversationMemory()
+memory = st.session_state.memory
 
 st.title("AI Research Assistant")
 
@@ -68,7 +73,14 @@ if existing_docs:
 
         answer = generate_answer(
             query,
-            contexts
+            contexts,
+            memory
+        )
+
+        # Save this interaction turn in memory
+        memory.add(
+            query,
+            answer
         )
 
         st.subheader("Answer")
@@ -80,3 +92,20 @@ if existing_docs:
                 chunk_idx = meta.get("chunk", 0)
                 st.markdown(f"### Source {i} — {doc_name} (Chunk {chunk_idx})")
                 st.write(chunk)
+
+# Sidebar conversation history
+with st.sidebar:
+
+    st.header("Conversation")
+
+    for turn in memory.history:
+
+        st.markdown(f"**You:** {turn['user']}")
+        st.markdown(f"**AI:** {turn['assistant']}")
+        st.divider()
+
+    if st.button("Clear Conversation"):
+
+        st.session_state.memory = ConversationMemory()
+
+        st.rerun()

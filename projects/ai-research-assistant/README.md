@@ -106,6 +106,19 @@ Grounded Response
 
 The language model is instructed to answer only from the retrieved document context and to avoid hallucinations when information is unavailable.
 
+## Conversational Memory
+
+The assistant maintains a short-term conversation history to support multi-turn interactions.
+
+Features:
+
+- Session-based memory
+- Configurable history length
+- Context-aware follow-up questions
+- Clear conversation option
+
+Conversation history is used only to resolve references and maintain continuity, while factual answers continue to rely on retrieved document context.
+
 ## Project Structure
 
 ```text
@@ -114,6 +127,7 @@ ai-research-assistant/
 ├── parser.py
 ├── retrieval.py
 ├── vector_store.py
+├── memory.py
 ├── llm.py
 ├── prompts.py
 ├── requirements.txt

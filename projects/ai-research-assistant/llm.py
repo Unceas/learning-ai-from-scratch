@@ -15,24 +15,30 @@ model = genai.GenerativeModel(
 )
 
 
-def generate_answer(query, contexts):
+def generate_answer(query, contexts, memory):
+
+    conversation = memory.context()
 
     context = "\n\n".join(contexts)
 
     prompt = f"""
-You are a research assistant.
+Previous Conversation
 
-Answer ONLY using the supplied context.
+{conversation}
 
-If the answer is not present,
-reply:
-'I could not find this information in the uploaded document.'
+Retrieved Context
 
-Context:
 {context}
 
-Question:
+Current Question
+
 {query}
+
+Rules
+
+- Use retrieved context as the primary source.
+- Use previous conversation only to resolve references.
+- Never invent facts.
 """
 
     response = model.generate_content(prompt)
