@@ -15,11 +15,28 @@ model = genai.GenerativeModel(
 )
 
 
-def generate_answer(query, contexts, memory):
+def generate_answer(query, results, memory):
 
     conversation = memory.context()
 
-    context = "\n\n".join(contexts)
+    context = ""
+    for i, chunk in enumerate(results, 1):
+        text = chunk["text"] if isinstance(chunk, dict) else chunk
+        doc = chunk.get("document", "Unknown") if isinstance(chunk, dict) else "Unknown"
+        page = chunk.get("page", 1) if isinstance(chunk, dict) else 1
+        context += f"""
+[Source {i}]
+
+Document:
+{doc}
+
+Page:
+{page}
+
+Content:
+{text}
+
+"""
 
     prompt = f"""
 Previous Conversation
@@ -37,6 +54,8 @@ Current Question
 Rules
 
 - Use retrieved context as the primary source.
+- Whenever possible, reference the appropriate source number (e.g. [Source 1]).
+- Never cite a source that was not provided.
 - Use previous conversation only to resolve references.
 - Never invent facts.
 """

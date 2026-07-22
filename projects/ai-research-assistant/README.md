@@ -119,6 +119,18 @@ Features:
 
 Conversation history is used only to resolve references and maintain continuity, while factual answers continue to rely on retrieved document context.
 
+## Citation-Aware Retrieval
+
+The assistant provides source references alongside generated responses.
+
+Each retrieved chunk retains metadata including:
+
+- Document name
+- Page number
+- Chunk ID
+
+Retrieved passages are displayed below the answer, allowing users to verify the supporting evidence and inspect the original document context.
+
 ## Project Structure
 
 ```text

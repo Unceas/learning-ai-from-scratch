@@ -1,7 +1,7 @@
 import streamlit as st
 
-from parser import extract_text
-from retrieval import chunk_text
+from parser import extract_pages
+from retrieval import chunk_pages
 import vector_store
 from llm import generate_answer
 from memory import ConversationMemory
@@ -22,15 +22,15 @@ existing_docs = sorted(list(set(
 )))
 
 pdf = st.file_uploader(
-    "Upload PDF",
-    type=["pdf"]
+    "Upload PDF or TXT",
+    type=["pdf", "txt"]
 )
 
 if pdf:
 
-    text = extract_text(pdf)
+    pages = extract_pages(pdf)
 
-    chunks = chunk_text(text)
+    chunks = chunk_pages(pages)
 
     # Prevent duplicate uploads
     if pdf.name not in existing_docs:
@@ -63,17 +63,9 @@ if existing_docs:
             top_k=3
         )
 
-        retrieved_chunks = results.get("documents", [[]])[0]
-        retrieved_metadatas = results.get("metadatas", [[]])[0]
-
-        contexts = [
-            chunk
-            for chunk in retrieved_chunks
-        ]
-
         answer = generate_answer(
             query,
-            contexts,
+            results,
             memory
         )
 
@@ -86,12 +78,17 @@ if existing_docs:
         st.subheader("Answer")
         st.write(answer)
 
-        with st.expander("Sources"):
-            for i, (chunk, meta) in enumerate(zip(contexts, retrieved_metadatas), 1):
-                doc_name = meta.get("document", "Unknown")
-                chunk_idx = meta.get("chunk", 0)
-                st.markdown(f"### Source {i} — {doc_name} (Chunk {chunk_idx})")
-                st.write(chunk)
+        st.subheader("Sources")
+
+        for i, chunk in enumerate(results, 1):
+
+            with st.expander(f"Source {i}"):
+
+                st.write(f"Document: {chunk['document']}")
+                st.write(f"Page: {chunk['page']}")
+                st.write(f"Chunk: {chunk['chunk']}")
+
+                st.info(chunk["text"])
 
 # Sidebar conversation history
 with st.sidebar:

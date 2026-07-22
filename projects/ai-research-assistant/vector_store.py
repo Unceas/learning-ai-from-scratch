@@ -14,26 +14,36 @@ model = SentenceTransformer(
 
 def add_document(filename, chunks):
 
-    embeddings = model.encode(chunks).tolist()
-
-    collection.add(
-        ids=[
-            f"{filename}_{i}"
-            for i in range(len(chunks))
-        ],
-
-        documents=chunks,
-
-        embeddings=embeddings,
-
-        metadatas=[
+    if chunks and isinstance(chunks[0], dict):
+        texts = [c["text"] for c in chunks]
+        metadatas = [
             {
                 "document": filename,
-                "chunk": i
+                "chunk": c["chunk"],
+                "page": c.get("page", 1)
             }
-
+            for c in chunks
+        ]
+        ids = [f"{filename}_{c['chunk']}" for c in chunks]
+    else:
+        texts = chunks
+        metadatas = [
+            {
+                "document": filename,
+                "chunk": i,
+                "page": 1
+            }
             for i in range(len(chunks))
         ]
+        ids = [f"{filename}_{i}" for i in range(len(chunks))]
+
+    embeddings = model.encode(texts).tolist()
+
+    collection.add(
+        ids=ids,
+        documents=texts,
+        embeddings=embeddings,
+        metadatas=metadatas
     )
 
 
@@ -51,4 +61,16 @@ def search(query, filename=None, top_k=3):
         where=where_clause
     )
 
-    return result
+    documents = result.get("documents", [[]])[0]
+    metadatas = result.get("metadatas", [[]])[0]
+
+    retrieved = []
+    for doc, meta in zip(documents, metadatas):
+        retrieved.append({
+            "text": doc,
+            "document": meta.get("document", "Unknown") if meta else "Unknown",
+            "page": meta.get("page", 1) if meta else 1,
+            "chunk": meta.get("chunk", 0) if meta else 0
+        })
+
+    return retrieved
