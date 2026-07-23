@@ -1,0 +1,22 @@
+[
+  {
+    "query": "What is self-attention?",
+    "expected_chunk": 12
+  },
+  {
+    "query": "Who proposed Transformers?",
+    "expected_chunk": 5
+  },
+  {
+    "query": "What optimizer is used?",
+    "expected_chunk": 17
+  },
+  {
+    "query": "How does positional encoding work?",
+    "expected_chunk": 8
+  },
+  {
+    "query": "What is the learning rate schedule?",
+    "expected_chunk": 20
+  }
+]

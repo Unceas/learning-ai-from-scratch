@@ -131,6 +131,19 @@ Each retrieved chunk retains metadata including:
 
 Retrieved passages are displayed below the answer, allowing users to verify the supporting evidence and inspect the original document context.
 
+## Retrieval Evaluation
+
+The project includes an evaluation framework for measuring retrieval quality.
+
+Metrics:
+
+- Recall@K
+- Precision@K
+- Mean Recall
+- Retrieval Latency
+
+Multiple retrieval strategies (TF-IDF, Semantic, Hybrid) can be compared using the same evaluation dataset to quantify retrieval performance.
+
 ## Project Structure
 
 ```text
@@ -140,6 +153,8 @@ ai-research-assistant/
 ├── retrieval.py
 ├── vector_store.py
 ├── memory.py
+├── evaluator.py
+├── evaluation.json
 ├── llm.py
 ├── prompts.py
 ├── requirements.txt
