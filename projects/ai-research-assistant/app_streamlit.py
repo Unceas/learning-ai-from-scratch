@@ -3,6 +3,7 @@ import streamlit as st
 from parser import extract_pages
 from retrieval import chunk_pages
 import vector_store
+from reranker import rerank
 from llm import generate_answer
 from memory import ConversationMemory
 from evaluator import evaluate_retrieval, compare_retrievers, load_evaluation_dataset
@@ -60,13 +61,22 @@ with tab_qa:
 
         if query:
 
-            # Search the persistent vector store with optional document filter
+            # 1. Retrieve top 20 candidates via hybrid search
             search_filter = None if selected_document == "All Documents" else selected_document
-            results = vector_store.search(
+            candidates = vector_store.hybrid_search(
                 query,
                 filename=search_filter,
-                top_k=3
+                top_k=20
             )
+
+            # 2. Re-rank candidates using Cross-Encoder
+            results = rerank(
+                query,
+                candidates
+            )
+
+            # 3. Select top 5 context passages
+            results = results[:5]
 
             answer = generate_answer(
                 query,
@@ -92,6 +102,8 @@ with tab_qa:
                     st.write(f"Document: {chunk['document']}")
                     st.write(f"Page: {chunk['page']}")
                     st.write(f"Chunk: {chunk['chunk']}")
+                    if "rerank_score" in chunk:
+                        st.write(f"Re-rank Score: {chunk['rerank_score']:.3f}")
 
                     st.info(chunk["text"])
 
@@ -113,7 +125,7 @@ with tab_eval:
     col5.metric("Indexed Documents", metrics['num_indexed_docs'])
 
     st.subheader("Retrieval Strategy Comparison")
-    st.write("Compare Recall@3 and Latency across retrieval strategies:")
+    st.write("Compare Recall@5 and Latency across retrieval strategies:")
 
     comparison_data = compare_retrievers(dataset)
     st.table(comparison_data)

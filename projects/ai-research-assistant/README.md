@@ -144,6 +144,25 @@ Metrics:
 
 Multiple retrieval strategies (TF-IDF, Semantic, Hybrid) can be compared using the same evaluation dataset to quantify retrieval performance.
 
+## Cross-Encoder Re-ranking
+
+A second-stage re-ranking model improves retrieval quality.
+
+Pipeline:
+
+User Query
+→ Hybrid Retrieval
+→ Top-20 Candidates
+→ Cross-Encoder Re-ranking
+→ Top-5 Context
+→ LLM
+
+Benefits:
+
+- Better relevance ranking
+- Improved answer grounding
+- Reduced irrelevant context sent to the LLM
+
 ## Project Structure
 
 ```text
@@ -152,6 +171,7 @@ ai-research-assistant/
 ├── parser.py
 ├── retrieval.py
 ├── vector_store.py
+├── reranker.py
 ├── memory.py
 ├── evaluator.py
 ├── evaluation.json

@@ -3,6 +3,7 @@ import time
 import os
 import vector_store
 from retrieval import retrieve as tfidf_retrieve
+from reranker import rerank
 
 
 def recall_at_k(expected, retrieved):
@@ -55,7 +56,8 @@ def evaluate_retrieval(dataset=None, filename=None):
         expected = sample["expected_chunk"]
 
         start_time = time.time()
-        retrieved_results = vector_store.search(query, filename=filename, top_k=5)
+        candidates = vector_store.hybrid_search(query, filename=filename, top_k=20)
+        retrieved_results = rerank(query, candidates)[:5]
         elapsed_ms = (time.time() - start_time) * 1000.0
 
         retrieved_chunk_ids = [c["chunk"] for c in retrieved_results]
@@ -78,7 +80,7 @@ def evaluate_retrieval(dataset=None, filename=None):
         "recall_at_3": mean_r3,
         "recall_at_5": mean_r5,
         "precision_at_3": mean_p3,
-        "mean_recall": mean_r3,
+        "mean_recall": mean_r5,
         "avg_latency_ms": avg_latency,
         "total_queries": total,
         "num_indexed_docs": num_indexed_docs
@@ -92,17 +94,16 @@ def compare_retrievers(dataset=None):
     if not dataset:
         return []
 
-    # Retrieve all documents from collection
     all_data = vector_store.collection.get()
     all_docs = all_data.get("documents") or []
     all_metas = all_data.get("metadatas") or []
 
     if not all_docs:
-        # Fallback if no documents indexed yet
         return [
-            {"Retriever": "TF-IDF", "Recall@3": 0.0, "Latency (ms)": 0.0},
-            {"Retriever": "Embedding", "Recall@3": 0.0, "Latency (ms)": 0.0},
-            {"Retriever": "Hybrid", "Recall@3": 0.0, "Latency (ms)": 0.0}
+            {"Retriever": "TF-IDF", "Recall@5": 0.0, "Latency (ms)": 0.0},
+            {"Retriever": "Embeddings", "Recall@5": 0.0, "Latency (ms)": 0.0},
+            {"Retriever": "Hybrid", "Recall@5": 0.0, "Latency (ms)": 0.0},
+            {"Retriever": "Hybrid + Re-ranker", "Recall@5": 0.0, "Latency (ms)": 0.0}
         ]
 
     chunk_objects = [
@@ -110,13 +111,15 @@ def compare_retrievers(dataset=None):
         for i, (doc, meta) in enumerate(zip(all_docs, all_metas))
     ]
 
-    tfidf_r3 = []
-    embed_r3 = []
-    hybrid_r3 = []
+    tfidf_r5 = []
+    embed_r5 = []
+    hybrid_r5 = []
+    rerank_r5 = []
 
     tfidf_times = []
     embed_times = []
     hybrid_times = []
+    rerank_times = []
 
     text_list = [c["text"] for c in chunk_objects]
 
@@ -126,62 +129,59 @@ def compare_retrievers(dataset=None):
 
         # 1. TF-IDF
         t0 = time.time()
-        tfidf_res = tfidf_retrieve(query, text_list, top_k=3)
+        tfidf_res = tfidf_retrieve(query, text_list, top_k=5)
         tfidf_times.append((time.time() - t0) * 1000.0)
 
-        # Map TF-IDF text results back to chunk ids
         tfidf_chunk_ids = []
         for _, text_match in tfidf_res:
             for c in chunk_objects:
                 if c["text"] == text_match:
                     tfidf_chunk_ids.append(c["chunk"])
                     break
-        tfidf_r3.append(recall_at_k(expected, tfidf_chunk_ids))
+        tfidf_r5.append(recall_at_k(expected, tfidf_chunk_ids))
 
-        # 2. Embedding (Vector Store)
+        # 2. Embeddings
         t0 = time.time()
-        embed_res = vector_store.search(query, top_k=3)
+        embed_res = vector_store.search(query, top_k=5)
         embed_times.append((time.time() - t0) * 1000.0)
         embed_chunk_ids = [c["chunk"] for c in embed_res]
-        embed_r3.append(recall_at_k(expected, embed_chunk_ids))
+        embed_r5.append(recall_at_k(expected, embed_chunk_ids))
 
-        # 3. Hybrid (Combine scores of TF-IDF and Embedding)
+        # 3. Hybrid
         t0 = time.time()
-        scores = {}
-        # Embedding scores (ranks)
-        for rank, c in enumerate(embed_res):
-            score = 1.0 / (rank + 1)
-            cid = c["chunk"]
-            scores[cid] = scores.get(cid, 0.0) + score
-
-        # TF-IDF scores (similarity values)
-        for sim, text_match in tfidf_res:
-            for c in chunk_objects:
-                if c["text"] == text_match:
-                    cid = c["chunk"]
-                    scores[cid] = scores.get(cid, 0.0) + float(sim)
-                    break
-
-        hybrid_ranked = sorted(scores.items(), key=lambda x: x[1], reverse=True)[:3]
-        hybrid_chunk_ids = [cid for cid, _ in hybrid_ranked]
+        hybrid_res = vector_store.hybrid_search(query, top_k=5)
         hybrid_times.append((time.time() - t0) * 1000.0)
-        hybrid_r3.append(recall_at_k(expected, hybrid_chunk_ids))
+        hybrid_chunk_ids = [c["chunk"] for c in hybrid_res]
+        hybrid_r5.append(recall_at_k(expected, hybrid_chunk_ids))
+
+        # 4. Hybrid + Re-ranker
+        t0 = time.time()
+        hybrid_candidates = vector_store.hybrid_search(query, top_k=20)
+        rerank_res = rerank(query, hybrid_candidates)[:5]
+        rerank_times.append((time.time() - t0) * 1000.0)
+        rerank_chunk_ids = [c["chunk"] for c in rerank_res]
+        rerank_r5.append(recall_at_k(expected, rerank_chunk_ids))
 
     total = len(dataset)
     return [
         {
             "Retriever": "TF-IDF",
-            "Recall@3": sum(tfidf_r3) / total,
+            "Recall@5": sum(tfidf_r5) / total,
             "Latency (ms)": sum(tfidf_times) / total
         },
         {
-            "Retriever": "Embedding",
-            "Recall@3": sum(embed_r3) / total,
+            "Retriever": "Embeddings",
+            "Recall@5": sum(embed_r5) / total,
             "Latency (ms)": sum(embed_times) / total
         },
         {
             "Retriever": "Hybrid",
-            "Recall@3": sum(hybrid_r3) / total,
+            "Recall@5": sum(hybrid_r5) / total,
             "Latency (ms)": sum(hybrid_times) / total
+        },
+        {
+            "Retriever": "Hybrid + Re-ranker",
+            "Recall@5": sum(rerank_r5) / total,
+            "Latency (ms)": sum(rerank_times) / total
         }
     ]
