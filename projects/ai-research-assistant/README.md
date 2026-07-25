@@ -163,6 +163,21 @@ Benefits:
 - Improved answer grounding
 - Reduced irrelevant context sent to the LLM
 
+## Observability
+
+The RAG pipeline includes request-level tracing across retrieval, re-ranking, and answer generation.
+
+Tracked signals include:
+
+- Retrieval latency
+- Re-ranking latency
+- LLM generation latency
+- End-to-end latency
+- Candidate and context counts
+- Retrieved source metadata
+
+Structured traces can be persisted for debugging and performance analysis.
+
 ## Project Structure
 
 ```text
@@ -175,6 +190,7 @@ ai-research-assistant/
 ├── memory.py
 ├── evaluator.py
 ├── evaluation.json
+├── observability.py
 ├── llm.py
 ├── prompts.py
 ├── requirements.txt

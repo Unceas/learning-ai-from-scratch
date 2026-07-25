@@ -7,6 +7,7 @@ from reranker import rerank
 from llm import generate_answer
 from memory import ConversationMemory
 from evaluator import evaluate_retrieval, compare_retrievers, load_evaluation_dataset
+from observability import RAGTrace, timed_call, save_trace
 
 if "memory" not in st.session_state:
     st.session_state.memory = ConversationMemory()
@@ -61,28 +62,50 @@ with tab_qa:
 
         if query:
 
-            # 1. Retrieve top 20 candidates via hybrid search
             search_filter = None if selected_document == "All Documents" else selected_document
-            candidates = vector_store.hybrid_search(
+
+            trace = RAGTrace(query=query)
+
+            # 1. Retrieve top 20 candidates via hybrid search
+            candidates, trace.retrieval_ms = timed_call(
+                vector_store.hybrid_search,
                 query,
                 filename=search_filter,
                 top_k=20
             )
+            trace.retrieved_count = len(candidates)
 
             # 2. Re-rank candidates using Cross-Encoder
-            results = rerank(
+            ranked_candidates, trace.reranking_ms = timed_call(
+                rerank,
                 query,
                 candidates
             )
 
             # 3. Select top 5 context passages
-            results = results[:5]
+            results = ranked_candidates[:5]
+            trace.final_context_count = len(results)
 
-            answer = generate_answer(
+            # 4. LLM Generation
+            answer, trace.generation_ms = timed_call(
+                generate_answer,
                 query,
                 results,
                 memory
             )
+
+            # Record source metadata
+            trace.sources = [
+                {
+                    "document": result.get("document"),
+                    "page": result.get("page"),
+                    "chunk": result.get("chunk")
+                }
+                for result in results
+            ]
+
+            # Save trace to log file
+            save_trace(trace)
 
             # Save this interaction turn in memory
             memory.add(
@@ -92,6 +115,41 @@ with tab_qa:
 
             st.subheader("Answer")
             st.write(answer)
+
+            # Streamlit Debug Panel
+            with st.expander("Pipeline Trace"):
+
+                col1, col2, col3, col4 = st.columns(4)
+
+                col1.metric(
+                    "Retrieval",
+                    f"{trace.retrieval_ms:.0f} ms"
+                )
+
+                col2.metric(
+                    "Re-ranking",
+                    f"{trace.reranking_ms:.0f} ms"
+                )
+
+                col3.metric(
+                    "Generation",
+                    f"{trace.generation_ms:.0f} ms"
+                )
+
+                col4.metric(
+                    "Total",
+                    f"{trace.total_ms:.0f} ms"
+                )
+
+                st.write(
+                    "Retrieved candidates:",
+                    trace.retrieved_count
+                )
+
+                st.write(
+                    "Context chunks:",
+                    trace.final_context_count
+                )
 
             st.subheader("Sources")
 
