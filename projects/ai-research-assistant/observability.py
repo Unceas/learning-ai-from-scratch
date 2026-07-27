@@ -10,9 +10,12 @@ class RAGTrace:
     retrieval_ms: float = 0.0
     reranking_ms: float = 0.0
     generation_ms: float = 0.0
+    ttft_ms: float = 0.0
 
     retrieved_count: int = 0
     final_context_count: int = 0
+    streamed: bool = True
+    tokens_generated: int = 0
 
     sources: list = field(default_factory=list)
 
@@ -48,9 +51,12 @@ def save_trace(trace, path="rag_traces.jsonl"):
         "retrieval_ms": trace.retrieval_ms,
         "reranking_ms": trace.reranking_ms,
         "generation_ms": trace.generation_ms,
+        "ttft_ms": trace.ttft_ms,
         "total_ms": trace.total_ms,
         "retrieved_count": trace.retrieved_count,
         "final_context_count": trace.final_context_count,
+        "streamed": trace.streamed,
+        "tokens_generated": trace.tokens_generated,
         "sources": trace.sources
     }
 

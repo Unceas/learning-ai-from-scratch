@@ -178,6 +178,18 @@ Tracked signals include:
 
 Structured traces can be persisted for debugging and performance analysis.
 
+## Streaming Responses
+
+The assistant streams generated responses token-by-token rather than waiting for complete generation.
+
+Features:
+
+- Live response streaming
+- Time-to-First-Token (TTFT) measurement
+- Progressive answer rendering
+- Pipeline status indicators
+- Streaming-aware observability
+
 ## Project Structure
 
 ```text
@@ -191,6 +203,7 @@ ai-research-assistant/
 ├── evaluator.py
 ├── evaluation.json
 ├── observability.py
+├── async_pipeline.py
 ├── llm.py
 ├── prompts.py
 ├── requirements.txt

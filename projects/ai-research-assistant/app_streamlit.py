@@ -1,3 +1,4 @@
+import time
 import streamlit as st
 
 from parser import extract_pages
@@ -66,7 +67,10 @@ with tab_qa:
 
             trace = RAGTrace(query=query)
 
-            # 1. Retrieve top 20 candidates via hybrid search
+            status = st.status("Processing...")
+
+            # 1. Retrieve candidates via hybrid search
+            status.update(label="Retrieving documents...")
             candidates, trace.retrieval_ms = timed_call(
                 vector_store.hybrid_search,
                 query,
@@ -76,22 +80,46 @@ with tab_qa:
             trace.retrieved_count = len(candidates)
 
             # 2. Re-rank candidates using Cross-Encoder
+            status.update(label="Re-ranking results...")
             ranked_candidates, trace.reranking_ms = timed_call(
                 rerank,
                 query,
                 candidates
             )
-
-            # 3. Select top 5 context passages
             results = ranked_candidates[:5]
             trace.final_context_count = len(results)
 
-            # 4. LLM Generation
-            answer, trace.generation_ms = timed_call(
-                generate_answer,
-                query,
-                results,
-                memory
+            # 3. Streamed LLM Generation & TTFT Measurement
+            status.update(label="Generating answer...")
+
+            st.subheader("Answer")
+            placeholder = st.empty()
+            full_answer = ""
+            token_count = 0
+
+            gen_start = time.perf_counter()
+            stream = generate_answer(query, results, memory)
+
+            try:
+                first_token = next(stream)
+                trace.ttft_ms = (time.perf_counter() - gen_start) * 1000.0
+                full_answer += first_token
+                token_count += len(first_token.split())
+                placeholder.markdown(full_answer)
+
+                for token in stream:
+                    full_answer += token
+                    token_count += len(token.split())
+                    placeholder.markdown(full_answer)
+            except StopIteration:
+                pass
+
+            trace.generation_ms = (time.perf_counter() - gen_start) * 1000.0
+            trace.tokens_generated = token_count
+
+            status.update(
+                label="Completed",
+                state="complete"
             )
 
             # Record source metadata
@@ -110,46 +138,23 @@ with tab_qa:
             # Save this interaction turn in memory
             memory.add(
                 query,
-                answer
+                full_answer
             )
-
-            st.subheader("Answer")
-            st.write(answer)
 
             # Streamlit Debug Panel
             with st.expander("Pipeline Trace"):
 
-                col1, col2, col3, col4 = st.columns(4)
+                col1, col2, col3, col4, col5 = st.columns(5)
 
-                col1.metric(
-                    "Retrieval",
-                    f"{trace.retrieval_ms:.0f} ms"
-                )
+                col1.metric("Retrieval", f"{trace.retrieval_ms:.0f} ms")
+                col2.metric("Re-ranking", f"{trace.reranking_ms:.0f} ms")
+                col3.metric("TTFT", f"{trace.ttft_ms:.0f} ms")
+                col4.metric("Generation", f"{trace.generation_ms:.0f} ms")
+                col5.metric("Total", f"{trace.total_ms:.0f} ms")
 
-                col2.metric(
-                    "Re-ranking",
-                    f"{trace.reranking_ms:.0f} ms"
-                )
-
-                col3.metric(
-                    "Generation",
-                    f"{trace.generation_ms:.0f} ms"
-                )
-
-                col4.metric(
-                    "Total",
-                    f"{trace.total_ms:.0f} ms"
-                )
-
-                st.write(
-                    "Retrieved candidates:",
-                    trace.retrieved_count
-                )
-
-                st.write(
-                    "Context chunks:",
-                    trace.final_context_count
-                )
+                st.write("Retrieved candidates:", trace.retrieved_count)
+                st.write("Context chunks:", trace.final_context_count)
+                st.write("Tokens generated:", trace.tokens_generated)
 
             st.subheader("Sources")
 

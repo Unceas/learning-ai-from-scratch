@@ -17,7 +17,7 @@ model = genai.GenerativeModel(
 
 def generate_answer(query, results, memory):
 
-    conversation = memory.context()
+    conversation = memory.context() if memory else ""
 
     context = ""
     for i, chunk in enumerate(results, 1):
@@ -60,6 +60,11 @@ Rules
 - Never invent facts.
 """
 
-    response = model.generate_content(prompt)
+    response = model.generate_content(
+        prompt,
+        stream=True
+    )
 
-    return response.text
+    for chunk in response:
+        if chunk.text:
+            yield chunk.text
