@@ -18,6 +18,7 @@ class RAGTrace:
     tokens_generated: int = 0
 
     sources: list = field(default_factory=list)
+    tool_calls: list = field(default_factory=list)
 
     @property
     def total_ms(self):
@@ -57,7 +58,8 @@ def save_trace(trace, path="rag_traces.jsonl"):
         "final_context_count": trace.final_context_count,
         "streamed": trace.streamed,
         "tokens_generated": trace.tokens_generated,
-        "sources": trace.sources
+        "sources": trace.sources,
+        "tool_calls": trace.tool_calls
     }
 
     with open(path, "a", encoding="utf-8") as file:

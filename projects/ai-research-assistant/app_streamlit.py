@@ -9,6 +9,7 @@ from llm import generate_answer
 from memory import ConversationMemory
 from evaluator import evaluate_retrieval, compare_retrievers, load_evaluation_dataset
 from observability import RAGTrace, timed_call, save_trace
+from tool_router import execute_tool
 
 if "memory" not in st.session_state:
     st.session_state.memory = ConversationMemory()
@@ -69,27 +70,25 @@ with tab_qa:
 
             status = st.status("Processing...")
 
-            # 1. Retrieve candidates via hybrid search
-            status.update(label="Retrieving documents...")
-            candidates, trace.retrieval_ms = timed_call(
-                vector_store.hybrid_search,
-                query,
-                filename=search_filter,
-                top_k=20
-            )
-            trace.retrieved_count = len(candidates)
+            # 1. Execute document_search tool via router
+            status.update(label="Executing document_search tool...")
+            
+            trace.tool_calls.append({
+                "tool": "document_search",
+                "arguments": {"query": query, "filename": search_filter}
+            })
 
-            # 2. Re-rank candidates using Cross-Encoder
-            status.update(label="Re-ranking results...")
-            ranked_candidates, trace.reranking_ms = timed_call(
-                rerank,
-                query,
-                candidates
+            results, search_time = timed_call(
+                execute_tool,
+                "document_search",
+                {"query": query, "filename": search_filter}
             )
-            results = ranked_candidates[:5]
+
+            trace.retrieval_ms = search_time
+            trace.retrieved_count = 20
             trace.final_context_count = len(results)
 
-            # 3. Streamed LLM Generation & TTFT Measurement
+            # 2. Streamed LLM Generation & TTFT Measurement
             status.update(label="Generating answer...")
 
             st.subheader("Answer")
@@ -155,6 +154,8 @@ with tab_qa:
                 st.write("Retrieved candidates:", trace.retrieved_count)
                 st.write("Context chunks:", trace.final_context_count)
                 st.write("Tokens generated:", trace.tokens_generated)
+                if trace.tool_calls:
+                    st.write("Tool Calls:", trace.tool_calls)
 
             st.subheader("Sources")
 

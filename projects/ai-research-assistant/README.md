@@ -190,6 +190,22 @@ Features:
 - Pipeline status indicators
 - Streaming-aware observability
 
+## Tool Execution
+
+The assistant supports controlled function execution through a modular tool architecture.
+
+The system separates:
+
+- Tool definitions
+- Tool schemas
+- Tool selection
+- Tool execution
+- LLM response generation
+
+Document retrieval is exposed as a tool, allowing the assistant to dynamically choose between knowledge retrieval and other capabilities.
+
+Tool execution is also integrated with pipeline tracing for observability.
+
 ## Project Structure
 
 ```text
@@ -204,6 +220,9 @@ ai-research-assistant/
 ├── evaluation.json
 ├── observability.py
 ├── async_pipeline.py
+├── tools.py
+├── tool_router.py
+├── tool_schemas.py
 ├── llm.py
 ├── prompts.py
 ├── requirements.txt
