@@ -1,4 +1,8 @@
-TOOL_SCHEMAS = [
+"""Schema definitions for available assistant tools."""
+
+from typing import Any, Dict, List
+
+TOOL_SCHEMAS: List[Dict[str, Any]] = [
     {
         "name": "calculator",
         "description": "Perform basic arithmetic calculations.",

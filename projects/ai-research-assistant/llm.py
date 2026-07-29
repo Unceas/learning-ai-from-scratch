@@ -1,23 +1,45 @@
+"""Gemini LLM integration module for RAG answer generation."""
+
 import os
+from typing import Any, Generator, List, Optional
 from dotenv import load_dotenv
 import google.generativeai as genai
 from prompts import SYSTEM_PROMPT
 
 load_dotenv()
 
-genai.configure(
-    api_key=os.getenv("GEMINI_API_KEY")
-)
+api_key = os.getenv("GEMINI_API_KEY")
 
-model = genai.GenerativeModel(
-    model_name="gemini-2.5-flash",
-    system_instruction=SYSTEM_PROMPT
-)
+if api_key and api_key != "YOUR_API_KEY":
+    genai.configure(api_key=api_key)
+    model = genai.GenerativeModel(
+        model_name="gemini-2.5-flash",
+        system_instruction=SYSTEM_PROMPT
+    )
+else:
+    model = None
 
 
-def generate_answer(query, results, memory):
+def generate_answer(
+    query: str,
+    results: List[Any],
+    memory: Optional[Any] = None
+) -> Generator[str, None, None]:
+    """Generate a grounded streaming response using Gemini LLM and retrieved context.
 
-    conversation = memory.context() if memory else ""
+    Args:
+        query: User question string.
+        results: List of retrieved context chunk dictionaries or text strings.
+        memory: Optional ConversationMemory instance.
+
+    Yields:
+        Generated text chunks progressively.
+    """
+    if not model:
+        yield "⚠️ GEMINI_API_KEY is missing or invalid in your .env configuration file."
+        return
+
+    conversation = memory.context() if memory and hasattr(memory, "context") else ""
 
     context = ""
     for i, chunk in enumerate(results, 1):
@@ -60,11 +82,14 @@ Rules
 - Never invent facts.
 """
 
-    response = model.generate_content(
-        prompt,
-        stream=True
-    )
+    try:
+        response = model.generate_content(
+            prompt,
+            stream=True
+        )
 
-    for chunk in response:
-        if chunk.text:
-            yield chunk.text
+        for chunk in response:
+            if chunk.text:
+                yield chunk.text
+    except Exception as e:
+        yield f"⚠️ API Error during answer generation: {str(e)}"

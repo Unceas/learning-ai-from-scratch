@@ -1,17 +1,29 @@
+"""Cross-Encoder re-ranking module for second-stage passage relevance scoring."""
+
+from typing import Any, Dict, List
 from sentence_transformers import CrossEncoder
 
+# Initialize CrossEncoder model
 reranker = CrossEncoder(
     "cross-encoder/ms-marco-MiniLM-L-6-v2"
 )
 
 
-def rerank(query, retrieved_chunks):
+def rerank(query: str, retrieved_chunks: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Re-rank candidate context chunks using the CrossEncoder model.
 
-    if not retrieved_chunks:
+    Args:
+        query: User search query.
+        retrieved_chunks: List of candidate chunk dictionaries.
+
+    Returns:
+        List of chunk dictionaries sorted by cross-encoder score descending, with 'rerank_score' included.
+    """
+    if not retrieved_chunks or not query.strip():
         return []
 
     pairs = [
-        (query, chunk["text"])
+        (query, chunk.get("text", ""))
         for chunk in retrieved_chunks
     ]
 
