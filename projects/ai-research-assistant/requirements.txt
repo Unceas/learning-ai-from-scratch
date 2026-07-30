@@ -5,5 +5,5 @@ numpy
 sentence-transformers
 torch
 chromadb
-google-generativeai
+google-genai
 python-dotenv

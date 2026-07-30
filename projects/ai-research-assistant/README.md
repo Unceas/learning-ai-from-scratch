@@ -206,6 +206,18 @@ Document retrieval is exposed as a tool, allowing the assistant to dynamically c
 
 Tool execution is also integrated with pipeline tracing for observability.
 
+## Structured Tool Calling
+
+The assistant supports structured function calling through Gemini.
+
+The model can determine when an external capability is required, generate schema-constrained tool arguments, receive the execution result, and use that result to construct its final response.
+
+The application maintains explicit control over tool execution rather than allowing arbitrary model-generated code to run.
+
+Current tools:
+
+- Calculator
+
 ## Project Structure
 
 ```text
@@ -223,6 +235,8 @@ ai-research-assistant/
 ├── tools.py
 ├── tool_router.py
 ├── tool_schemas.py
+├── agent.py
+├── test_agent.py
 ├── llm.py
 ├── prompts.py
 ├── requirements.txt
