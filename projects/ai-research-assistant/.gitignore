@@ -2,3 +2,4 @@ __pycache__/
 *.pyc
 .env
 rag_traces.jsonl
+vector_db/

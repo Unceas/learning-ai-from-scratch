@@ -218,6 +218,20 @@ Current tools:
 
 - Calculator
 
+## Agentic Document Retrieval
+
+Document retrieval is exposed as a structured tool that the language model can invoke when a query requires information from indexed documents.
+
+The agent can dynamically choose between:
+
+- Document retrieval
+- Arithmetic calculation
+- Direct language-model responses
+
+Document search executes the existing hybrid retrieval and cross-encoder re-ranking pipeline, returning both evidence and source metadata to the model.
+
+Tool execution is explicitly controlled by the application and integrated with request tracing.
+
 ## Project Structure
 
 ```text

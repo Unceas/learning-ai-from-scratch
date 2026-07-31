@@ -2,16 +2,20 @@ from agent import run_agent
 
 
 queries = [
-    "What is 347 multiplied by 29?",
-    "Calculate 144 divided by 12.",
-    "Explain what retrieval augmented generation means."
+    "Calculate 628 multiplied by 37.",
+
+    "What methodology does the uploaded paper use?",
+
+    "According to my document, what dataset was used?",
+
+    "What is retrieval augmented generation?"
 ]
 
 
 for query in queries:
 
-    print("\nUSER:")
-    print(query)
+    print("\nUSER:", flush=True)
+    print(query, flush=True)
 
-    print("\nASSISTANT:")
-    print(run_agent(query))
+    print("\nASSISTANT:", flush=True)
+    print(run_agent(query), flush=True)

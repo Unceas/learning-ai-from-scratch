@@ -5,6 +5,7 @@ from google import genai
 from google.genai import errors, types
 
 from tool_router import execute_tool
+from observability import timed_call
 
 
 load_dotenv()
@@ -58,14 +59,61 @@ calculator_declaration = types.FunctionDeclaration(
 )
 
 
-calculator_tool = types.Tool(
+document_search_declaration = types.FunctionDeclaration(
+    name="document_search",
+
+    description=(
+        "Search the user's indexed research documents. "
+        "Use this when a question asks about information "
+        "contained in uploaded documents, papers, or files."
+    ),
+
+    parameters={
+        "type": "object",
+
+        "properties": {
+            "query": {
+                "type": "string",
+                "description": (
+                    "The search query used to retrieve "
+                    "relevant document passages."
+                )
+            }
+        },
+
+        "required": [
+            "query"
+        ]
+    }
+)
+
+
+agent_tools = types.Tool(
     function_declarations=[
-        calculator_declaration
+        calculator_declaration,
+        document_search_declaration
     ]
 )
 
 
-def run_agent(query):
+system_instruction = """
+You are an AI research assistant.
+
+Use document_search when the user asks about information
+contained in their uploaded or indexed documents.
+
+When document_search returns evidence:
+- Base factual claims on that evidence.
+- Preserve source references when possible.
+- Do not invent information missing from the retrieved context.
+
+Use calculator for arithmetic when appropriate.
+For general knowledge questions that require neither tool,
+answer directly.
+"""
+
+
+def run_agent(query, trace=None):
     if not client:
         return "[Warning] GEMINI_API_KEY is missing or invalid in your .env file."
 
@@ -80,15 +128,18 @@ def run_agent(query):
         )
     ]
 
+    config = types.GenerateContentConfig(
+        system_instruction=system_instruction,
+        tools=[
+            agent_tools
+        ]
+    )
+
     try:
         response = client.models.generate_content(
             model="gemini-2.5-flash",
             contents=contents,
-            config=types.GenerateContentConfig(
-                tools=[
-                    calculator_tool
-                ]
-            )
+            config=config
         )
 
         # No tool requested
@@ -100,10 +151,18 @@ def run_agent(query):
         tool_name = function_call.name
         arguments = dict(function_call.args)
 
-        result = execute_tool(
+        result, tool_ms = timed_call(
+            execute_tool,
             tool_name,
             arguments
         )
+
+        if trace is not None and hasattr(trace, "tool_calls"):
+            trace.tool_calls.append({
+                "name": tool_name,
+                "arguments": arguments,
+                "latency_ms": tool_ms
+            })
 
         # Preserve the model's tool-call turn
         contents.append(
@@ -128,11 +187,7 @@ def run_agent(query):
         final_response = client.models.generate_content(
             model="gemini-2.5-flash",
             contents=contents,
-            config=types.GenerateContentConfig(
-                tools=[
-                    calculator_tool
-                ]
-            )
+            config=config
         )
 
         return final_response.text

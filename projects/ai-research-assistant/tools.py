@@ -1,5 +1,8 @@
 """Modular tools definitions for assistant function execution."""
 
+from vector_store import hybrid_search
+from reranker import rerank
+
 
 def calculator(a: float, b: float, operation: str):
 
@@ -13,7 +16,6 @@ def calculator(a: float, b: float, operation: str):
         return a * b
 
     if operation == "divide":
-
         if b == 0:
             return "Division by zero is not allowed."
 
@@ -22,6 +24,32 @@ def calculator(a: float, b: float, operation: str):
     return "Unsupported operation."
 
 
+def document_search(query: str):
+
+    candidates = hybrid_search(
+        query,
+        top_k=20
+    )
+
+    ranked = rerank(
+        query,
+        candidates
+    )
+
+    results = ranked[:5]
+
+    return [
+        {
+            "text": result["text"],
+            "document": result.get("document", "Unknown"),
+            "page": result.get("page"),
+            "chunk": result.get("chunk")
+        }
+        for result in results
+    ]
+
+
 TOOLS = {
-    "calculator": calculator
+    "calculator": calculator,
+    "document_search": document_search
 }
