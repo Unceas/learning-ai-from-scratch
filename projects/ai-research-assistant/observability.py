@@ -25,6 +25,7 @@ class RAGTrace:
 
     sources: List[Dict[str, Any]] = field(default_factory=list)
     tool_calls: List[Dict[str, Any]] = field(default_factory=list)
+    steps: List[Dict[str, Any]] = field(default_factory=list)
 
     @property
     def total_ms(self) -> float:
@@ -75,7 +76,8 @@ def save_trace(trace: RAGTrace, path: str = "rag_traces.jsonl") -> None:
         "streamed": trace.streamed,
         "tokens_generated": trace.tokens_generated,
         "sources": trace.sources,
-        "tool_calls": trace.tool_calls
+        "tool_calls": trace.tool_calls,
+        "steps": trace.steps
     }
 
     folder = os.path.dirname(path)

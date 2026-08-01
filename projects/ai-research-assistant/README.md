@@ -232,6 +232,33 @@ Document search executes the existing hybrid retrieval and cross-encoder re-rank
 
 Tool execution is explicitly controlled by the application and integrated with request tracing.
 
+## Agent Runtime
+
+The project includes a custom agent execution loop capable of multi-step reasoning.
+
+Runtime features:
+
+- Iterative tool execution
+- Configurable maximum reasoning steps
+- Tool error recovery
+- Unknown tool handling
+- Step-by-step tracing
+- Agent state management
+
+Execution Flow
+
+User Query
+↓
+LLM Decision
+↓
+Tool Execution
+↓
+Observation
+↓
+LLM
+↓
+Repeat Until Final Answer
+
 ## Project Structure
 
 ```text
@@ -250,6 +277,7 @@ ai-research-assistant/
 ├── tool_router.py
 ├── tool_schemas.py
 ├── agent.py
+├── agent_runtime.py
 ├── test_agent.py
 ├── llm.py
 ├── prompts.py

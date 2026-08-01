@@ -165,6 +165,13 @@ with tab_qa:
                 if trace.tool_calls:
                     st.write("**Tool Calls:**", trace.tool_calls)
 
+            if trace.steps:
+                with st.expander("🤖 Agent Reasoning Steps"):
+                    for step_info in trace.steps:
+                        st.write(f"**Step {step_info['step']}** — Tool: `{step_info['tool']}` ({step_info.get('latency_ms', 0):.0f} ms)")
+                        st.write("**Arguments:**", step_info['arguments'])
+                        st.info(f"**Result:** {step_info['result']}")
+
             st.subheader("📚 Citation Sources")
             for i, chunk in enumerate(results, 1):
                 with st.expander(f"Source {i} — {chunk.get('document', 'Unknown')} (Page {chunk.get('page', 1)})"):
