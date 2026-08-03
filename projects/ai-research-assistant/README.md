@@ -259,10 +259,52 @@ LLM
 ↓
 Repeat Until Final Answer
 
+## Multi-Agent Architecture
+
+The assistant is organized into specialized agents coordinated by an orchestrator.
+
+Agents
+
+- Research Agent
+- Calculator Agent
+- Reasoning Agent
+
+Workflow
+
+User Query
+↓
+
+Task Planning
+↓
+
+Specialized Agents
+
+↓
+
+Result Aggregation
+
+↓
+
+Final Response
+
+Benefits
+
+- Modular architecture
+- Easier extensibility
+- Parallel execution
+- Clear separation of responsibilities
+
 ## Project Structure
 
 ```text
 ai-research-assistant/
+├── agents/
+│   ├── base_agent.py
+│   ├── research_agent.py
+│   ├── calculator_agent.py
+│   ├── reasoning_agent.py
+│   ├── search_agent.py
+│   └── orchestrator.py
 ├── app_streamlit.py
 ├── parser.py
 ├── retrieval.py
@@ -279,6 +321,7 @@ ai-research-assistant/
 ├── agent.py
 ├── agent_runtime.py
 ├── test_agent.py
+├── test_multi_agent.py
 ├── llm.py
 ├── prompts.py
 ├── requirements.txt
