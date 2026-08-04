@@ -20,6 +20,8 @@ class ReasoningAgent(BaseAgent):
         super().__init__(name="Reasoning Agent")
 
     def run(self, task):
+        api_key = os.getenv("GEMINI_API_KEY")
+        client = genai.Client(api_key=api_key) if api_key and api_key != "YOUR_API_KEY" else None
         if not client:
             return "[Warning] GEMINI_API_KEY is missing or invalid in your .env file."
 

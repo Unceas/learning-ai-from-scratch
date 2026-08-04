@@ -29,10 +29,18 @@ memory = st.session_state.memory
 st.title("🤖 AI Research Assistant")
 st.caption("Retrieval-Augmented Generation & Tool-Calling Agent Platform")
 
-# Check API key configuration warning
-api_key = os.getenv("GEMINI_API_KEY")
-if not api_key or api_key == "YOUR_API_KEY":
-    st.warning("⚠️ `GEMINI_API_KEY` is not set or using placeholder in `.env`. Please add a valid Gemini API key to enable LLM generation.")
+# --- SIDEBAR & CONFIGURATION ---
+with st.sidebar:
+    st.header("🔑 API Configuration")
+    env_key = os.getenv("GEMINI_API_KEY", "")
+    default_key = "" if env_key == "YOUR_API_KEY" else env_key
+    user_api_key = st.text_input("Gemini API Key", value=default_key, type="password", help="Enter your Gemini API key here or set GEMINI_API_KEY in .env")
+    if user_api_key:
+        os.environ["GEMINI_API_KEY"] = user_api_key
+
+active_api_key = os.getenv("GEMINI_API_KEY")
+if not active_api_key or active_api_key == "YOUR_API_KEY":
+    st.warning("⚠️ `GEMINI_API_KEY` is not set. Enter your key in the sidebar or update `.env` to enable LLM generation.")
 
 tab_qa, tab_eval = st.tabs(["🔍 Search & QA", "📊 Evaluation Dashboard"])
 
@@ -44,7 +52,7 @@ with tab_qa:
     existing_docs = sorted(list(set(
         meta["document"]
         for meta in existing_metadatas
-        if meta and "document" in meta
+        if meta and isinstance(meta, dict) and "document" in meta
     )))
 
     uploaded_file = st.file_uploader(
@@ -109,7 +117,7 @@ with tab_qa:
             token_count = 0
 
             gen_start = time.perf_counter()
-            stream = generate_answer(query, results, memory)
+            stream = generate_answer(query, results, memory, api_key=active_api_key)
 
             try:
                 first_token = next(stream)

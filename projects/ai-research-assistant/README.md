@@ -294,6 +294,35 @@ Benefits
 - Parallel execution
 - Clear separation of responsibilities
 
+## Workflow Engine
+
+The assistant executes tasks through a state-driven workflow engine.
+
+Components
+
+- Shared workflow state
+- Independent processing nodes
+- Sequential workflow execution
+- Extensible graph architecture
+
+Pipeline
+
+START
+
+↓
+
+Research Node
+
+↓
+
+Reasoning Node
+
+↓
+
+END
+
+The workflow is designed to evolve into a graph-based execution model similar to LangGraph while remaining framework-independent.
+
 ## Project Structure
 
 ```text
@@ -305,6 +334,11 @@ ai-research-assistant/
 │   ├── reasoning_agent.py
 │   ├── search_agent.py
 │   └── orchestrator.py
+├── workflow/
+│   ├── state.py
+│   ├── node.py
+│   ├── engine.py
+│   └── graph.py
 ├── app_streamlit.py
 ├── parser.py
 ├── retrieval.py
@@ -322,6 +356,7 @@ ai-research-assistant/
 ├── agent_runtime.py
 ├── test_agent.py
 ├── test_multi_agent.py
+├── test_workflow.py
 ├── llm.py
 ├── prompts.py
 ├── requirements.txt

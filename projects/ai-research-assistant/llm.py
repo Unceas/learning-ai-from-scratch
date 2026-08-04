@@ -3,27 +3,26 @@
 import os
 from typing import Any, Generator, List, Optional
 from dotenv import load_dotenv
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 from prompts import SYSTEM_PROMPT
 
 load_dotenv()
 
-api_key = os.getenv("GEMINI_API_KEY")
 
-if api_key and api_key != "YOUR_API_KEY":
-    genai.configure(api_key=api_key)
-    model = genai.GenerativeModel(
-        model_name="gemini-2.5-flash",
-        system_instruction=SYSTEM_PROMPT
-    )
-else:
-    model = None
+def get_client(override_api_key: Optional[str] = None) -> Optional[genai.Client]:
+    """Retrieve Gemini client using provided or environment API key."""
+    api_key = override_api_key or os.getenv("GEMINI_API_KEY")
+    if api_key and api_key != "YOUR_API_KEY":
+        return genai.Client(api_key=api_key)
+    return None
 
 
 def generate_answer(
     query: str,
     results: List[Any],
-    memory: Optional[Any] = None
+    memory: Optional[Any] = None,
+    api_key: Optional[str] = None
 ) -> Generator[str, None, None]:
     """Generate a grounded streaming response using Gemini LLM and retrieved context.
 
@@ -31,11 +30,13 @@ def generate_answer(
         query: User question string.
         results: List of retrieved context chunk dictionaries or text strings.
         memory: Optional ConversationMemory instance.
+        api_key: Optional API key override.
 
     Yields:
         Generated text chunks progressively.
     """
-    if not model:
+    client = get_client(api_key)
+    if not client:
         yield "⚠️ GEMINI_API_KEY is missing or invalid in your .env configuration file."
         return
 
@@ -83,9 +84,13 @@ Rules
 """
 
     try:
-        response = model.generate_content(
-            prompt,
-            stream=True
+        config = types.GenerateContentConfig(
+            system_instruction=SYSTEM_PROMPT
+        )
+        response = client.models.generate_content_stream(
+            model="gemini-2.5-flash",
+            contents=prompt,
+            config=config
         )
 
         for chunk in response:
@@ -93,3 +98,4 @@ Rules
                 yield chunk.text
     except Exception as e:
         yield f"⚠️ API Error during answer generation: {str(e)}"
+

@@ -111,13 +111,13 @@ For general knowledge questions that require neither tool,
 answer directly.
 """
 
-runtime = AgentRuntime(
-    client=client,
-    tools=[agent_tools],
-    system_instruction=system_instruction,
-    max_steps=5
-)
-
-
 def run_agent(query, trace=None):
-    return runtime.run(query, trace=trace)
+    active_key = os.getenv("GEMINI_API_KEY")
+    active_client = genai.Client(api_key=active_key) if active_key and active_key != "YOUR_API_KEY" else None
+    agent_runtime = AgentRuntime(
+        client=active_client,
+        tools=[agent_tools],
+        system_instruction=system_instruction,
+        max_steps=5
+    )
+    return agent_runtime.run(query, trace=trace)
