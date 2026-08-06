@@ -323,6 +323,32 @@ END
 
 The workflow is designed to evolve into a graph-based execution model similar to LangGraph while remaining framework-independent.
 
+## Reflection & Self-Correction
+
+The assistant performs an automatic review before returning a response.
+
+Pipeline
+
+Question
+↓
+Retrieval
+↓
+Answer Generation
+↓
+Critic
+↓
+Revision (if required)
+↓
+Final Response
+
+Features
+
+- Automatic answer evaluation
+- Grounding verification
+- Controlled revision loop
+- Iteration tracking
+- Reflection observability
+
 ## Project Structure
 
 ```text
@@ -339,6 +365,11 @@ ai-research-assistant/
 │   ├── node.py
 │   ├── engine.py
 │   └── graph.py
+├── reflection/
+│   ├── critic.py
+│   ├── reviser.py
+│   ├── validator.py
+│   └── loop.py
 ├── app_streamlit.py
 ├── parser.py
 ├── retrieval.py
@@ -357,6 +388,7 @@ ai-research-assistant/
 ├── test_agent.py
 ├── test_multi_agent.py
 ├── test_workflow.py
+├── test_reflection.py
 ├── llm.py
 ├── prompts.py
 ├── requirements.txt

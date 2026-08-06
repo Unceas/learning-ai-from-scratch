@@ -180,6 +180,14 @@ with tab_qa:
                         st.write("**Arguments:**", step_info['arguments'])
                         st.info(f"**Result:** {step_info['result']}")
 
+            if trace.reflection and trace.reflection.get("history"):
+                with st.expander("🔍 Reflection & Self-Correction"):
+                    for item in trace.reflection["history"]:
+                        status_str = "✅ Approved" if item['approved'] else "❌ Needs Improvement"
+                        st.write(f"**Iteration {item['iteration']}** — Score: `{item['score']}/10` ({status_str})")
+                        st.write(f"**Feedback:** {item['feedback']}")
+                        st.divider()
+
             st.subheader("📚 Citation Sources")
             for i, chunk in enumerate(results, 1):
                 with st.expander(f"Source {i} — {chunk.get('document', 'Unknown')} (Page {chunk.get('page', 1)})"):
