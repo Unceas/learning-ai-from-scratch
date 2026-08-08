@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 from google import genai
 from google.genai import types
 from prompts import SYSTEM_PROMPT
+from memory_store import search_memory
 
 load_dotenv()
 
@@ -42,6 +43,9 @@ def generate_answer(
 
     conversation = memory.context() if memory and hasattr(memory, "context") else ""
 
+    memories = search_memory(query, top_k=3)
+    memory_context = "\n".join(f"- {m}" for m in memories) if memories else "None"
+
     context = ""
     for i, chunk in enumerate(results, 1):
         text = chunk["text"] if isinstance(chunk, dict) else chunk
@@ -62,6 +66,10 @@ Content:
 """
 
     prompt = f"""
+Relevant Persistent Long-Term Memories
+
+{memory_context}
+
 Previous Conversation
 
 {conversation}
@@ -76,7 +84,7 @@ Current Question
 
 Rules
 
-- Use retrieved context as the primary source.
+- Use retrieved context and persistent memories as the primary sources.
 - Whenever possible, reference the appropriate source number (e.g. [Source 1]).
 - Never cite a source that was not provided.
 - Use previous conversation only to resolve references.
@@ -98,4 +106,3 @@ Rules
                 yield chunk.text
     except Exception as e:
         yield f"⚠️ API Error during answer generation: {str(e)}"
-

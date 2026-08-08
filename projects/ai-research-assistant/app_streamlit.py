@@ -10,6 +10,8 @@ import vector_store
 from reranker import rerank
 from llm import generate_answer
 from memory import ConversationMemory
+from memory_store import search_memory, add_memory, clear_memory
+from memory_extractor import should_store_memory, extract_memory_snippet
 from evaluator import evaluate_retrieval, compare_retrievers, load_evaluation_dataset
 from observability import RAGTrace, timed_call, save_trace
 from tool_router import execute_tool
@@ -17,7 +19,7 @@ from tool_router import execute_tool
 # Initialize page configuration
 st.set_page_config(
     page_title="AI Research Assistant",
-    page_icon="🤖",
+    page_icon="🔎",
     layout="wide"
 )
 
@@ -90,6 +92,10 @@ with tab_qa:
             search_filter = None if selected_document == "All Documents" else selected_document
             trace = RAGTrace(query=query)
 
+            # Retrieve long-term persistent memories
+            memories = search_memory(query, top_k=3)
+            trace.memory_hits = len(memories)
+
             status = st.status("Processing RAG Pipeline...", expanded=True)
 
             # 1. Execute document_search tool via router
@@ -155,21 +161,29 @@ with tab_qa:
             # Persist trace record
             save_trace(trace)
 
-            # Save turn in conversational memory
+            # Save turn in short-term conversational memory
             memory.add(query, full_answer)
+
+            # Extract & store long-term persistent memory if turn contains preferences/facts
+            if should_store_memory(query, full_answer):
+                snippet = extract_memory_snippet(query, full_answer)
+                add_memory(snippet)
+                st.toast("🧠 Saved to long-term memory!", icon="💾")
 
             # Streamlit Debug Panel
             with st.expander("🛠️ Pipeline Telemetry & Trace"):
-                col1, col2, col3, col4, col5 = st.columns(5)
+                col1, col2, col3, col4, col5, col6 = st.columns(6)
                 col1.metric("Retrieval", f"{trace.retrieval_ms:.0f} ms")
                 col2.metric("Re-ranking", f"{trace.reranking_ms:.0f} ms")
                 col3.metric("TTFT", f"{trace.ttft_ms:.0f} ms")
                 col4.metric("Generation", f"{trace.generation_ms:.0f} ms")
                 col5.metric("Total", f"{trace.total_ms:.0f} ms")
+                col6.metric("Memory Hits", trace.memory_hits)
 
                 st.write("**Retrieved Candidates:**", trace.retrieved_count)
                 st.write("**Context Chunks:**", trace.final_context_count)
                 st.write("**Tokens Generated:**", trace.tokens_generated)
+                st.write("**Memory Hits Count:**", trace.memory_hits)
                 if trace.tool_calls:
                     st.write("**Tool Calls:**", trace.tool_calls)
 
@@ -228,7 +242,7 @@ with tab_eval:
     with st.expander("Inspect Benchmark Dataset (evaluation.json)"):
         st.json(dataset)
 
-# --- SIDEBAR CONVERSATION HISTORY ---
+# --- SIDEBAR CONVERSATION & MEMORY HISTORY ---
 with st.sidebar:
     st.header("💬 Conversation History")
 
@@ -242,4 +256,11 @@ with st.sidebar:
 
     if st.button("Clear Conversation", type="secondary"):
         memory.clear()
+        st.rerun()
+
+    st.divider()
+    st.header("🧠 Long-Term Memory Controls")
+    if st.button("Clear Long-Term Memory", type="secondary"):
+        clear_memory()
+        st.success("Long-term memory cleared.")
         st.rerun()

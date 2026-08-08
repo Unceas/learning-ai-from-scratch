@@ -22,6 +22,7 @@ class RAGTrace:
     final_context_count: int = 0
     streamed: bool = True
     tokens_generated: int = 0
+    memory_hits: int = 0
 
     sources: List[Dict[str, Any]] = field(default_factory=list)
     tool_calls: List[Dict[str, Any]] = field(default_factory=list)
@@ -76,6 +77,7 @@ def save_trace(trace: RAGTrace, path: str = "rag_traces.jsonl") -> None:
         "final_context_count": trace.final_context_count,
         "streamed": trace.streamed,
         "tokens_generated": trace.tokens_generated,
+        "memory_hits": trace.memory_hits,
         "sources": trace.sources,
         "tool_calls": trace.tool_calls,
         "steps": trace.steps,

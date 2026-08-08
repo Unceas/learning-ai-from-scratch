@@ -349,6 +349,19 @@ Features
 - Iteration tracking
 - Reflection observability
 
+## Long-Term Semantic Memory
+
+The assistant maintains persistent user memories in a dedicated vector collection (`memory_db`).
+
+Features:
+
+- Persistent ChromaDB memory storage
+- Selective memory extraction rules
+- Separate vector databases for documents vs user memory
+- Semantic memory retrieval during prompt assembly
+- Long-term memory deletion control
+- Memory hit telemetry tracing
+
 ## Project Structure
 
 ```text
@@ -374,6 +387,8 @@ ai-research-assistant/
 ├── parser.py
 ├── retrieval.py
 ├── vector_store.py
+├── memory_store.py
+├── memory_extractor.py
 ├── reranker.py
 ├── memory.py
 ├── evaluator.py
@@ -389,10 +404,12 @@ ai-research-assistant/
 ├── test_multi_agent.py
 ├── test_workflow.py
 ├── test_reflection.py
+├── test_memory.py
 ├── llm.py
 ├── prompts.py
 ├── requirements.txt
 ├── vector_db/
+├── memory_db/
 └── README.md
 ```
 
