@@ -362,6 +362,29 @@ Features:
 - Long-term memory deletion control
 - Memory hit telemetry tracing
 
+## Memory Management
+
+The long-term memory system includes a memory lifecycle layer rather than blindly storing every interaction.
+
+Features:
+
+- Importance scoring
+- Duplicate detection
+- Memory categorization
+- Relevance filtering
+- Persistent semantic storage
+- Controlled memory creation
+
+Memory categories currently include:
+
+- General
+- Preference
+- Project
+- Goal
+- Fact
+
+The system separates short-term conversation state, long-term memory, and external document knowledge.
+
 ## Project Structure
 
 ```text
@@ -388,6 +411,8 @@ ai-research-assistant/
 ├── retrieval.py
 ├── vector_store.py
 ├── memory_store.py
+├── memory_scoring.py
+├── memory_manager.py
 ├── memory_extractor.py
 ├── reranker.py
 ├── memory.py
@@ -405,6 +430,7 @@ ai-research-assistant/
 ├── test_workflow.py
 ├── test_reflection.py
 ├── test_memory.py
+├── test_memory_lifecycle.py
 ├── llm.py
 ├── prompts.py
 ├── requirements.txt

@@ -7,6 +7,7 @@ from google import genai
 from google.genai import types
 from prompts import SYSTEM_PROMPT
 from memory_store import search_memory
+from memory_manager import default_memory_manager
 
 load_dotenv()
 
@@ -43,8 +44,15 @@ def generate_answer(
 
     conversation = memory.context() if memory and hasattr(memory, "context") else ""
 
-    memories = search_memory(query, top_k=3)
-    memory_context = "\n".join(f"- {m}" for m in memories) if memories else "None"
+    raw_memories = search_memory(query, top_k=5)
+    filtered_memories = default_memory_manager.filter_memories(raw_memories, minimum_importance=0.4)
+
+    memory_strings = [
+        f"- [{m.get('type', 'general').upper()} | Imp: {m.get('importance', 0.5):.1f}] {m.get('text', '')}"
+        for m in filtered_memories
+        if isinstance(m, dict) and m.get("text")
+    ]
+    memory_context = "\n".join(memory_strings) if memory_strings else "None"
 
     context = ""
     for i, chunk in enumerate(results, 1):

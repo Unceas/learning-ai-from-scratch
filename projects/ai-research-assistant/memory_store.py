@@ -17,8 +17,13 @@ model = SentenceTransformer(
 )
 
 
-def add_memory(text: str, metadata: dict = None) -> None:
-    """Store a persistent memory snippet into ChromaDB."""
+def add_memory(
+    text: str,
+    importance: float = 0.5,
+    memory_type: str = "general",
+    metadata: dict = None
+) -> None:
+    """Store a persistent memory snippet into ChromaDB with metadata attributes."""
     if not text or not text.strip():
         return
 
@@ -28,7 +33,12 @@ def add_memory(text: str, metadata: dict = None) -> None:
         [text]
     ).tolist()[0]
 
-    meta = dict(metadata) if metadata else {"type": "user_memory"}
+    meta = {
+        "importance": float(importance),
+        "type": str(memory_type)
+    }
+    if metadata:
+        meta.update(metadata)
 
     collection.add(
         ids=[memory_id],
@@ -38,8 +48,11 @@ def add_memory(text: str, metadata: dict = None) -> None:
     )
 
 
-def search_memory(query: str, top_k: int = 3) -> list:
-    """Perform semantic search over persistent user memories."""
+def search_memory(
+    query: str,
+    top_k: int = 5
+) -> list:
+    """Perform semantic search over persistent user memories and return structured dictionaries."""
     if collection.count() == 0 or not query or not query.strip():
         return []
 
@@ -54,9 +67,24 @@ def search_memory(query: str, top_k: int = 3) -> list:
         n_results=effective_k
     )
 
+    memories = []
     if result and "documents" in result and result["documents"]:
-        return result["documents"][0]
-    return []
+        docs = result["documents"][0]
+        metadatas = result.get("metadatas", [[]])[0]
+        distances = result.get("distances", [[]])[0]
+
+        for i, text in enumerate(docs):
+            meta = metadatas[i] if i < len(metadatas) and isinstance(metadatas[i], dict) else {}
+            dist = distances[i] if i < len(distances) else 0.0
+
+            memories.append({
+                "text": text,
+                "importance": float(meta.get("importance", 0.5)),
+                "type": meta.get("type", "general"),
+                "distance": float(dist)
+            })
+
+    return memories
 
 
 def clear_memory() -> None:

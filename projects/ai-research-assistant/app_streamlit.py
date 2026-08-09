@@ -92,8 +92,9 @@ with tab_qa:
             search_filter = None if selected_document == "All Documents" else selected_document
             trace = RAGTrace(query=query)
 
-            # Retrieve long-term persistent memories
-            memories = search_memory(query, top_k=3)
+            # Retrieve & filter long-term persistent memories
+            raw_memories = search_memory(query, top_k=5)
+            memories = default_memory_manager.filter_memories(raw_memories, minimum_importance=0.4)
             trace.memory_hits = len(memories)
 
             status = st.status("Processing RAG Pipeline...", expanded=True)
@@ -164,11 +165,14 @@ with tab_qa:
             # Save turn in short-term conversational memory
             memory.add(query, full_answer)
 
-            # Extract & store long-term persistent memory if turn contains preferences/facts
+            # Extract & store long-term persistent memory via MemoryManager (deduped & scored)
             if should_store_memory(query, full_answer):
                 snippet = extract_memory_snippet(query, full_answer)
-                add_memory(snippet)
-                st.toast("🧠 Saved to long-term memory!", icon="💾")
+                mem_status = default_memory_manager.remember(snippet)
+                if mem_status == "Memory stored.":
+                    st.toast("🧠 Saved to long-term memory!", icon="💾")
+                else:
+                    st.toast(f"ℹ️ Memory check: {mem_status}", icon="🔍")
 
             # Streamlit Debug Panel
             with st.expander("🛠️ Pipeline Telemetry & Trace"):
