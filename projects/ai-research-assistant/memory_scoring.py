@@ -15,14 +15,19 @@ def calculate_importance(text: str) -> float:
         "my goal",
         "my project",
         "my preference",
-        "i prefer"
+        "i prefer",
+        "prefer",
+        "prefers",
+        "building",
+        "system"
     ]
 
     medium_priority = [
         "usually",
         "often",
         "working on",
-        "learning"
+        "learning",
+        "paper"
     ]
 
     for keyword in high_priority:
