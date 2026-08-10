@@ -43,4 +43,4 @@ assert all(d["user_id"] == user_b for d in docs_b), "Cross-user document leakage
 clear_memory(user_a)
 clear_memory(user_b)
 
-print("\n✅ Multi-User Data Isolation Verified Successfully!")
+print("\n[Success] Multi-User Data Isolation Verified Successfully!")
