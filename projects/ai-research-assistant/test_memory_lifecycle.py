@@ -3,9 +3,10 @@ from memory_scoring import calculate_importance, categorize_memory_type
 from memory_manager import MemoryManager
 
 manager = MemoryManager()
+user_id = "user_lifecycle_test"
 
 # Clear memory before running tests
-clear_memory()
+clear_memory(user_id)
 
 print("--- 1. Testing Importance Scoring & Categorization ---")
 p1 = "User prefers concise technical explanations."
@@ -17,22 +18,22 @@ print(f"P2: Score={calculate_importance(p2)}, Type={categorize_memory_type(p2)}"
 print(f"P3: Score={calculate_importance(p3)}, Type={categorize_memory_type(p3)}")
 
 print("\n--- 2. Testing Memory Storage & Deduplication ---")
-res1 = manager.remember(p1)
+res1 = manager.remember(user_id, p1)
 print("Insertion 1:", res1)
 
-res2 = manager.remember(p1)
+res2 = manager.remember(user_id, p1)
 print("Duplicate Insertion:", res2)
 
-res3 = manager.remember(p2)
+res3 = manager.remember(user_id, p2)
 print("Insertion 2:", res3)
 
 print("\n--- 3. Testing Memory Retrieval & Relevance Filtering ---")
-all_memories = search_memory("What project am I building?", top_k=5)
+all_memories = search_memory(user_id, "What project am I building?", top_k=5)
 print("Raw Search Hits:", all_memories)
 
 filtered = manager.filter_memories(all_memories, minimum_importance=0.4)
 print("High-Importance Filtered Hits:", filtered)
 
 # Clean up memory after test
-clear_memory()
+clear_memory(user_id)
 print("\nMemory cleanup complete.")

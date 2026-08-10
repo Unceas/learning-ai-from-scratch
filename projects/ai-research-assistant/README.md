@@ -385,6 +385,14 @@ Memory categories currently include:
 
 The system separates short-term conversation state, long-term memory, and external document knowledge.
 
+## Multi-User Data Isolation
+
+The application associates persistent memories and document records with a user identifier.
+
+Retrieval operations apply user-level metadata filters so that memories and documents belonging to one user are not returned to another user's queries.
+
+The current implementation uses session-level identity for the prototype. Full authentication and authorization can be integrated independently.
+
 ## Project Structure
 
 ```text
@@ -414,6 +422,7 @@ ai-research-assistant/
 ├── memory_scoring.py
 ├── memory_manager.py
 ├── memory_extractor.py
+├── user_context.py
 ├── reranker.py
 ├── memory.py
 ├── evaluator.py
@@ -431,6 +440,7 @@ ai-research-assistant/
 ├── test_reflection.py
 ├── test_memory.py
 ├── test_memory_lifecycle.py
+├── test_user_isolation.py
 ├── llm.py
 ├── prompts.py
 ├── requirements.txt

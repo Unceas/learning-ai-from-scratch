@@ -24,10 +24,12 @@ def calculator(a: float, b: float, operation: str):
     return "Unsupported operation."
 
 
-def document_search(query: str):
+def document_search(query: str, filename: str = None, user_id: str = None):
 
     candidates = hybrid_search(
         query,
+        filename=filename,
+        user_id=user_id,
         top_k=20
     )
 
@@ -43,7 +45,8 @@ def document_search(query: str):
             "text": result["text"],
             "document": result.get("document", "Unknown"),
             "page": result.get("page"),
-            "chunk": result.get("chunk")
+            "chunk": result.get("chunk"),
+            "user_id": result.get("user_id", user_id)
         }
         for result in results
     ]

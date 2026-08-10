@@ -1,4 +1,4 @@
-"""Gemini LLM integration module for RAG answer generation."""
+"""Gemini LLM integration module for RAG answer generation with multi-user isolation."""
 
 import os
 from typing import Any, Generator, List, Optional
@@ -24,6 +24,7 @@ def generate_answer(
     query: str,
     results: List[Any],
     memory: Optional[Any] = None,
+    user_id: Optional[str] = None,
     api_key: Optional[str] = None
 ) -> Generator[str, None, None]:
     """Generate a grounded streaming response using Gemini LLM and retrieved context.
@@ -32,6 +33,7 @@ def generate_answer(
         query: User question string.
         results: List of retrieved context chunk dictionaries or text strings.
         memory: Optional ConversationMemory instance.
+        user_id: Optional user identifier string for memory isolation.
         api_key: Optional API key override.
 
     Yields:
@@ -44,7 +46,7 @@ def generate_answer(
 
     conversation = memory.context() if memory and hasattr(memory, "context") else ""
 
-    raw_memories = search_memory(query, top_k=5)
+    raw_memories = search_memory(user_id, query, top_k=5) if user_id else []
     filtered_memories = default_memory_manager.filter_memories(raw_memories, minimum_importance=0.4)
 
     memory_strings = [

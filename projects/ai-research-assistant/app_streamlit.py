@@ -1,4 +1,4 @@
-"""Streamlit Web UI application for AI Research Assistant (RAG & Agent System)."""
+"""Streamlit Web UI application for AI Research Assistant (RAG & Agent System with Multi-User Isolation)."""
 
 import os
 import time
@@ -11,7 +11,9 @@ from reranker import rerank
 from llm import generate_answer
 from memory import ConversationMemory
 from memory_store import search_memory, add_memory, clear_memory
+from memory_manager import default_memory_manager
 from memory_extractor import should_store_memory, extract_memory_snippet
+from user_context import create_user_id
 from evaluator import evaluate_retrieval, compare_retrievers, load_evaluation_dataset
 from observability import RAGTrace, timed_call, save_trace
 from tool_router import execute_tool
@@ -23,16 +25,22 @@ st.set_page_config(
     layout="wide"
 )
 
-# Initialize persistent session state memory
+# Initialize persistent session state user identity and memory
+if "user_id" not in st.session_state:
+    st.session_state.user_id = create_user_id()
+
 if "memory" not in st.session_state:
     st.session_state.memory = ConversationMemory()
 memory = st.session_state.memory
+
+user_id = st.session_state.user_id
 
 st.title("🤖 AI Research Assistant")
 st.caption("Retrieval-Augmented Generation & Tool-Calling Agent Platform")
 
 # --- SIDEBAR & CONFIGURATION ---
 with st.sidebar:
+    st.caption(f"Session User ID: `{user_id[:8]}`")
     st.header("🔑 API Configuration")
     env_key = os.getenv("GEMINI_API_KEY", "")
     default_key = "" if env_key == "YOUR_API_KEY" else env_key
@@ -48,8 +56,8 @@ tab_qa, tab_eval = st.tabs(["🔍 Search & QA", "📊 Evaluation Dashboard"])
 
 # --- TAB 1: SEARCH & QA ---
 with tab_qa:
-    # Retrieve existing documents from ChromaDB to populate search scope
-    existing = vector_store.collection.get()
+    # Retrieve existing user-isolated documents from ChromaDB to populate search scope
+    existing = vector_store.collection.get(where={"user_id": str(user_id)})
     existing_metadatas = existing.get("metadatas") or []
     existing_docs = sorted(list(set(
         meta["document"]
@@ -70,7 +78,7 @@ with tab_qa:
             if not chunks:
                 st.warning(f"No readable text content found in '{uploaded_file.name}'.")
             elif uploaded_file.name not in existing_docs:
-                vector_store.add_document(uploaded_file.name, chunks)
+                vector_store.add_document(uploaded_file.name, chunks, user_id=user_id)
                 st.success(f"Document '{uploaded_file.name}' indexed successfully ({len(chunks)} chunks).")
                 existing_docs = sorted(list(set(existing_docs + [uploaded_file.name])))
             else:
@@ -92,24 +100,24 @@ with tab_qa:
             search_filter = None if selected_document == "All Documents" else selected_document
             trace = RAGTrace(query=query)
 
-            # Retrieve & filter long-term persistent memories
-            raw_memories = search_memory(query, top_k=5)
+            # Retrieve & filter long-term persistent memories for current user_id
+            raw_memories = search_memory(user_id, query, top_k=5)
             memories = default_memory_manager.filter_memories(raw_memories, minimum_importance=0.4)
             trace.memory_hits = len(memories)
 
             status = st.status("Processing RAG Pipeline...", expanded=True)
 
-            # 1. Execute document_search tool via router
+            # 1. Execute document_search tool via router with user_id filter
             status.update(label="Executing document_search tool (Hybrid Search)...")
             trace.tool_calls.append({
                 "tool": "document_search",
-                "arguments": {"query": query, "filename": search_filter}
+                "arguments": {"query": query, "filename": search_filter, "user_id": user_id}
             })
 
             results, search_time = timed_call(
                 execute_tool,
                 "document_search",
-                {"query": query, "filename": search_filter}
+                {"query": query, "filename": search_filter, "user_id": user_id}
             )
 
             trace.retrieval_ms = search_time
@@ -124,7 +132,7 @@ with tab_qa:
             token_count = 0
 
             gen_start = time.perf_counter()
-            stream = generate_answer(query, results, memory, api_key=active_api_key)
+            stream = generate_answer(query, results, memory, user_id=user_id, api_key=active_api_key)
 
             try:
                 first_token = next(stream)
@@ -165,10 +173,10 @@ with tab_qa:
             # Save turn in short-term conversational memory
             memory.add(query, full_answer)
 
-            # Extract & store long-term persistent memory via MemoryManager (deduped & scored)
+            # Extract & store long-term persistent memory via MemoryManager for current user_id
             if should_store_memory(query, full_answer):
                 snippet = extract_memory_snippet(query, full_answer)
-                mem_status = default_memory_manager.remember(snippet)
+                mem_status = default_memory_manager.remember(user_id, snippet)
                 if mem_status == "Memory stored.":
                     st.toast("🧠 Saved to long-term memory!", icon="💾")
                 else:
@@ -188,6 +196,7 @@ with tab_qa:
                 st.write("**Context Chunks:**", trace.final_context_count)
                 st.write("**Tokens Generated:**", trace.tokens_generated)
                 st.write("**Memory Hits Count:**", trace.memory_hits)
+                st.write("**User ID:**", user_id)
                 if trace.tool_calls:
                     st.write("**Tool Calls:**", trace.tool_calls)
 
@@ -264,7 +273,7 @@ with st.sidebar:
 
     st.divider()
     st.header("🧠 Long-Term Memory Controls")
-    if st.button("Clear Long-Term Memory", type="secondary"):
-        clear_memory()
-        st.success("Long-term memory cleared.")
+    if st.button("Clear My Long-Term Memory", type="secondary"):
+        clear_memory(user_id=user_id)
+        st.success("Your long-term memory cleared.")
         st.rerun()
