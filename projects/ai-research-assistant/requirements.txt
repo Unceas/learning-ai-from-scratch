@@ -7,3 +7,4 @@ torch
 chromadb
 google-genai
 python-dotenv
+streamlit-authenticator

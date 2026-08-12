@@ -4,3 +4,4 @@ __pycache__/
 rag_traces.jsonl
 vector_db/
 memory_db/
+.streamlit/secrets.toml

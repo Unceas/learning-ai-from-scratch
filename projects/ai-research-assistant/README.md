@@ -393,6 +393,22 @@ Retrieval operations apply user-level metadata filters so that memories and docu
 
 The current implementation uses session-level identity for the prototype. Full authentication and authorization can be integrated independently.
 
+## Authentication & Authorization
+
+The application separates user authentication from the AI pipeline.
+
+Authenticated users receive a user identity that is propagated through document retrieval and long-term memory operations.
+
+Data access is scoped by user ID, preventing retrieval and deletion operations from crossing user boundaries.
+
+Security principles:
+
+- Authentication before application access
+- User-scoped document retrieval
+- User-scoped memory retrieval
+- User-scoped memory deletion
+- Secrets excluded from source control
+
 ## Project Structure
 
 ```text
@@ -415,6 +431,7 @@ ai-research-assistant/
 │   ├── validator.py
 │   └── loop.py
 ├── app_streamlit.py
+├── auth.py
 ├── parser.py
 ├── retrieval.py
 ├── vector_store.py

@@ -1,4 +1,4 @@
-"""Streamlit Web UI application for AI Research Assistant (RAG & Agent System with Multi-User Isolation)."""
+"""Streamlit Web UI application for AI Research Assistant (RAG & Agent System with Authentication & Authorization)."""
 
 import os
 import time
@@ -13,7 +13,7 @@ from memory import ConversationMemory
 from memory_store import search_memory, add_memory, clear_memory
 from memory_manager import default_memory_manager
 from memory_extractor import should_store_memory, extract_memory_snippet
-from user_context import create_user_id
+from auth import create_authenticator
 from evaluator import evaluate_retrieval, compare_retrievers, load_evaluation_dataset
 from observability import RAGTrace, timed_call, save_trace
 from tool_router import execute_tool
@@ -25,22 +25,42 @@ st.set_page_config(
     layout="wide"
 )
 
-# Initialize persistent session state user identity and memory
-if "user_id" not in st.session_state:
-    st.session_state.user_id = create_user_id()
+# Initialize authentication
+authenticator = create_authenticator()
+
+login_result = authenticator.login(location="main")
+if isinstance(login_result, tuple):
+    name, authentication_status, username = login_result
+else:
+    name = st.session_state.get("name")
+    authentication_status = st.session_state.get("authentication_status")
+    username = st.session_state.get("username")
+
+if authentication_status is False:
+    st.error("Username or password is incorrect.")
+    st.stop()
+
+if authentication_status is None:
+    st.warning("Please enter your credentials to access the AI Research Assistant.")
+    st.stop()
+
+# Authenticated user identity
+user_id = username or st.session_state.get("username") or "ayush"
+st.session_state.user_id = user_id
 
 if "memory" not in st.session_state:
     st.session_state.memory = ConversationMemory()
 memory = st.session_state.memory
-
-user_id = st.session_state.user_id
 
 st.title("🤖 AI Research Assistant")
 st.caption("Retrieval-Augmented Generation & Tool-Calling Agent Platform")
 
 # --- SIDEBAR & CONFIGURATION ---
 with st.sidebar:
-    st.caption(f"Session User ID: `{user_id[:8]}`")
+    st.markdown(f"👤 Logged in as: **{name or user_id}** (`{user_id}`)")
+    authenticator.logout("Logout", location="sidebar")
+    st.divider()
+
     st.header("🔑 API Configuration")
     env_key = os.getenv("GEMINI_API_KEY", "")
     default_key = "" if env_key == "YOUR_API_KEY" else env_key
