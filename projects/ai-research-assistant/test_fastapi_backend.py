@@ -1,7 +1,9 @@
-from fastapi.testclient import TestClient
+import httpx
 from backend.main import app
 
-client = TestClient(app)
+# Create ASGI transport client for testing FastAPI application
+transport = httpx.ASGITransport(app=app)
+client = httpx.Client(transport=transport, base_url="http://test")
 
 print("--- 1. Testing GET /health ---")
 res_health = client.get("/health")
