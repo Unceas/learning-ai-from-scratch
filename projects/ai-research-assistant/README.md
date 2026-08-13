@@ -409,10 +409,35 @@ Security principles:
 - User-scoped memory deletion
 - Secrets excluded from source control
 
+## FastAPI Backend Separation
+
+The application separates presentation from the core AI backend service.
+
+Components:
+
+- REST API boundary built with FastAPI
+- Modular routes (`/api/chat`, `/api/documents`, `/api/memory`)
+- Decoupled service layer (`rag_service`, `agent_service`, `memory_service`)
+- Pydantic request and response schemas
+- Health check monitoring endpoint (`/health`)
+- Interactive Swagger OpenAPI documentation (`/docs`)
+
 ## Project Structure
 
 ```text
 ai-research-assistant/
+├── backend/
+│   ├── main.py
+│   ├── routes/
+│   │   ├── chat.py
+│   │   ├── documents.py
+│   │   └── memory.py
+│   ├── services/
+│   │   ├── rag_service.py
+│   │   ├── agent_service.py
+│   │   └── memory_service.py
+│   └── schemas/
+│       └── requests.py
 ├── agents/
 │   ├── base_agent.py
 │   ├── research_agent.py
@@ -458,6 +483,7 @@ ai-research-assistant/
 ├── test_memory.py
 ├── test_memory_lifecycle.py
 ├── test_user_isolation.py
+├── test_fastapi_backend.py
 ├── llm.py
 ├── prompts.py
 ├── requirements.txt

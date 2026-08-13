@@ -8,3 +8,6 @@ chromadb
 google-genai
 python-dotenv
 streamlit-authenticator
+fastapi
+uvicorn
+python-multipart
