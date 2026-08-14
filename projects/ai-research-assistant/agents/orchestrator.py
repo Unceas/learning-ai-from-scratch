@@ -81,3 +81,6 @@ class Orchestrator:
             })
 
         return reason_output
+
+
+OrchestratorAgent = Orchestrator
