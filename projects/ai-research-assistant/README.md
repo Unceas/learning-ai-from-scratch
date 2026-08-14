@@ -422,6 +422,17 @@ Components:
 - Health check monitoring endpoint (`/health`)
 - Interactive Swagger OpenAPI documentation (`/docs`)
 
+## RAG Agent FastAPI Integration
+
+The `POST /api/chat/` endpoint connects the REST API boundary to the AI agent service layer.
+
+Features:
+
+- Strict query length validation (1 to 5000 characters)
+- Structured response contract (`ChatResponse`) containing `answer` and formatted `sources`
+- Exception translation into clean `HTTP 500 Internal Server Error` responses to prevent raw tracebacks
+- Architectural boundary decoupling presentation from execution
+
 ## Project Structure
 
 ```text
@@ -484,6 +495,7 @@ ai-research-assistant/
 ├── test_memory_lifecycle.py
 ├── test_user_isolation.py
 ├── test_fastapi_backend.py
+├── test_fastapi_chat.py
 ├── llm.py
 ├── prompts.py
 ├── requirements.txt
