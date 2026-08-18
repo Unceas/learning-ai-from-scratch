@@ -433,6 +433,17 @@ Features:
 - Exception translation into clean `HTTP 500 Internal Server Error` responses to prevent raw tracebacks
 - Architectural boundary decoupling presentation from execution
 
+## FastAPI PDF Ingestion Pipeline
+
+The `POST /api/documents/upload` endpoint processes PDF uploads directly through the FastAPI service layer.
+
+Pipeline:
+
+1. `DocumentService.extract_text()` extracts text page by page, preserving page numbers.
+2. `chunker.chunk_text()` performs sliding window word chunking.
+3. Metadata attribution (`user_id`, `document`, `page`, `chunk_id`) is attached to each chunk.
+4. Embedding vectors are calculated and indexed into user-scoped ChromaDB collections.
+
 ## Project Structure
 
 ```text
@@ -446,6 +457,8 @@ ai-research-assistant/
 │   ├── services/
 │   │   ├── rag_service.py
 │   │   ├── agent_service.py
+│   │   ├── document_service.py
+│   │   ├── chunker.py
 │   │   └── memory_service.py
 │   └── schemas/
 │       └── requests.py

@@ -1,41 +1,66 @@
-"""Document API route handling document upload and indexing endpoints."""
+"""Document API route handling document upload, extraction, chunking, and ChromaDB vector indexing endpoints."""
 
-from fastapi import APIRouter, UploadFile, File, Form
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException
 from typing import Optional
-from parser import extract_pages
-from retrieval import chunk_pages
+from backend.services.document_service import DocumentService
+from backend.services.chunker import chunk_text
 import vector_store
 
 router = APIRouter()
+document_service = DocumentService()
 
 
 @router.post("/upload")
 async def upload_document(
     file: UploadFile = File(...),
-    user_id: Optional[str] = Form("default_user")
+    user_id: Optional[str] = Form("development-user")
 ):
-    """Parse PDF/TXT document upload and index into persistent ChromaDB."""
-    try:
-        pages = extract_pages(file.file)
-        chunks = chunk_pages(pages)
+    """Parse PDF document, extract text by page, chunk content, and index vectors in ChromaDB."""
+    filename = file.filename or "uploaded_document.pdf"
 
-        if chunks:
-            vector_store.add_document(file.filename, chunks, user_id=user_id)
-            status = "indexed"
-            chunk_count = len(chunks)
+    if not filename.lower().endswith((".pdf", ".txt")) and file.content_type not in ["application/pdf", "text/plain"]:
+        raise HTTPException(
+            status_code=400,
+            detail="Only PDF and TXT files are supported."
+        )
+
+    try:
+        if filename.lower().endswith(".pdf") or file.content_type == "application/pdf":
+            pages = document_service.extract_text(file.file)
         else:
-            status = "empty"
-            chunk_count = 0
+            raw_text = (await file.read()).decode("utf-8", errors="ignore")
+            pages = [{"page": 1, "text": raw_text.strip()}] if raw_text.strip() else []
+
+        if not pages:
+            raise HTTPException(
+                status_code=400,
+                detail="No readable text found."
+            )
+
+        all_chunks = []
+        for page in pages:
+            text_chunks = chunk_text(page["text"])
+            for index, chunk in enumerate(text_chunks):
+                all_chunks.append({
+                    "text": chunk,
+                    "page": page["page"],
+                    "chunk": index
+                })
+
+        vector_store.add_document(filename, all_chunks, user_id=user_id)
 
         return {
-            "filename": file.filename,
-            "status": status,
-            "chunks_indexed": chunk_count,
+            "filename": filename,
+            "pages": len(pages),
+            "chunks_indexed": len(all_chunks),
+            "status": "extracted",
             "user_id": user_id
         }
-    except Exception as e:
-        return {
-            "filename": file.filename,
-            "status": "error",
-            "error": str(e)
-        }
+
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail="Document processing failed."
+        ) from exc
