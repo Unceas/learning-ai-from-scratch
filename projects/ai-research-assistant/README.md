@@ -444,6 +444,16 @@ Pipeline:
 3. Metadata attribution (`user_id`, `document`, `page`, `chunk_id`) is attached to each chunk.
 4. Embedding vectors are calculated and indexed into user-scoped ChromaDB collections.
 
+## Complete Document Vector Indexing
+
+The backend provides complete document vector embedding generation and persistent ChromaDB indexing (`document_db`).
+
+Features:
+
+- `EmbeddingService`: Encapsulates `SentenceTransformer("all-MiniLM-L6-v2")` for dense vector generation.
+- `VectorStore`: Manages `./document_db` ChromaDB collection with user-scoped metadata filters (`where={"user_id": user_id}`).
+- `DocumentService.index_document()`: Orchestrates PDF page extraction, sliding-window chunking, dense vector calculation, and persistent database indexing.
+
 ## Project Structure
 
 ```text
@@ -458,6 +468,8 @@ ai-research-assistant/
 │   │   ├── rag_service.py
 │   │   ├── agent_service.py
 │   │   ├── document_service.py
+│   │   ├── embedding_service.py
+│   │   ├── vector_store.py
 │   │   ├── chunker.py
 │   │   └── memory_service.py
 │   └── schemas/
@@ -509,11 +521,13 @@ ai-research-assistant/
 ├── test_user_isolation.py
 ├── test_fastapi_backend.py
 ├── test_fastapi_chat.py
+├── test_document_indexing.py
 ├── llm.py
 ├── prompts.py
 ├── requirements.txt
 ├── vector_db/
 ├── memory_db/
+├── document_db/
 └── README.md
 ```
 
