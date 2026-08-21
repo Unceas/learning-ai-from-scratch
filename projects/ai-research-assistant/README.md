@@ -454,6 +454,17 @@ Features:
 - `VectorStore`: Manages `./document_db` ChromaDB collection with user-scoped metadata filters (`where={"user_id": user_id}`).
 - `DocumentService.index_document()`: Orchestrates PDF page extraction, sliding-window chunking, dense vector calculation, and persistent database indexing.
 
+## Document Deduplication & Hash Registry
+
+Document ingestion features SHA-256 fingerprinting and persistent registry lookup (`document_registry.json`).
+
+Pipeline & Security Scoping:
+
+1. `calculate_file_hash()` computes a deterministic SHA-256 digest of uploaded file contents.
+2. `get_document(user_id, file_hash)` checks user-scoped registry.
+3. If previously indexed, the system returns `{"status": "already_indexed"}` without generating duplicate embeddings or polluting vector stores.
+4. Vector chunk IDs use `{user_id}_{file_hash}_{chunk_index}` for deterministic uniqueness.
+
 ## Project Structure
 
 ```text
@@ -468,6 +479,7 @@ ai-research-assistant/
 │   │   ├── rag_service.py
 │   │   ├── agent_service.py
 │   │   ├── document_service.py
+│   │   ├── document_hash.py
 │   │   ├── embedding_service.py
 │   │   ├── vector_store.py
 │   │   ├── chunker.py
@@ -493,6 +505,7 @@ ai-research-assistant/
 │   └── loop.py
 ├── app_streamlit.py
 ├── auth.py
+├── document_registry.py
 ├── parser.py
 ├── retrieval.py
 ├── vector_store.py
@@ -522,6 +535,7 @@ ai-research-assistant/
 ├── test_fastapi_backend.py
 ├── test_fastapi_chat.py
 ├── test_document_indexing.py
+├── test_document_deduplication.py
 ├── llm.py
 ├── prompts.py
 ├── requirements.txt

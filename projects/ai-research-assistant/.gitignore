@@ -6,3 +6,4 @@ vector_db/
 memory_db/
 .streamlit/secrets.toml
 document_db/
+document_registry.json

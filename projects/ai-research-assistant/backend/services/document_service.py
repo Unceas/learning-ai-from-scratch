@@ -1,10 +1,12 @@
-"""Document Service encapsulating PDF text extraction, chunking, embedding, and vector store indexing."""
+"""Document Service encapsulating PDF text extraction, chunking, embedding, deduplication, and vector store indexing."""
 
 from typing import Any, Dict, List
 from PyPDF2 import PdfReader
 from backend.services.chunker import chunk_text
 from backend.services.embedding_service import EmbeddingService
 from backend.services.vector_store import VectorStore
+from backend.services.document_hash import calculate_file_hash
+from document_registry import get_document, register_document
 
 
 class DocumentService:
@@ -27,7 +29,17 @@ class DocumentService:
         return pages
 
     def index_document(self, file, user_id: str, filename: str = "uploaded_document.pdf") -> Dict[str, Any]:
-        """Extract pages, chunk content, generate dense embeddings, and index into ChromaDB."""
+        """Extract pages, chunk content, generate dense embeddings, and index into ChromaDB with deduplication."""
+        file_hash = calculate_file_hash(file)
+        existing = get_document(user_id, file_hash)
+
+        if existing:
+            return {
+                "status": "already_indexed",
+                "filename": existing["filename"],
+                "chunks": existing["chunks"]
+            }
+
         pages = self.extract_text(file)
         chunks = []
 
@@ -56,16 +68,24 @@ class DocumentService:
             metadatas.append({
                 "user_id": user_id,
                 "document": filename,
+                "file_hash": file_hash,
                 "page": chunk["page"],
                 "chunk_id": chunk["chunk_id"]
             })
-            ids.append(f"{user_id}_{filename}_{index}")
+            ids.append(f"{user_id}_{file_hash}_{index}")
 
         self.vector_store.add_documents(
             texts=texts,
             embeddings=embeddings,
             metadatas=metadatas,
             ids=ids
+        )
+
+        register_document(
+            user_id=user_id,
+            file_hash=file_hash,
+            filename=filename,
+            chunks=len(chunks)
         )
 
         return {
