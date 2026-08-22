@@ -25,3 +25,14 @@ class VectorStore:
             n_results=top_k,
             where={"user_id": user_id}
         )
+
+    def delete_document(self, user_id, file_hash):
+        """Delete all document chunks from ChromaDB for given user_id and file_hash."""
+        self.collection.delete(
+            where={
+                "$and": [
+                    {"user_id": user_id},
+                    {"file_hash": file_hash}
+                ]
+            }
+        )

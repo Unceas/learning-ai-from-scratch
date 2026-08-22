@@ -465,6 +465,16 @@ Pipeline & Security Scoping:
 3. If previously indexed, the system returns `{"status": "already_indexed"}` without generating duplicate embeddings or polluting vector stores.
 4. Vector chunk IDs use `{user_id}_{file_hash}_{chunk_index}` for deterministic uniqueness.
 
+## Document Management API Lifecycle
+
+The backend document API provides full CRUD lifecycle operations:
+
+Endpoints & Operations:
+
+- `POST /api/documents/upload`: Ingests and indexes PDF documents.
+- `GET /api/documents/`: Lists all registered documents (`file_hash`, `filename`, `chunks`) for the authenticated user.
+- `DELETE /api/documents/{file_hash}`: Purges document records from `document_registry.json` and deletes matching chunk embeddings from ChromaDB (`document_db`) using combined user and hash filters (`where={"$and": [{"user_id": user_id}, {"file_hash": file_hash}]}`).
+
 ## Project Structure
 
 ```text
@@ -536,6 +546,7 @@ ai-research-assistant/
 ├── test_fastapi_chat.py
 ├── test_document_indexing.py
 ├── test_document_deduplication.py
+├── test_document_lifecycle.py
 ├── llm.py
 ├── prompts.py
 ├── requirements.txt
