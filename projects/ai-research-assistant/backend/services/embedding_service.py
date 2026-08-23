@@ -1,12 +1,13 @@
 """Embedding Service encapsulating text embedding generation using SentenceTransformer."""
 
 from sentence_transformers import SentenceTransformer
+from backend.config import settings
 
 
 class EmbeddingService:
 
     def __init__(self):
-        self.model = SentenceTransformer("all-MiniLM-L6-v2")
+        self.model = SentenceTransformer(settings.embedding_model)
 
     def embed_documents(self, texts: list) -> list:
         """Generate dense vector embeddings for a list of document text chunks."""

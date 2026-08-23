@@ -475,12 +475,25 @@ Endpoints & Operations:
 - `GET /api/documents/`: Lists all registered documents (`file_hash`, `filename`, `chunks`) for the authenticated user.
 - `DELETE /api/documents/{file_hash}`: Purges document records from `document_registry.json` and deletes matching chunk embeddings from ChromaDB (`document_db`) using combined user and hash filters (`where={"$and": [{"user_id": user_id}, {"file_hash": file_hash}]}`).
 
+## Centralized Configuration
+
+The application uses a unified configuration management layer powered by Pydantic Settings (`pydantic-settings`).
+
+Features:
+
+- Single source of truth defined in `backend/config.py` (`Settings` class)
+- Environment variable injection via `.env` file with graceful defaults
+- Template distribution via `.env.example`
+- Environment-aware health monitoring (`GET /health` returns status and environment mode)
+- Configurable vector store paths (`CHROMA_PATH`, `MEMORY_PATH`), embedding model names (`EMBEDDING_MODEL`), and payload limits (`MAX_UPLOAD_SIZE_MB`)
+
 ## Project Structure
 
 ```text
 ai-research-assistant/
 ├── backend/
 │   ├── main.py
+│   ├── config.py
 │   ├── routes/
 │   │   ├── chat.py
 │   │   ├── documents.py
@@ -547,9 +560,11 @@ ai-research-assistant/
 ├── test_document_indexing.py
 ├── test_document_deduplication.py
 ├── test_document_lifecycle.py
+├── test_config.py
 ├── llm.py
 ├── prompts.py
 ├── requirements.txt
+├── .env.example
 ├── vector_db/
 ├── memory_db/
 ├── document_db/

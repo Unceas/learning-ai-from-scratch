@@ -11,3 +11,4 @@ streamlit-authenticator
 fastapi
 uvicorn
 python-multipart
+pydantic-settings

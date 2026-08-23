@@ -1,12 +1,13 @@
 """Vector Store service encapsulating ChromaDB document vector database operations."""
 
 import chromadb
+from backend.config import settings
 
 
 class VectorStore:
 
     def __init__(self):
-        self.client = chromadb.PersistentClient(path="./document_db")
+        self.client = chromadb.PersistentClient(path=settings.chroma_path)
         self.collection = self.client.get_or_create_collection(name="documents")
 
     def add_documents(self, texts, embeddings, metadatas, ids):

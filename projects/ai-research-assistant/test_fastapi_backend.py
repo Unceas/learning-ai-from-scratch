@@ -10,7 +10,7 @@ async def main():
         res_health = await client.get("/health")
         print("Health Check Response:", res_health.status_code, res_health.json())
         assert res_health.status_code == 200
-        assert res_health.json() == {"status": "healthy"}
+        assert res_health.json() == {"status": "healthy", "environment": "development"}
 
         print("\n--- 2. Testing POST /api/memory/ ---")
         res_mem = await client.post("/api/memory/", json={

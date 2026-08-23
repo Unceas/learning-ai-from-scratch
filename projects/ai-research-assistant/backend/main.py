@@ -1,13 +1,14 @@
 """FastAPI application entry point for AI Research Assistant backend."""
 
 from fastapi import FastAPI
+from backend.config import settings
 from backend.routes.chat import router as chat_router
 from backend.routes.documents import router as documents_router
 from backend.routes.memory import router as memory_router
 
 app = FastAPI(
-    title="AI Research Assistant API",
-    version="1.0.0"
+    title=settings.app_name,
+    version=settings.app_version
 )
 
 app.include_router(
@@ -32,5 +33,6 @@ app.include_router(
 @app.get("/health")
 def health_check():
     return {
-        "status": "healthy"
+        "status": "healthy",
+        "environment": settings.environment
     }
