@@ -1,7 +1,8 @@
 import asyncio
-import io
+from unittest.mock import patch
 import httpx
 from backend.main import app
+from backend.services.document_service import DocumentService
 
 
 async def main():
@@ -13,14 +14,14 @@ async def main():
         assert res_empty.status_code == 422, "Expected 422 Unprocessable Entity for empty query"
 
         print("\n--- 2. Testing Document Ingestion API ---")
-        fake_txt = io.BytesIO(b"Artificial Intelligence and Machine Learning research content.")
-        files = {"file": ("test_doc.txt", fake_txt, "text/plain")}
-        data = {"user_id": "test_user_ingest"}
-        res_doc = await client.post("/api/documents/upload", files=files, data=data)
-        print("Document Ingestion Response Status:", res_doc.status_code)
-        print("Document Ingestion Body:", res_doc.json())
-        assert res_doc.status_code == 200
-        assert res_doc.json()["status"] == "extracted"
+        fake_pdf = b"%PDF-1.4 Artificial Intelligence and Machine Learning research content."
+        files = {"file": ("test_doc.pdf", fake_pdf, "application/pdf")}
+        with patch.object(DocumentService, 'extract_text', return_value=[{"page": 1, "text": "Artificial Intelligence and Machine Learning research content."}]):
+            res_doc = await client.post("/api/documents/upload", files=files)
+            print("Document Ingestion Response Status:", res_doc.status_code)
+            print("Document Ingestion Body:", res_doc.json())
+            assert res_doc.status_code == 200
+            assert res_doc.json()["status"] in ["indexed", "already_indexed"]
 
         print("\n--- 3. Testing Valid Query via Chat API ---")
         res_chat = await client.post("/api/chat/", json={
