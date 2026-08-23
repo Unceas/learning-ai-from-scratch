@@ -561,6 +561,7 @@ ai-research-assistant/
 ├── test_document_deduplication.py
 ├── test_document_lifecycle.py
 ├── test_config.py
+├── test_full_suite.py
 ├── llm.py
 ├── prompts.py
 ├── requirements.txt
