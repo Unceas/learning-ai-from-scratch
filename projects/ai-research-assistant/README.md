@@ -487,6 +487,17 @@ Features:
 - Environment-aware health monitoring (`GET /health` returns status and environment mode)
 - Configurable vector store paths (`CHROMA_PATH`, `MEMORY_PATH`), embedding model names (`EMBEDDING_MODEL`), and payload limits (`MAX_UPLOAD_SIZE_MB`)
 
+## API Validation & Error Handling
+
+The API layer implements centralized request validation and structured domain error handling:
+
+Features:
+
+- **Response Contracts (`backend/schemas/responses.py`)**: Defines `DocumentResponse`, `DocumentListResponse`, and `ErrorResponse`.
+- **Domain Exceptions (`backend/exceptions.py`)**: Implements `AppException`, `DocumentNotFoundError`, `DocumentProcessingError`, and `EmptyDocumentError`.
+- **Global Exception Handler (`backend/main.py`)**: Intercepts `AppException` domain errors and translates them to structured JSON responses (`{"error": "...", "detail": "..."}`).
+- **Multi-Layer Validation**: Enforces string bounds on queries (`Field(min_length=1, max_length=5000)`), content-type checks, empty document rejections, and file payload size limits (`MAX_FILE_SIZE`).
+
 ## Project Structure
 
 ```text
@@ -494,6 +505,7 @@ ai-research-assistant/
 ├── backend/
 │   ├── main.py
 │   ├── config.py
+│   ├── exceptions.py
 │   ├── routes/
 │   │   ├── chat.py
 │   │   ├── documents.py
@@ -508,7 +520,8 @@ ai-research-assistant/
 │   │   ├── chunker.py
 │   │   └── memory_service.py
 │   └── schemas/
-│       └── requests.py
+│       ├── requests.py
+│       └── responses.py
 ├── agents/
 │   ├── base_agent.py
 │   ├── research_agent.py
@@ -561,6 +574,7 @@ ai-research-assistant/
 ├── test_document_deduplication.py
 ├── test_document_lifecycle.py
 ├── test_config.py
+├── test_api_validation.py
 ├── test_full_suite.py
 ├── llm.py
 ├── prompts.py

@@ -6,6 +6,7 @@ from backend.services.chunker import chunk_text
 from backend.services.embedding_service import EmbeddingService
 from backend.services.vector_store import VectorStore
 from backend.services.document_hash import calculate_file_hash
+from backend.exceptions import EmptyDocumentError
 from document_registry import get_document, register_document
 
 
@@ -41,8 +42,10 @@ class DocumentService:
             }
 
         pages = self.extract_text(file)
-        chunks = []
+        if not pages:
+            raise EmptyDocumentError()
 
+        chunks = []
         for page in pages:
             page_chunks = chunk_text(page["text"])
             for chunk_id, text in enumerate(page_chunks):
@@ -53,10 +56,7 @@ class DocumentService:
                 })
 
         if not chunks:
-            return {
-                "status": "empty",
-                "chunks": 0
-            }
+            raise EmptyDocumentError()
 
         texts = [chunk["text"] for chunk in chunks]
         embeddings = self.embedding_service.embed_documents(texts)
