@@ -8,13 +8,21 @@ from backend.services.document_service import DocumentService
 async def main():
     transport = httpx.ASGITransport(app=app)
     async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        # Register and login test user
+        reg_res = await client.post("/api/auth/register", json={
+            "user_id": "api_val_user",
+            "password": "strongpassword123"
+        })
+        token = reg_res.json()["access_token"]
+        headers = {"Authorization": f"Bearer {token}"}
+
         print("--- 1. Testing Empty Chat Query Validation (HTTP 422) ---")
-        res_empty = await client.post("/api/chat/", json={"query": ""})
+        res_empty = await client.post("/api/chat/", json={"query": ""}, headers=headers)
         print("Empty Query Status:", res_empty.status_code)
         assert res_empty.status_code == 422
 
         print("\n--- 2. Testing Non-Existent Document Deletion (AppException 400) ---")
-        res_missing = await client.delete("/api/documents/non_existent_hash_999")
+        res_missing = await client.delete("/api/documents/non_existent_hash_999", headers=headers)
         print("Missing Document Status:", res_missing.status_code)
         print("Missing Document Body:", res_missing.json())
         assert res_missing.status_code == 400
@@ -26,7 +34,8 @@ async def main():
         print("\n--- 3. Testing Non-PDF File Upload Validation (HTTP 400) ---")
         res_invalid_type = await client.post(
             "/api/documents/upload",
-            files={"file": ("image.png", b"Fake PNG Content", "image/png")}
+            files={"file": ("image.png", b"Fake PNG Content", "image/png")},
+            headers=headers
         )
         print("Invalid Type Status:", res_invalid_type.status_code)
         assert res_invalid_type.status_code == 400
@@ -35,7 +44,8 @@ async def main():
         with patch.object(DocumentService, 'extract_text', return_value=[]):
             res_empty_doc = await client.post(
                 "/api/documents/upload",
-                files={"file": ("empty.pdf", b"%PDF-1.4 Empty PDF", "application/pdf")}
+                files={"file": ("empty.pdf", b"%PDF-1.4 Empty PDF", "application/pdf")},
+                headers=headers
             )
             print("Empty Document Status:", res_empty_doc.status_code)
             print("Empty Document Body:", res_empty_doc.json())
@@ -46,11 +56,11 @@ async def main():
             }
 
         print("\n--- 5. Testing Oversized File Upload Validation (HTTP 413) ---")
-        # 21 MB payload exceeding 20 MB limit
         large_bytes = b"0" * (21 * 1024 * 1024)
         res_large = await client.post(
             "/api/documents/upload",
-            files={"file": ("huge.pdf", large_bytes, "application/pdf")}
+            files={"file": ("huge.pdf", large_bytes, "application/pdf")},
+            headers=headers
         )
         print("Large File Status:", res_large.status_code)
         assert res_large.status_code == 413
@@ -59,7 +69,8 @@ async def main():
         with patch.object(DocumentService, 'extract_text', return_value=[{"page": 1, "text": "Valid research document content."}]):
             res_valid = await client.post(
                 "/api/documents/upload",
-                files={"file": ("valid_sample.pdf", b"%PDF-1.4 Valid Document Content", "application/pdf")}
+                files={"file": ("valid_sample.pdf", b"%PDF-1.4 Valid Document Content", "application/pdf")},
+                headers=headers
             )
             print("Valid Upload Status:", res_valid.status_code)
             print("Valid Upload Body:", res_valid.json())

@@ -12,3 +12,5 @@ fastapi
 uvicorn
 python-multipart
 pydantic-settings
+python-jose[cryptography]
+passlib[bcrypt]

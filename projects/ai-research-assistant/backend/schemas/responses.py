@@ -18,3 +18,8 @@ class DocumentResponse(BaseModel):
 
 class DocumentListResponse(BaseModel):
     documents: List[Dict[str, Any]]
+
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"

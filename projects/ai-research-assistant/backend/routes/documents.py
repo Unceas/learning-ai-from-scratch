@@ -1,11 +1,12 @@
 """Document API route handling document upload, listing, and deletion lifecycle endpoints."""
 
-from fastapi import APIRouter, UploadFile, File, HTTPException
+from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
 from document_registry import list_documents, remove_document
 from backend.services.document_service import DocumentService
 from backend.services.vector_store import VectorStore
 from backend.schemas.responses import DocumentResponse, DocumentListResponse
 from backend.exceptions import DocumentNotFoundError
+from backend.dependencies import get_current_user
 from backend.config import settings
 
 router = APIRouter()
@@ -14,9 +15,10 @@ vector_store = VectorStore()
 
 
 @router.get("/", response_model=DocumentListResponse)
-def get_documents():
-    """List all registered documents for the current user."""
-    user_id = "development-user"
+def get_documents(
+    user_id: str = Depends(get_current_user)
+):
+    """List all registered documents for the authenticated user."""
     return {
         "documents": list_documents(user_id)
     }
@@ -24,9 +26,10 @@ def get_documents():
 
 @router.post("/upload", response_model=DocumentResponse)
 async def upload_document(
-    file: UploadFile = File(...)
+    file: UploadFile = File(...),
+    user_id: str = Depends(get_current_user)
 ):
-    """Upload and index PDF document vectors via DocumentService."""
+    """Upload and index PDF document vectors for the authenticated user."""
     filename = file.filename or "uploaded_document.pdf"
 
     if file.content_type != "application/pdf" and not filename.lower().endswith(".pdf"):
@@ -44,8 +47,6 @@ async def upload_document(
         )
     await file.seek(0)
 
-    user_id = "development-user"
-
     result = document_service.index_document(
         file.file,
         user_id,
@@ -55,9 +56,11 @@ async def upload_document(
 
 
 @router.delete("/{file_hash}")
-def delete_document(file_hash: str):
-    """Delete document entry from registry and purge matching vectors from ChromaDB."""
-    user_id = "development-user"
+def delete_document(
+    file_hash: str,
+    user_id: str = Depends(get_current_user)
+):
+    """Delete document entry and purge matching vectors for authenticated user."""
     documents = list_documents(user_id)
 
     exists = any(doc["file_hash"] == file_hash for doc in documents)

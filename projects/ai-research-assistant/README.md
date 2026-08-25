@@ -498,6 +498,18 @@ Features:
 - **Global Exception Handler (`backend/main.py`)**: Intercepts `AppException` domain errors and translates them to structured JSON responses (`{"error": "...", "detail": "..."}`).
 - **Multi-Layer Validation**: Enforces string bounds on queries (`Field(min_length=1, max_length=5000)`), content-type checks, empty document rejections, and file payload size limits (`MAX_FILE_SIZE`).
 
+## JWT Authentication Foundation
+
+The application implements JWT bearer token authentication to secure all API endpoints and enforce user boundaries.
+
+Features:
+
+- **Auth Service (`backend/services/auth_service.py`)**: Bcrypt password hashing and HMAC-SHA256 JWT encoding/decoding.
+- **In-Memory User Store (`backend/services/user_service.py`)**: User registration and credential authentication.
+- **Auth Routes (`backend/routes/auth.py`)**: Endpoints for `POST /api/auth/register` and `POST /api/auth/login`.
+- **Security Dependency (`backend/dependencies.py`)**: `get_current_user` FastAPI dependency extracting authenticated `user_id` from bearer tokens.
+- **Strict Endpoint Scoping**: All document management, conversational chat, and long-term memory operations derive identity directly from the decoded JWT token.
+
 ## Project Structure
 
 ```text
@@ -506,11 +518,15 @@ ai-research-assistant/
 │   ├── main.py
 │   ├── config.py
 │   ├── exceptions.py
+│   ├── dependencies.py
 │   ├── routes/
+│   │   ├── auth.py
 │   │   ├── chat.py
 │   │   ├── documents.py
 │   │   └── memory.py
 │   ├── services/
+│   │   ├── auth_service.py
+│   │   ├── user_service.py
 │   │   ├── rag_service.py
 │   │   ├── agent_service.py
 │   │   ├── document_service.py
@@ -574,6 +590,7 @@ ai-research-assistant/
 ├── test_document_deduplication.py
 ├── test_document_lifecycle.py
 ├── test_config.py
+├── test_auth.py
 ├── test_api_validation.py
 ├── test_full_suite.py
 ├── llm.py

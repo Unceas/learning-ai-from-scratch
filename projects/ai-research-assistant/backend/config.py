@@ -17,6 +17,10 @@ class Settings(BaseSettings):
 
     max_upload_size_mb: int = 20
 
+    jwt_secret_key: str = "change-this-development-secret"
+    jwt_algorithm: str = "HS256"
+    jwt_expire_minutes: int = 60
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

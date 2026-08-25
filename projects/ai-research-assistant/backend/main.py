@@ -4,6 +4,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from backend.config import settings
 from backend.exceptions import AppException
+from backend.routes.auth import router as auth_router
 from backend.routes.chat import router as chat_router
 from backend.routes.documents import router as documents_router
 from backend.routes.memory import router as memory_router
@@ -27,6 +28,12 @@ async def app_exception_handler(
         }
     )
 
+
+app.include_router(
+    auth_router,
+    prefix="/api/auth",
+    tags=["Authentication"]
+)
 
 app.include_router(
     chat_router,

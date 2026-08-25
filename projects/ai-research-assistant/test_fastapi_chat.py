@@ -8,8 +8,16 @@ from backend.services.document_service import DocumentService
 async def main():
     transport = httpx.ASGITransport(app=app)
     async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        # Register and authenticate test user
+        reg_res = await client.post("/api/auth/register", json={
+            "user_id": "test_user_ingest",
+            "password": "strongpassword123"
+        })
+        token = reg_res.json()["access_token"]
+        headers = {"Authorization": f"Bearer {token}"}
+
         print("--- 1. Testing Invalid Empty Query (Validation Check) ---")
-        res_empty = await client.post("/api/chat/", json={"query": ""})
+        res_empty = await client.post("/api/chat/", json={"query": ""}, headers=headers)
         print("Empty Query Response Status:", res_empty.status_code)
         assert res_empty.status_code == 422, "Expected 422 Unprocessable Entity for empty query"
 
@@ -17,7 +25,7 @@ async def main():
         fake_pdf = b"%PDF-1.4 Artificial Intelligence and Machine Learning research content."
         files = {"file": ("test_doc.pdf", fake_pdf, "application/pdf")}
         with patch.object(DocumentService, 'extract_text', return_value=[{"page": 1, "text": "Artificial Intelligence and Machine Learning research content."}]):
-            res_doc = await client.post("/api/documents/upload", files=files)
+            res_doc = await client.post("/api/documents/upload", files=files, headers=headers)
             print("Document Ingestion Response Status:", res_doc.status_code)
             print("Document Ingestion Body:", res_doc.json())
             assert res_doc.status_code == 200
@@ -25,9 +33,8 @@ async def main():
 
         print("\n--- 3. Testing Valid Query via Chat API ---")
         res_chat = await client.post("/api/chat/", json={
-            "query": "What is Artificial Intelligence?",
-            "user_id": "test_user_ingest"
-        })
+            "query": "What is Artificial Intelligence?"
+        }, headers=headers)
         print("Chat Response Status:", res_chat.status_code)
         chat_data = res_chat.json()
         print("Chat Response Keys:", list(chat_data.keys()))

@@ -5,6 +5,7 @@ import sys
 
 TEST_SCRIPTS = [
     "test_config.py",
+    "test_auth.py",
     "test_api_validation.py",
     "test_fastapi_backend.py",
     "test_fastapi_chat.py",
