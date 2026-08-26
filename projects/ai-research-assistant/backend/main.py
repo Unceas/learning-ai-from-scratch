@@ -4,10 +4,14 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from backend.config import settings
 from backend.exceptions import AppException
+from backend.database import Base, engine
+from backend import models
 from backend.routes.auth import router as auth_router
 from backend.routes.chat import router as chat_router
 from backend.routes.documents import router as documents_router
 from backend.routes.memory import router as memory_router
+
+Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title=settings.app_name,

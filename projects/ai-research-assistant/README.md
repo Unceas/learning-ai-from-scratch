@@ -510,6 +510,18 @@ Features:
 - **Security Dependency (`backend/dependencies.py`)**: `get_current_user` FastAPI dependency extracting authenticated `user_id` from bearer tokens.
 - **Strict Endpoint Scoping**: All document management, conversational chat, and long-term memory operations derive identity directly from the decoded JWT token.
 
+## Persistent User Storage (SQLite & SQLAlchemy)
+
+The authentication system integrates relational database persistence using SQLAlchemy and SQLite (`app.db`).
+
+Features:
+
+- **Database Session Manager (`backend/database.py`)**: Manages SQLite engine, thread-safe connection pooling, and FastAPI `get_db` session dependency.
+- **Relational Schema (`backend/models.py`)**: `User` model tracking `id` and bcrypt `password_hash` (passwords are never stored in plaintext).
+- **Service-Level Persistence (`backend/services/user_service.py`)**: Replaces volatile memory stores with database transactions (`db.commit()`) for user creation and password hash verification.
+- **Automatic Migration**: `Base.metadata.create_all(bind=engine)` initializes SQLite tables on application startup.
+- **Security Boundary**: Local SQLite databases (`app.db`, `*.db`) are excluded from repository version control via `.gitignore`.
+
 ## Project Structure
 
 ```text
@@ -517,6 +529,8 @@ ai-research-assistant/
 ├── backend/
 │   ├── main.py
 │   ├── config.py
+│   ├── database.py
+│   ├── models.py
 │   ├── exceptions.py
 │   ├── dependencies.py
 │   ├── routes/
@@ -591,6 +605,7 @@ ai-research-assistant/
 ├── test_document_lifecycle.py
 ├── test_config.py
 ├── test_auth.py
+├── test_persistent_user_storage.py
 ├── test_api_validation.py
 ├── test_full_suite.py
 ├── llm.py
