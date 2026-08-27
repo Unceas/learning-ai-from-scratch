@@ -1,9 +1,15 @@
 """Document API route handling document upload, listing, and deletion lifecycle endpoints."""
 
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
-from document_registry import list_documents, remove_document
+from sqlalchemy.orm import Session
 from backend.services.document_service import DocumentService
 from backend.services.vector_store import VectorStore
+from backend.services.document_db_service import (
+    get_document,
+    list_documents,
+    delete_document as delete_document_record
+)
+from backend.database import get_db
 from backend.schemas.responses import DocumentResponse, DocumentListResponse
 from backend.exceptions import DocumentNotFoundError
 from backend.dependencies import get_current_user
@@ -16,20 +22,31 @@ vector_store = VectorStore()
 
 @router.get("/", response_model=DocumentListResponse)
 def get_documents(
+    db: Session = Depends(get_db),
     user_id: str = Depends(get_current_user)
 ):
-    """List all registered documents for the authenticated user."""
+    """List all registered documents for the authenticated user from SQLite database."""
+    documents = list_documents(db, user_id)
     return {
-        "documents": list_documents(user_id)
+        "documents": [
+            {
+                "file_hash": document.file_hash,
+                "filename": document.filename,
+                "chunks": document.chunks,
+                "status": document.status
+            }
+            for document in documents
+        ]
     }
 
 
 @router.post("/upload", response_model=DocumentResponse)
 async def upload_document(
     file: UploadFile = File(...),
+    db: Session = Depends(get_db),
     user_id: str = Depends(get_current_user)
 ):
-    """Upload and index PDF document vectors for the authenticated user."""
+    """Upload and index PDF document vectors with metadata stored in SQLite."""
     filename = file.filename or "uploaded_document.pdf"
 
     if file.content_type != "application/pdf" and not filename.lower().endswith(".pdf"):
@@ -50,7 +67,8 @@ async def upload_document(
     result = document_service.index_document(
         file.file,
         user_id,
-        filename=filename
+        filename=filename,
+        db=db
     )
     return result
 
@@ -58,20 +76,16 @@ async def upload_document(
 @router.delete("/{file_hash}")
 def delete_document(
     file_hash: str,
+    db: Session = Depends(get_db),
     user_id: str = Depends(get_current_user)
 ):
-    """Delete document entry and purge matching vectors for authenticated user."""
-    documents = list_documents(user_id)
-
-    exists = any(doc["file_hash"] == file_hash for doc in documents)
-    if not exists:
+    """Delete document entry from SQLite and purge matching vectors from ChromaDB."""
+    document = get_document(db, user_id, file_hash)
+    if not document:
         raise DocumentNotFoundError()
 
     vector_store.delete_document(user_id, file_hash)
-    removed = remove_document(user_id, file_hash)
-
-    if not removed:
-        raise DocumentNotFoundError()
+    delete_document_record(db, user_id, file_hash)
 
     return {
         "status": "deleted",

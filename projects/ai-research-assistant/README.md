@@ -522,6 +522,18 @@ Features:
 - **Automatic Migration**: `Base.metadata.create_all(bind=engine)` initializes SQLite tables on application startup.
 - **Security Boundary**: Local SQLite databases (`app.db`, `*.db`) are excluded from repository version control via `.gitignore`.
 
+## Database-Backed Document Management (SQLite & ChromaDB)
+
+Document metadata, file hashes, chunk counts, and user ownership are persisted directly in SQLite (`app.db`), while dense vectors and chunk embeddings are stored in ChromaDB (`document_db`).
+
+Features:
+
+- **Relational Document Schema (`backend/models.py`)**: `Document` model with foreign key relationship (`ForeignKey("users.id")`) and cascade deletion on user deletion.
+- **Document DB Service (`backend/services/document_db_service.py`)**: SQLite CRUD operations for `get_document`, `create_document`, `list_documents`, and `delete_document`.
+- **Persistent Deduplication**: Queries SQLite for `(user_id, file_hash)` before extracting or embedding PDF files, returning `{"status": "already_indexed"}` on duplicates.
+- **Strict Multi-User Isolation**: Prevents users from listing, retrieving, or deleting documents belonging to other users.
+- **Synchronized Lifecycle**: Deleting a document purges the SQLite metadata record and removes matching vector embeddings from ChromaDB.
+
 ## Project Structure
 
 ```text
@@ -541,6 +553,7 @@ ai-research-assistant/
 │   ├── services/
 │   │   ├── auth_service.py
 │   │   ├── user_service.py
+│   │   ├── document_db_service.py
 │   │   ├── rag_service.py
 │   │   ├── agent_service.py
 │   │   ├── document_service.py
@@ -571,7 +584,6 @@ ai-research-assistant/
 │   └── loop.py
 ├── app_streamlit.py
 ├── auth.py
-├── document_registry.py
 ├── parser.py
 ├── retrieval.py
 ├── vector_store.py
@@ -606,6 +618,7 @@ ai-research-assistant/
 ├── test_config.py
 ├── test_auth.py
 ├── test_persistent_user_storage.py
+├── test_document_db.py
 ├── test_api_validation.py
 ├── test_full_suite.py
 ├── llm.py
