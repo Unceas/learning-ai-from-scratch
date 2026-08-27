@@ -17,7 +17,14 @@ async def main():
             "user_id": "fastapi_test_user",
             "password": "strongpassword123"
         })
-        token = reg_res.json()["access_token"]
+        if reg_res.status_code == 200:
+            token = reg_res.json()["access_token"]
+        else:
+            login_res = await client.post("/api/auth/login", json={
+                "user_id": "fastapi_test_user",
+                "password": "strongpassword123"
+            })
+            token = login_res.json()["access_token"]
         headers = {"Authorization": f"Bearer {token}"}
 
         print("\n--- 3. Testing POST /api/memory/ ---")

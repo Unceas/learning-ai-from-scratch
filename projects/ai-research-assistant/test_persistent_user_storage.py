@@ -1,5 +1,5 @@
 import asyncio
-import os
+import uuid
 import httpx
 from backend.main import app
 from backend.database import SessionLocal
@@ -9,16 +9,16 @@ from backend.models import User
 async def main():
     transport = httpx.ASGITransport(app=app)
     async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
-        print("--- 1. Testing User Registration & Persistence in SQLite ---")
-        user_id = "sqlite_persist_user"
+        user_id = f"sqlite_user_{uuid.uuid4().hex[:8]}"
         password = "strongpassword123"
 
+        print("--- 1. Testing User Registration & Persistence in SQLite ---")
         res_reg = await client.post("/api/auth/register", json={
             "user_id": user_id,
             "password": password
         })
         print("Register Status:", res_reg.status_code)
-        assert res_reg.status_code in [200, 409]
+        assert res_reg.status_code == 200
 
         print("\n--- 2. Direct Verification of SQLite Database Record ---")
         db = SessionLocal()

@@ -1,4 +1,5 @@
 import asyncio
+import uuid
 import httpx
 from backend.main import app
 
@@ -6,10 +7,13 @@ from backend.main import app
 async def main():
     transport = httpx.ASGITransport(app=app)
     async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        test_user = f"auth_user_{uuid.uuid4().hex[:8]}"
+        password = "strongpassword123"
+
         print("--- 1. Testing User Registration ---")
         res_reg = await client.post("/api/auth/register", json={
-            "user_id": "auth_test_user",
-            "password": "strongpassword123"
+            "user_id": test_user,
+            "password": password
         })
         print("Register Status:", res_reg.status_code)
         print("Register Body:", res_reg.json())
@@ -21,16 +25,16 @@ async def main():
 
         print("\n--- 2. Testing Duplicate User Registration (409 Conflict) ---")
         res_dup = await client.post("/api/auth/register", json={
-            "user_id": "auth_test_user",
-            "password": "strongpassword123"
+            "user_id": test_user,
+            "password": password
         })
         print("Duplicate Register Status:", res_dup.status_code)
         assert res_dup.status_code == 409
 
         print("\n--- 3. Testing User Login ---")
         res_login = await client.post("/api/auth/login", json={
-            "user_id": "auth_test_user",
-            "password": "strongpassword123"
+            "user_id": test_user,
+            "password": password
         })
         print("Login Status:", res_login.status_code)
         assert res_login.status_code == 200
@@ -38,7 +42,7 @@ async def main():
 
         print("\n--- 4. Testing Invalid Password Login (401 Unauthorized) ---")
         res_bad_login = await client.post("/api/auth/login", json={
-            "user_id": "auth_test_user",
+            "user_id": test_user,
             "password": "wrongpassword"
         })
         print("Bad Login Status:", res_bad_login.status_code)

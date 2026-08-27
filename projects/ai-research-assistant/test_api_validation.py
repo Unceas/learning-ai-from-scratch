@@ -8,12 +8,18 @@ from backend.services.document_service import DocumentService
 async def main():
     transport = httpx.ASGITransport(app=app)
     async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
-        # Register and login test user
         reg_res = await client.post("/api/auth/register", json={
             "user_id": "api_val_user",
             "password": "strongpassword123"
         })
-        token = reg_res.json()["access_token"]
+        if reg_res.status_code == 200:
+            token = reg_res.json()["access_token"]
+        else:
+            login_res = await client.post("/api/auth/login", json={
+                "user_id": "api_val_user",
+                "password": "strongpassword123"
+            })
+            token = login_res.json()["access_token"]
         headers = {"Authorization": f"Bearer {token}"}
 
         print("--- 1. Testing Empty Chat Query Validation (HTTP 422) ---")
