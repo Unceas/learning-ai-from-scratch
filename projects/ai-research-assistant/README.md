@@ -532,7 +532,17 @@ Features:
 - **Document DB Service (`backend/services/document_db_service.py`)**: SQLite CRUD operations for `get_document`, `create_document`, `list_documents`, and `delete_document`.
 - **Persistent Deduplication**: Queries SQLite for `(user_id, file_hash)` before extracting or embedding PDF files, returning `{"status": "already_indexed"}` on duplicates.
 - **Strict Multi-User Isolation**: Prevents users from listing, retrieving, or deleting documents belonging to other users.
-- **Synchronized Lifecycle**: Deleting a document purges the SQLite metadata record and removes matching vector embeddings from ChromaDB.
+## Database Migrations with Alembic
+
+Database schema evolution and table versioning are managed through Alembic migrations rather than automatic table creation during application runtime.
+
+Features:
+
+- **Migration Environment (`alembic/env.py`)**: Configured to dynamically import `Base.metadata` and model declarations (`User`, `Document`).
+- **Configuration (`alembic.ini`)**: Configured target database URL (`sqlite:///./app.db`).
+- **Version Control of Schemas**: Generated migration scripts stored in `alembic/versions/` (e.g. `create_users_and_documents`).
+- **Decoupled Application Startup**: Removed `Base.metadata.create_all` from `backend/main.py`, separating schema migration from service bootstrap.
+- **Rollback Capability**: Supports version inspections (`alembic current`, `alembic history`) and schema rollbacks (`alembic downgrade`).
 
 ## Project Structure
 
@@ -565,6 +575,13 @@ ai-research-assistant/
 │   └── schemas/
 │       ├── requests.py
 │       └── responses.py
+├── alembic/
+│   ├── versions/
+│   │   └── cd265f0ad5bd_create_users_and_documents.py
+│   ├── env.py
+│   ├── script.py.mako
+│   └── README
+├── alembic.ini
 ├── agents/
 │   ├── base_agent.py
 │   ├── research_agent.py
@@ -616,6 +633,7 @@ ai-research-assistant/
 ├── test_document_deduplication.py
 ├── test_document_lifecycle.py
 ├── test_config.py
+├── test_migrations.py
 ├── test_auth.py
 ├── test_persistent_user_storage.py
 ├── test_document_db.py

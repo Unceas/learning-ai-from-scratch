@@ -5,6 +5,7 @@ import sys
 
 TEST_SCRIPTS = [
     "test_config.py",
+    "test_migrations.py",
     "test_auth.py",
     "test_persistent_user_storage.py",
     "test_document_db.py",
