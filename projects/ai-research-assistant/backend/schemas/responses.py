@@ -11,9 +11,12 @@ class ErrorResponse(BaseModel):
 
 class DocumentResponse(BaseModel):
     status: str
+    document_id: Optional[int] = None
+    id: Optional[int] = None
     filename: Optional[str] = None
     pages: Optional[int] = None
     chunks: Optional[int] = None
+    error_message: Optional[str] = None
 
 
 class DocumentListResponse(BaseModel):

@@ -26,6 +26,9 @@ def test_alembic_migration_tables():
     assert "users" in tables, "users table must exist in migrated database"
     assert "documents" in tables, "documents table must exist in migrated database"
     assert "alembic_version" in tables, "alembic_version table must exist"
+    columns = [col["name"] for col in inspector.get_columns("documents")]
+    print("Documents Table Columns:", columns)
+    assert "error_message" in columns, "error_message column must exist in documents table"
 
 
 async def test_app_endpoints():

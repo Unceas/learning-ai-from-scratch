@@ -9,3 +9,4 @@ document_db/
 document_registry.json
 app.db
 *.db
+uploads/

@@ -64,7 +64,12 @@ class Document(Base):
     status = Column(
         String,
         nullable=False,
-        default="indexed"
+        default="processing"
+    )
+
+    error_message = Column(
+        String,
+        nullable=True
     )
 
     user = relationship(

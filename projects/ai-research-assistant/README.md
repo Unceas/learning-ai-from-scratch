@@ -544,6 +544,17 @@ Features:
 - **Decoupled Application Startup**: Removed `Base.metadata.create_all` from `backend/main.py`, separating schema migration from service bootstrap.
 - **Rollback Capability**: Supports version inspections (`alembic current`, `alembic history`) and schema rollbacks (`alembic downgrade`).
 
+## Background Document Processing (FastAPI BackgroundTasks)
+
+Document ingestion is decoupled from HTTP upload requests using FastAPI's asynchronous `BackgroundTasks`.
+
+Features:
+
+- **Asynchronous Upload Response**: Uploading a PDF immediately registers the document in SQLite (`status: "processing"`) and returns `{"status": "processing", "document_id": ...}` without blocking the client.
+- **Worker Execution (`backend/services/document_processor.py`)**: Runs PDF page extraction, word chunking, dense vector calculation, and ChromaDB indexing in a dedicated background database session.
+- **State Progression**: Updates SQLite document status to `"indexed"` upon completion or `"failed"` with structured `error_message` on ingestion errors.
+- **Temporary File Cleanup**: Persists incoming streams to `uploads/` for worker processing, removing files on completion to avoid disk growth.
+
 ## Project Structure
 
 ```text
@@ -564,6 +575,7 @@ ai-research-assistant/
 │   │   ├── auth_service.py
 │   │   ├── user_service.py
 │   │   ├── document_db_service.py
+│   │   ├── document_processor.py
 │   │   ├── rag_service.py
 │   │   ├── agent_service.py
 │   │   ├── document_service.py
@@ -577,7 +589,8 @@ ai-research-assistant/
 │       └── responses.py
 ├── alembic/
 │   ├── versions/
-│   │   └── cd265f0ad5bd_create_users_and_documents.py
+│   │   ├── cd265f0ad5bd_create_users_and_documents.py
+│   │   └── 16c517d8c41d_add_document_processing_status.py
 │   ├── env.py
 │   ├── script.py.mako
 │   └── README
@@ -637,6 +650,7 @@ ai-research-assistant/
 ├── test_auth.py
 ├── test_persistent_user_storage.py
 ├── test_document_db.py
+├── test_background_processing.py
 ├── test_api_validation.py
 ├── test_full_suite.py
 ├── llm.py

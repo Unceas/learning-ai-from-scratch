@@ -26,7 +26,8 @@ def create_document(
     user_id: str,
     file_hash: str,
     filename: str,
-    chunks: int
+    chunks: int = 0,
+    status: str = "processing"
 ) -> Document:
     """Create and persist a new document metadata record."""
     document = Document(
@@ -34,7 +35,8 @@ def create_document(
         file_hash=file_hash,
         filename=filename,
         chunks=chunks,
-        status="indexed"
+        status=status,
+        error_message=None
     )
     db.add(document)
     db.commit()
