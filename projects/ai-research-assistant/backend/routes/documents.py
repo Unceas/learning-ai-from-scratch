@@ -1,4 +1,4 @@
-"""Document API route handling document upload, listing, and deletion lifecycle endpoints."""
+"""Document API route handling document upload, listing, status, and deletion lifecycle endpoints."""
 
 from pathlib import Path
 import uuid
@@ -8,6 +8,7 @@ from backend.services.document_service import DocumentService
 from backend.services.vector_store import VectorStore
 from backend.services.document_db_service import (
     get_document,
+    get_document_by_id,
     list_documents,
     create_document,
     delete_document as delete_document_record
@@ -15,7 +16,11 @@ from backend.services.document_db_service import (
 from backend.services.document_processor import process_document_background
 from backend.services.document_hash import calculate_file_hash
 from backend.database import get_db
-from backend.schemas.responses import DocumentResponse, DocumentListResponse
+from backend.schemas.responses import (
+    DocumentResponse,
+    DocumentListResponse,
+    DocumentStatusResponse
+)
 from backend.exceptions import DocumentNotFoundError
 from backend.dependencies import get_current_user
 from backend.config import settings
@@ -120,6 +125,35 @@ async def upload_document(
         "status": "processing",
         "document_id": document.id,
         "filename": document.filename
+    }
+
+
+@router.get(
+    "/{document_id}",
+    response_model=DocumentStatusResponse
+)
+def get_document_status(
+    document_id: int,
+    db: Session = Depends(get_db),
+    user_id: str = Depends(get_current_user)
+):
+    """Retrieve document status by ID with strict user-scoped isolation."""
+    document = get_document_by_id(
+        db,
+        user_id,
+        document_id
+    )
+
+    if not document:
+        raise DocumentNotFoundError()
+
+    return {
+        "id": document.id,
+        "filename": document.filename,
+        "file_hash": document.file_hash,
+        "chunks": document.chunks,
+        "status": document.status,
+        "error_message": document.error_message
     }
 
 

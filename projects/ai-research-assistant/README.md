@@ -555,6 +555,17 @@ Features:
 - **State Progression**: Updates SQLite document status to `"indexed"` upon completion or `"failed"` with structured `error_message` on ingestion errors.
 - **Temporary File Cleanup**: Persists incoming streams to `uploads/` for worker processing, removing files on completion to avoid disk growth.
 
+## Document Status & Secure Access (User-Scoped 404 Isolation)
+
+Provides secure, user-isolated document status polling through `GET /api/documents/{document_id}`.
+
+Features:
+
+- **Status Contract (`DocumentStatusResponse`)**: Predictable contract returning `id`, `filename`, `file_hash`, `chunks`, `status`, and `error_message`.
+- **User-Scoped Query**: Queries `.filter(Document.id == document_id, Document.user_id == user_id)` ensuring a user can never access or probe another user's documents.
+- **Anti-Enumeration 404 Design**: Returns `404 Not Found` rather than `403 Forbidden` when attempting to access unauthorized document IDs, preventing resource discovery through enumeration.
+- **Frontend Polling Lifecycle**: Enables client applications to poll until `status == "indexed"` or `status == "failed"`, providing real-time processing feedback without WebSockets.
+
 ## Project Structure
 
 ```text
@@ -651,6 +662,7 @@ ai-research-assistant/
 ├── test_persistent_user_storage.py
 ├── test_document_db.py
 ├── test_background_processing.py
+├── test_document_status.py
 ├── test_api_validation.py
 ├── test_full_suite.py
 ├── llm.py

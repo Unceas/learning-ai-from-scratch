@@ -10,6 +10,7 @@ TEST_SCRIPTS = [
     "test_persistent_user_storage.py",
     "test_document_db.py",
     "test_background_processing.py",
+    "test_document_status.py",
     "test_api_validation.py",
     "test_fastapi_backend.py",
     "test_fastapi_chat.py",

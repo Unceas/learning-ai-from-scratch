@@ -21,6 +21,22 @@ def get_document(
     )
 
 
+def get_document_by_id(
+    db: Session,
+    user_id: str,
+    document_id: int
+) -> Optional[Document]:
+    """Retrieve document metadata record by user_id and document_id ensuring strict user isolation."""
+    return (
+        db.query(Document)
+        .filter(
+            Document.id == document_id,
+            Document.user_id == user_id
+        )
+        .first()
+    )
+
+
 def create_document(
     db: Session,
     user_id: str,

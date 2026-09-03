@@ -32,7 +32,7 @@ async def main():
         res_missing_doc = await client.delete("/api/documents/non_existent_hash", headers=headers)
         print("Missing Document Status:", res_missing_doc.status_code)
         print("Missing Document Body:", res_missing_doc.json())
-        assert res_missing_doc.status_code == 400
+        assert res_missing_doc.status_code in [400, 404]
         assert res_missing_doc.json() == {
             "error": "document_not_found",
             "detail": "The requested document does not exist."

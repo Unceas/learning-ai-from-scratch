@@ -19,6 +19,15 @@ class DocumentResponse(BaseModel):
     error_message: Optional[str] = None
 
 
+class DocumentStatusResponse(BaseModel):
+    id: int
+    filename: str
+    file_hash: str
+    chunks: int
+    status: str
+    error_message: Optional[str] = None
+
+
 class DocumentListResponse(BaseModel):
     documents: List[Dict[str, Any]]
 

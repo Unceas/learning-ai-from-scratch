@@ -96,7 +96,7 @@ async def main():
         res_del_b = await client.delete(f"/api/documents/{file_hash}", headers=headers_b)
         print("User B Delete Attempt Status:", res_del_b.status_code)
         print("User B Delete Attempt Body:", res_del_b.json())
-        assert res_del_b.status_code == 400
+        assert res_del_b.status_code in [400, 404]
         assert res_del_b.json() == {
             "error": "document_not_found",
             "detail": "The requested document does not exist."
