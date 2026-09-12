@@ -17,6 +17,9 @@ class Settings(BaseSettings):
 
     max_upload_size_mb: int = 20
 
+    storage_type: str = "local"
+    storage_path: str = "uploads"
+
     jwt_secret_key: str = "change-this-development-secret"
     jwt_algorithm: str = "HS256"
     jwt_expire_minutes: int = 60

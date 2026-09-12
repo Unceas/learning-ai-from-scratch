@@ -55,6 +55,12 @@ class Document(Base):
         nullable=False
     )
 
+    storage_path = Column(
+        String,
+        nullable=False,
+        default=""
+    )
+
     chunks = Column(
         Integer,
         nullable=False,

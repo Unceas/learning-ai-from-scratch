@@ -566,6 +566,17 @@ Features:
 - **Anti-Enumeration 404 Design**: Returns `404 Not Found` rather than `403 Forbidden` when attempting to access unauthorized document IDs, preventing resource discovery through enumeration.
 - **Frontend Polling Lifecycle**: Enables client applications to poll until `status == "indexed"` or `status == "failed"`, providing real-time processing feedback without WebSockets.
 
+## Storage Abstraction Layer
+
+Decouples physical document persistence from HTTP route handlers and ingestion services through a pluggable storage interface.
+
+Features:
+
+- **Storage Contract (`backend/storage/base.py`)**: Defines `save(filename, content)` and `delete(file_path)` contracts.
+- **Local Filesystem Implementation (`backend/storage/local.py`)**: Handles directory creation, secure UUID filename generation, and disk I/O in a single modular boundary.
+- **Storage Factory & Configuration (`backend/storage/factory.py`, `backend/config.py`)**: Reads `STORAGE_TYPE` and `STORAGE_PATH` configuration, enabling seamless future transition to cloud object storage (AWS S3, GCP Cloud Storage, Azure Blob).
+- **Physical Lifecycle Tracking**: Tracks `storage_path` in SQLite `documents` table via Alembic migration (`87f4679eca77_add_document_storage_path.py`), preserves original PDFs post-indexing, and purges stored files when document is deleted.
+
 ## Project Structure
 
 ```text
@@ -595,13 +606,19 @@ ai-research-assistant/
 │   │   ├── vector_store.py
 │   │   ├── chunker.py
 │   │   └── memory_service.py
+│   ├── storage/
+│   │   ├── __init__.py
+│   │   ├── base.py
+│   │   ├── local.py
+│   │   └── factory.py
 │   └── schemas/
 │       ├── requests.py
 │       └── responses.py
 ├── alembic/
 │   ├── versions/
 │   │   ├── cd265f0ad5bd_create_users_and_documents.py
-│   │   └── 16c517d8c41d_add_document_processing_status.py
+│   │   ├── 16c517d8c41d_add_document_processing_status.py
+│   │   └── 87f4679eca77_add_document_storage_path.py
 │   ├── env.py
 │   ├── script.py.mako
 │   └── README
@@ -663,6 +680,7 @@ ai-research-assistant/
 ├── test_document_db.py
 ├── test_background_processing.py
 ├── test_document_status.py
+├── test_storage_abstraction.py
 ├── test_api_validation.py
 ├── test_full_suite.py
 ├── llm.py

@@ -1,7 +1,5 @@
 """Document API route handling document upload, listing, status, and deletion lifecycle endpoints."""
 
-from pathlib import Path
-import uuid
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends, BackgroundTasks
 from sqlalchemy.orm import Session
 from backend.services.document_service import DocumentService
@@ -24,13 +22,11 @@ from backend.schemas.responses import (
 from backend.exceptions import DocumentNotFoundError
 from backend.dependencies import get_current_user
 from backend.config import settings
+from backend.storage import storage
 
 router = APIRouter()
 document_service = DocumentService()
 vector_store = VectorStore()
-
-UPLOAD_DIR = Path("uploads")
-UPLOAD_DIR.mkdir(exist_ok=True)
 
 
 @router.get("/", response_model=DocumentListResponse)
@@ -96,12 +92,14 @@ async def upload_document(
             "error_message": existing.error_message
         }
 
-    file_path = UPLOAD_DIR / f"{uuid.uuid4()}_{filename}"
-    with open(file_path, "wb") as buffer:
-        buffer.write(content)
+    file_path = storage.save(
+        filename,
+        content
+    )
 
     if existing and existing.status == "failed":
         existing.status = "processing"
+        existing.storage_path = file_path
         existing.error_message = None
         db.commit()
         document = existing
@@ -111,6 +109,7 @@ async def upload_document(
             user_id=user_id,
             file_hash=file_hash,
             filename=filename,
+            storage_path=file_path,
             chunks=0,
             status="processing"
         )
@@ -118,7 +117,7 @@ async def upload_document(
     background_tasks.add_task(
         process_document_background,
         document.id,
-        str(file_path)
+        file_path
     )
 
     return {
@@ -163,10 +162,13 @@ def delete_document(
     db: Session = Depends(get_db),
     user_id: str = Depends(get_current_user)
 ):
-    """Delete document entry from SQLite and purge matching vectors from ChromaDB."""
+    """Delete document entry from SQLite, purge stored file via storage abstraction, and delete vectors from ChromaDB."""
     document = get_document(db, user_id, file_hash)
     if not document:
         raise DocumentNotFoundError()
+
+    if document.storage_path:
+        storage.delete(document.storage_path)
 
     vector_store.delete_document(user_id, file_hash)
     delete_document_record(db, user_id, file_hash)

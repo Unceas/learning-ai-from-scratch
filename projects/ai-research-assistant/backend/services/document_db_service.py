@@ -42,6 +42,7 @@ def create_document(
     user_id: str,
     file_hash: str,
     filename: str,
+    storage_path: str = "",
     chunks: int = 0,
     status: str = "processing"
 ) -> Document:
@@ -50,6 +51,7 @@ def create_document(
         user_id=user_id,
         file_hash=file_hash,
         filename=filename,
+        storage_path=storage_path,
         chunks=chunks,
         status=status,
         error_message=None

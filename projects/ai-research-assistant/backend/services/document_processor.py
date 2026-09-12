@@ -1,6 +1,5 @@
 """Background document processor service for asynchronous PDF ingestion."""
 
-from pathlib import Path
 from sqlalchemy.orm import Session
 from backend.database import SessionLocal
 from backend.services.document_service import process_document
@@ -37,9 +36,6 @@ def process_document_background(
         document.status = "indexed"
         document.error_message = None
         db.commit()
-
-        # Clean up temporary uploaded file after successful processing
-        Path(file_path).unlink(missing_ok=True)
     except Exception as exc:
         document = (
             db.query(Document)
@@ -50,8 +46,5 @@ def process_document_background(
             document.status = "failed"
             document.error_message = str(exc)
             db.commit()
-
-        # Clean up temporary file on failure as well
-        Path(file_path).unlink(missing_ok=True)
     finally:
         db.close()
