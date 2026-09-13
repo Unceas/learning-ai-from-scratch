@@ -1,5 +1,6 @@
 """Vector Store service encapsulating ChromaDB document vector database operations."""
 
+from typing import Any, Dict, List, Optional
 import chromadb
 from backend.config import settings
 
@@ -10,13 +11,55 @@ class VectorStore:
         self.client = chromadb.PersistentClient(path=settings.chroma_path)
         self.collection = self.client.get_or_create_collection(name="documents")
 
-    def add_documents(self, texts, embeddings, metadatas, ids):
-        """Insert indexed document chunks, embeddings, and metadata into ChromaDB."""
-        self.collection.add(
+    def upsert_documents(
+        self,
+        texts: List[str],
+        embeddings: List[List[float]],
+        metadatas: List[Dict[str, Any]],
+        ids: List[str]
+    ) -> None:
+        """Upsert indexed document chunks, embeddings, and metadata into ChromaDB idempotently."""
+        if not ids:
+            return
+        self.collection.upsert(
             documents=texts,
             embeddings=embeddings,
             metadatas=metadatas,
             ids=ids
+        )
+
+    def add_documents(
+        self,
+        texts: List[str],
+        embeddings: List[List[float]],
+        metadatas: List[Dict[str, Any]],
+        ids: List[str]
+    ) -> None:
+        """Add documents using upsert to guarantee idempotency across indexing attempts."""
+        self.upsert_documents(
+            texts=texts,
+            embeddings=embeddings,
+            metadatas=metadatas,
+            ids=ids
+        )
+
+    def delete_by_document_id(self, document_id: int) -> None:
+        """Delete all document chunks from ChromaDB for a specific document_id."""
+        self.collection.delete(
+            where={"document_id": document_id}
+        )
+
+    def count_by_document_id(self, document_id: int) -> int:
+        """Count total vectors indexed for a specific document_id."""
+        results = self.collection.get(
+            where={"document_id": document_id}
+        )
+        return len(results["ids"]) if results and "ids" in results else 0
+
+    def get_by_document_id(self, document_id: int) -> Dict[str, Any]:
+        """Retrieve all vector records for a specific document_id."""
+        return self.collection.get(
+            where={"document_id": document_id}
         )
 
     def search(self, query_embedding, user_id, top_k=5):

@@ -577,6 +577,18 @@ Features:
 - **Storage Factory & Configuration (`backend/storage/factory.py`, `backend/config.py`)**: Reads `STORAGE_TYPE` and `STORAGE_PATH` configuration, enabling seamless future transition to cloud object storage (AWS S3, GCP Cloud Storage, Azure Blob).
 - **Physical Lifecycle Tracking**: Tracks `storage_path` in SQLite `documents` table via Alembic migration (`87f4679eca77_add_document_storage_path.py`), preserves original PDFs post-indexing, and purges stored files when document is deleted.
 
+## Document Processing Reliability & Idempotency
+
+Ensures document ingestion is completely idempotent, recoverable, and leaves vector stores clean on failures.
+
+Features:
+
+- **Deterministic Vector IDs (`{document_id}:{chunk_index}`)**: Vector identifiers are scoped deterministically to document instances, preventing cross-document collisions.
+- **Pre-Upsert Vector Purge**: Deletes previous vectors belonging to `document_id` prior to indexing, cleanly pruning stale chunks when document content or chunk count changes.
+- **Failure Cleanliness**: On pipeline errors, instantly purges any partially indexed vectors from ChromaDB, preventing unsearchable or corrupted vectors from polluting queries.
+- **Processing Attempts Tracking**: Tracks `processing_attempts` in SQLite `documents` table via Alembic migration (`de557f7c80c5_add_document_processing_attempts.py`).
+- **Secure Retry Endpoint (`POST /api/documents/{document_id}/retry`)**: Allows authenticated users to safely trigger re-ingestion of failed documents with user-scoped access control (returns 404 for unauthorized document IDs).
+
 ## Project Structure
 
 ```text
@@ -618,7 +630,8 @@ ai-research-assistant/
 │   ├── versions/
 │   │   ├── cd265f0ad5bd_create_users_and_documents.py
 │   │   ├── 16c517d8c41d_add_document_processing_status.py
-│   │   └── 87f4679eca77_add_document_storage_path.py
+│   │   ├── 87f4679eca77_add_document_storage_path.py
+│   │   └── de557f7c80c5_add_document_processing_attempts.py
 │   ├── env.py
 │   ├── script.py.mako
 │   └── README
@@ -681,6 +694,7 @@ ai-research-assistant/
 ├── test_background_processing.py
 ├── test_document_status.py
 ├── test_storage_abstraction.py
+├── test_document_reliability.py
 ├── test_api_validation.py
 ├── test_full_suite.py
 ├── llm.py

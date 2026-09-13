@@ -1,4 +1,4 @@
-"""Document API route handling document upload, listing, status, and deletion lifecycle endpoints."""
+"""Document API route handling document upload, listing, status, retry, and deletion lifecycle endpoints."""
 
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends, BackgroundTasks
 from sqlalchemy.orm import Session
@@ -44,7 +44,8 @@ def get_documents(
                 "filename": document.filename,
                 "chunks": document.chunks,
                 "status": document.status,
-                "error_message": document.error_message
+                "error_message": document.error_message,
+                "processing_attempts": document.processing_attempts
             }
             for document in documents
         ]
@@ -116,8 +117,7 @@ async def upload_document(
 
     background_tasks.add_task(
         process_document_background,
-        document.id,
-        file_path
+        document.id
     )
 
     return {
@@ -152,7 +152,54 @@ def get_document_status(
         "file_hash": document.file_hash,
         "chunks": document.chunks,
         "status": document.status,
-        "error_message": document.error_message
+        "error_message": document.error_message,
+        "processing_attempts": document.processing_attempts
+    }
+
+
+@router.post(
+    "/{document_id}/retry",
+    response_model=DocumentStatusResponse
+)
+def retry_document(
+    document_id: int,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    user_id: str = Depends(get_current_user)
+):
+    """Retry ingestion for a failed document belonging to the authenticated user."""
+    document = get_document_by_id(
+        db,
+        user_id,
+        document_id
+    )
+
+    if not document:
+        raise DocumentNotFoundError()
+
+    if document.status != "failed":
+        raise HTTPException(
+            status_code=400,
+            detail="Only failed documents can be retried."
+        )
+
+    document.status = "processing"
+    document.error_message = None
+    db.commit()
+
+    background_tasks.add_task(
+        process_document_background,
+        document.id
+    )
+
+    return {
+        "id": document.id,
+        "filename": document.filename,
+        "file_hash": document.file_hash,
+        "chunks": document.chunks,
+        "status": document.status,
+        "error_message": document.error_message,
+        "processing_attempts": document.processing_attempts
     }
 
 
@@ -170,6 +217,7 @@ def delete_document(
     if document.storage_path:
         storage.delete(document.storage_path)
 
+    vector_store.delete_by_document_id(document.id)
     vector_store.delete_document(user_id, file_hash)
     delete_document_record(db, user_id, file_hash)
 

@@ -78,6 +78,13 @@ class Document(Base):
         nullable=True
     )
 
+    processing_attempts = Column(
+        Integer,
+        nullable=False,
+        default=0,
+        server_default="0"
+    )
+
     user = relationship(
         "User",
         back_populates="documents"

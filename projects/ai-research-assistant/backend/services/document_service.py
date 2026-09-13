@@ -11,7 +11,7 @@ from backend.services.document_hash import calculate_file_hash
 from backend.exceptions import EmptyDocumentError
 from backend.services.document_db_service import get_document, create_document
 from backend.database import SessionLocal
-from backend.models import User
+from backend.models import User, Document
 
 
 def extract_pdf_text_pages(file_or_path) -> List[Dict[str, Any]]:
@@ -35,10 +35,14 @@ def extract_pdf_text_pages(file_or_path) -> List[Dict[str, Any]]:
 def process_document(
     file_path: str,
     user_id: str,
+    document_id: Optional[int] = None,
     file_hash: Optional[str] = None,
     filename: Optional[str] = None
 ) -> List[Dict[str, Any]]:
-    """Process physical PDF file in background: extract text, chunk, embed, and index into ChromaDB."""
+    """Process physical PDF file in background: extract text, chunk, embed, and index into ChromaDB.
+    
+    Guarantees idempotency and cleans up stale vectors before upserting.
+    """
     path_obj = Path(file_path)
     if not path_obj.exists():
         raise FileNotFoundError(f"File not found at {file_path}")
@@ -67,9 +71,13 @@ def process_document(
     if not chunks:
         raise ValueError("No readable text found.")
 
-    embedding_service = EmbeddingService()
     vector_store = VectorStore()
 
+    # Step 1: Delete old vectors belonging to this document before reindexing
+    if document_id is not None:
+        vector_store.delete_by_document_id(document_id)
+
+    embedding_service = EmbeddingService()
     texts = [chunk["text"] for chunk in chunks]
     embeddings = embedding_service.embed_documents(texts)
 
@@ -77,16 +85,26 @@ def process_document(
     ids = []
 
     for index, chunk in enumerate(chunks):
-        metadatas.append({
+        metadata = {
             "user_id": user_id,
-            "document": filename,
             "file_hash": file_hash,
+            "filename": filename,
+            "document": filename,
             "page": chunk["page"],
-            "chunk_id": chunk["chunk_id"]
-        })
-        ids.append(f"{user_id}_{file_hash}_{index}")
+            "chunk_id": chunk["chunk_id"],
+            "chunk_index": index
+        }
+        if document_id is not None:
+            metadata["document_id"] = document_id
+            vector_id = f"{document_id}:{index}"
+        else:
+            vector_id = f"{user_id}_{file_hash}_{index}"
 
-    vector_store.add_documents(
+        metadatas.append(metadata)
+        ids.append(vector_id)
+
+    # Step 2: Upsert current chunks into ChromaDB
+    vector_store.upsert_documents(
         texts=texts,
         embeddings=embeddings,
         metadatas=metadatas,
@@ -156,28 +174,9 @@ class DocumentService:
             texts = [chunk["text"] for chunk in chunks]
             embeddings = self.embedding_service.embed_documents(texts)
 
-            metadatas = []
-            ids = []
-
-            for index, chunk in enumerate(chunks):
-                metadatas.append({
-                    "user_id": user_id,
-                    "document": filename,
-                    "file_hash": file_hash,
-                    "page": chunk["page"],
-                    "chunk_id": chunk["chunk_id"]
-                })
-                ids.append(f"{user_id}_{file_hash}_{index}")
-
-            self.vector_store.add_documents(
-                texts=texts,
-                embeddings=embeddings,
-                metadatas=metadatas,
-                ids=ids
-            )
-
+            # Ensure document DB record exists to get document_id
             if not existing:
-                create_document(
+                doc_record = create_document(
                     db=db,
                     user_id=user_id,
                     file_hash=file_hash,
@@ -185,11 +184,39 @@ class DocumentService:
                     chunks=len(chunks),
                     status="indexed"
                 )
+                document_id = doc_record.id
             else:
                 existing.status = "indexed"
                 existing.chunks = len(chunks)
                 existing.error_message = None
                 db.commit()
+                document_id = existing.id
+
+            # Clean existing vectors for this document
+            self.vector_store.delete_by_document_id(document_id)
+
+            metadatas = []
+            ids = []
+
+            for index, chunk in enumerate(chunks):
+                metadatas.append({
+                    "user_id": user_id,
+                    "document_id": document_id,
+                    "document": filename,
+                    "filename": filename,
+                    "file_hash": file_hash,
+                    "page": chunk["page"],
+                    "chunk_id": chunk["chunk_id"],
+                    "chunk_index": index
+                })
+                ids.append(f"{document_id}:{index}")
+
+            self.vector_store.upsert_documents(
+                texts=texts,
+                embeddings=embeddings,
+                metadatas=metadatas,
+                ids=ids
+            )
 
             return {
                 "status": "indexed",

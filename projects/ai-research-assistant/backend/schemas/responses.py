@@ -26,6 +26,7 @@ class DocumentStatusResponse(BaseModel):
     chunks: int
     status: str
     error_message: Optional[str] = None
+    processing_attempts: Optional[int] = None
 
 
 class DocumentListResponse(BaseModel):
