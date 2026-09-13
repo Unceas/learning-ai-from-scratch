@@ -1,13 +1,20 @@
-"""Embedding Service encapsulating text embedding generation using SentenceTransformer."""
-
-from sentence_transformers import SentenceTransformer
+from typing import Optional
 from backend.config import settings
 
 
 class EmbeddingService:
+    _model = None
 
     def __init__(self):
-        self.model = SentenceTransformer(settings.embedding_model)
+        pass
+
+    @property
+    def model(self):
+        """Lazy-load SentenceTransformer model on first actual use."""
+        if EmbeddingService._model is None:
+            from sentence_transformers import SentenceTransformer
+            EmbeddingService._model = SentenceTransformer(settings.embedding_model)
+        return EmbeddingService._model
 
     def embed_documents(self, texts: list) -> list:
         """Generate dense vector embeddings for a list of document text chunks."""

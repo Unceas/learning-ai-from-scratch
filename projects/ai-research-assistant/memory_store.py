@@ -12,9 +12,20 @@ collection = client.get_or_create_collection(
     name="user_memory"
 )
 
-model = SentenceTransformer(
-    "all-MiniLM-L6-v2"
-)
+_model = None
+
+def get_model():
+    global _model
+    if _model is None:
+        from sentence_transformers import SentenceTransformer
+        _model = SentenceTransformer("all-MiniLM-L6-v2")
+    return _model
+
+class _LazyModelProxy:
+    def __getattr__(self, name):
+        return getattr(get_model(), name)
+
+model = _LazyModelProxy()
 
 
 def add_memory(
@@ -30,7 +41,7 @@ def add_memory(
 
     memory_id = f"memory_{collection.count()}"
 
-    embedding = model.encode(
+    embedding = get_model().encode(
         [text]
     ).tolist()[0]
 
@@ -61,7 +72,7 @@ def search_memory(
 
     effective_k = min(top_k, collection.count())
 
-    query_embedding = model.encode(
+    query_embedding = get_model().encode(
         [query]
     ).tolist()[0]
 

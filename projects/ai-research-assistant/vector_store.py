@@ -11,10 +11,20 @@ collection = client.get_or_create_collection(
     name="research_documents"
 )
 
-# Initialize SentenceTransformer embedding model
-model = SentenceTransformer(
-    "all-MiniLM-L6-v2"
-)
+_model = None
+
+def get_model():
+    global _model
+    if _model is None:
+        from sentence_transformers import SentenceTransformer
+        _model = SentenceTransformer("all-MiniLM-L6-v2")
+    return _model
+
+class _LazyModelProxy:
+    def __getattr__(self, name):
+        return getattr(get_model(), name)
+
+model = _LazyModelProxy()
 
 
 def add_document(filename: str, chunks: List[Any], user_id: Optional[str] = None) -> None:
@@ -55,7 +65,7 @@ def add_document(filename: str, chunks: List[Any], user_id: Optional[str] = None
         ]
         ids = [f"{uid}_{filename}_{i}" for i in range(len(chunks))]
 
-    embeddings = model.encode(texts).tolist()
+    embeddings = get_model().encode(texts).tolist()
 
     collection.add(
         ids=ids,
@@ -97,7 +107,7 @@ def search(query: str, filename: Optional[str] = None, user_id: Optional[str] = 
         return []
 
     effective_k = min(top_k, total_count)
-    embedding = model.encode([query]).tolist()
+    embedding = get_model().encode([query]).tolist()
     where_clause = build_where_clause(filename=filename, user_id=user_id)
 
     result = collection.query(

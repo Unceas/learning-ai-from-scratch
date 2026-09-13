@@ -35,14 +35,14 @@ def run_all_tests():
     failed = 0
 
     for script in TEST_SCRIPTS:
-        print(f"\n[RUNNING] {script} ...")
+        print(f"\n[RUNNING] {script} ...", flush=True)
         proc = subprocess.run([sys.executable, "-u", script], capture_output=True, text=True)
 
         if proc.returncode == 0:
-            print(f"[PASSED] {script}")
+            print(f"[PASSED] {script}", flush=True)
             passed += 1
         else:
-            print(f"[FAILED] {script}")
+            print(f"[FAILED] {script}", flush=True)
             print("STDOUT:\n", proc.stdout)
             print("STDERR:\n", proc.stderr)
             failed += 1
