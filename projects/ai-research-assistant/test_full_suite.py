@@ -13,6 +13,7 @@ TEST_SCRIPTS = [
     "test_document_status.py",
     "test_storage_abstraction.py",
     "test_document_reliability.py",
+    "test_retrieval_reliability.py",
     "test_api_validation.py",
     "test_fastapi_backend.py",
     "test_fastapi_chat.py",

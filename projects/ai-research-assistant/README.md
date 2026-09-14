@@ -589,6 +589,18 @@ Features:
 - **Processing Attempts Tracking**: Tracks `processing_attempts` in SQLite `documents` table via Alembic migration (`de557f7c80c5_add_document_processing_attempts.py`).
 - **Secure Retry Endpoint (`POST /api/documents/{document_id}/retry`)**: Allows authenticated users to safely trigger re-ingestion of failed documents with user-scoped access control (returns 404 for unauthorized document IDs).
 
+## Retrieval Reliability & Document-Level Filtering
+
+Restricts semantic search strictly to indexed documents owned by the authenticated user, separating state ownership from vector similarity.
+
+Features:
+
+- **SQLite State Authority (`get_indexed_document_ids`)**: Queries SQLite for document IDs where `user_id == authenticated_user` and `status == "indexed"`, treating SQLite as the authoritative source of truth for eligibility.
+- **Strict State Isolation**: Completely ignores documents in `processing` or `failed` states, preventing incomplete or broken files from polluting RAG responses.
+- **Multi-Tenant ChromaDB Filtering**: Combines `user_id` and document IDs in ChromaDB queries (`{"$and": [{"user_id": user_id}, {"document_id": {"$in": indexed_document_ids}}]}`), preventing cross-tenant vector leakage.
+- **Safe Empty Handling**: Immediately returns `[]` if a user has zero indexed documents, avoiding unnecessary vector database roundtrips.
+- **Enriched Source Attribution**: Each retrieved chunk includes `text`, `score`, `document_id`, `filename`, `chunk_index`, and `page` for downstream citation attribution.
+
 ## Project Structure
 
 ```text
@@ -695,6 +707,7 @@ ai-research-assistant/
 ├── test_document_status.py
 ├── test_storage_abstraction.py
 ├── test_document_reliability.py
+├── test_retrieval_reliability.py
 ├── test_api_validation.py
 ├── test_full_suite.py
 ├── llm.py

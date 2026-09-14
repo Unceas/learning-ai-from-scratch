@@ -91,3 +91,19 @@ def delete_document(
     db.delete(document)
     db.commit()
     return True
+
+
+def get_indexed_document_ids(
+    db: Session,
+    user_id: str
+) -> List[int]:
+    """Retrieve list of document IDs that belong to the user and have status == 'indexed'."""
+    documents = (
+        db.query(Document.id)
+        .filter(
+            Document.user_id == user_id,
+            Document.status == "indexed",
+        )
+        .all()
+    )
+    return [document.id for document in documents]

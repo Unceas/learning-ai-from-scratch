@@ -62,12 +62,41 @@ class VectorStore:
             where={"document_id": document_id}
         )
 
-    def search(self, query_embedding, user_id, top_k=5):
-        """Search vector database enforced strictly by user_id metadata filter."""
+    def search(
+        self,
+        query_embedding: List[float],
+        user_id: str,
+        document_ids: Optional[List[int]] = None,
+        top_k: int = 5
+    ) -> Dict[str, Any]:
+        """Search vector database enforced strictly by user_id and optional document_id filter."""
+        if document_ids is not None:
+            if not document_ids:
+                return {
+                    "ids": [[]],
+                    "documents": [[]],
+                    "metadatas": [[]],
+                    "distances": [[]]
+                }
+            if len(document_ids) == 1:
+                doc_filter = {"document_id": document_ids[0]}
+            else:
+                doc_filter = {"document_id": {"$in": document_ids}}
+
+            where = {
+                "$and": [
+                    {"user_id": user_id},
+                    doc_filter
+                ]
+            }
+        else:
+            where = {"user_id": user_id}
+
         return self.collection.query(
             query_embeddings=[query_embedding],
             n_results=top_k,
-            where={"user_id": user_id}
+            where=where,
+            include=["documents", "metadatas", "distances"]
         )
 
     def delete_document(self, user_id, file_hash):
