@@ -8,6 +8,7 @@ from google.genai import types
 from prompts import SYSTEM_PROMPT
 from memory_store import search_memory
 from memory_manager import default_memory_manager
+from backend.services.rag_context import build_rag_context
 
 load_dotenv()
 
@@ -22,23 +23,38 @@ def get_client(override_api_key: Optional[str] = None) -> Optional[genai.Client]
 
 def generate_answer(
     query: str,
-    results: List[Any],
+    results: Optional[List[Any]] = None,
     memory: Optional[Any] = None,
     user_id: Optional[str] = None,
-    api_key: Optional[str] = None
+    api_key: Optional[str] = None,
+    context: Optional[str] = None
 ) -> Generator[str, None, None]:
     """Generate a grounded streaming response using Gemini LLM and retrieved context.
 
     Args:
         query: User question string.
-        results: List of retrieved context chunk dictionaries or text strings.
+        results: Optional list of retrieved context chunk dictionaries or text strings.
         memory: Optional ConversationMemory instance.
         user_id: Optional user identifier string for memory isolation.
         api_key: Optional API key override.
+        context: Optional pre-built context string from RAG context builder.
 
     Yields:
         Generated text chunks progressively.
     """
+    # 1. Resolve structured context and check for zero-chunk condition early
+    if context is None:
+        rag_payload = build_rag_context(results or [])
+        if not rag_payload["has_context"]:
+            yield rag_payload["fallback_answer"]
+            return
+        formatted_context = rag_payload["context"]
+    else:
+        if not context.strip():
+            yield "I couldn't find relevant information in the indexed documents."
+            return
+        formatted_context = context
+
     client = get_client(api_key)
     if not client:
         yield "⚠️ GEMINI_API_KEY is missing or invalid in your .env configuration file."
@@ -56,25 +72,6 @@ def generate_answer(
     ]
     memory_context = "\n".join(memory_strings) if memory_strings else "None"
 
-    context = ""
-    for i, chunk in enumerate(results, 1):
-        text = chunk["text"] if isinstance(chunk, dict) else chunk
-        doc = chunk.get("document", "Unknown") if isinstance(chunk, dict) else "Unknown"
-        page = chunk.get("page", 1) if isinstance(chunk, dict) else 1
-        context += f"""
-[Source {i}]
-
-Document:
-{doc}
-
-Page:
-{page}
-
-Content:
-{text}
-
-"""
-
     prompt = f"""
 Relevant Persistent Long-Term Memories
 
@@ -86,7 +83,7 @@ Previous Conversation
 
 Retrieved Context
 
-{context}
+{formatted_context}
 
 Current Question
 

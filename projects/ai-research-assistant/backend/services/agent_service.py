@@ -14,19 +14,10 @@ class AgentService:
         """Execute agent runtime / RAG pipeline and return structured dict payload."""
         try:
             rag_res = run_rag_pipeline(query, filename=filename, user_id=user_id)
-            raw_sources = rag_res.get("sources", [])
-            sources_list = []
-            for src in raw_sources:
-                if isinstance(src, dict):
-                    doc_name = src.get("document", "Unknown")
-                    page = src.get("page", 1)
-                    sources_list.append(f"{doc_name} - page {page}")
-                else:
-                    sources_list.append(str(src))
-
             return {
                 "answer": rag_res.get("answer", "No answer generated."),
-                "sources": sources_list,
+                "sources": rag_res.get("sources", []),
+                "document_sources": rag_res.get("document_sources", []),
                 "user_id": user_id,
                 "latency_ms": rag_res.get("latency_ms", 0.0)
             }

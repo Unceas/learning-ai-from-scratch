@@ -25,6 +25,7 @@ def chat(
         return ChatResponse(
             answer=result["answer"],
             sources=result.get("sources", []),
+            document_sources=result.get("document_sources", []),
             user_id=user_id,
             latency_ms=result.get("latency_ms")
         )

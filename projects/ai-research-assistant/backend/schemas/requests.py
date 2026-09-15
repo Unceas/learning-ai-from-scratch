@@ -1,6 +1,6 @@
 """Pydantic schemas for API request and response validation."""
 
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 from pydantic import BaseModel, Field
 
 
@@ -22,7 +22,8 @@ class ChatRequest(BaseModel):
 
 class ChatResponse(BaseModel):
     answer: str
-    sources: List[str] = []
+    sources: List[Any] = []
+    document_sources: Optional[List[Dict[str, Any]]] = None
     user_id: Optional[str] = None
     latency_ms: Optional[float] = None
 

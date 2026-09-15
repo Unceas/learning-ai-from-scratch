@@ -601,6 +601,18 @@ Features:
 - **Safe Empty Handling**: Immediately returns `[]` if a user has zero indexed documents, avoiding unnecessary vector database roundtrips.
 - **Enriched Source Attribution**: Each retrieved chunk includes `text`, `score`, `document_id`, `filename`, `chunk_index`, and `page` for downstream citation attribution.
 
+## RAG Context Builder & Source Attribution
+
+Transforms retrieved candidates into structured, LLM-ready prompt contexts while providing clean, decoupled source attribution directly from vector metadata.
+
+Features:
+
+- **Normalized Retrieval Representation (`RetrievedChunk`)**: Encapsulates chunk text, similarity score, document ID, filename, chunk index, and page number into a standardized Pydantic data model.
+- **Dedicated Context Builder (`backend/services/rag_context.py`)**: Assembles evidence with explicit source delimiters (`SOURCE {i}\nFile: ...\nDocument ID: ...\nChunk: ...\n\n{text}`) and strictly enforces context chunk limits (`MAX_CONTEXT_CHUNKS = 8`).
+- **Separation of Evidence and Attribution**: Decouples prompt context from API response metadata, providing chunk-level detailed sources and deduplicated document-level references without relying on LLM parsing.
+- **Zero-Chunk Clean Fallback**: Bypasses LLM generation when no relevant context exists, returning a standardized fallback message (`"I couldn't find relevant information in the indexed documents."`) and empty sources (`[]`) to prevent hallucination and eliminate token costs.
+- **Grounded Evidence Prompting (`prompts.py`)**: Instructs the research assistant to answer strictly from retrieved context and cite source markers without treating metadata as factual assertions.
+
 ## Project Structure
 
 ```text
@@ -623,6 +635,7 @@ ai-research-assistant/
 │   │   ├── document_db_service.py
 │   │   ├── document_processor.py
 │   │   ├── rag_service.py
+│   │   ├── rag_context.py
 │   │   ├── agent_service.py
 │   │   ├── document_service.py
 │   │   ├── document_hash.py
@@ -709,6 +722,7 @@ ai-research-assistant/
 ├── test_document_reliability.py
 ├── test_retrieval_reliability.py
 ├── test_api_validation.py
+├── test_rag_context.py
 ├── test_full_suite.py
 ├── llm.py
 ├── prompts.py
