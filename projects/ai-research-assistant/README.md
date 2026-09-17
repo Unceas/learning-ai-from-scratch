@@ -613,6 +613,18 @@ Features:
 - **Zero-Chunk Clean Fallback**: Bypasses LLM generation when no relevant context exists, returning a standardized fallback message (`"I couldn't find relevant information in the indexed documents."`) and empty sources (`[]`) to prevent hallucination and eliminate token costs.
 - **Grounded Evidence Prompting (`prompts.py`)**: Instructs the research assistant to answer strictly from retrieved context and cite source markers without treating metadata as factual assertions.
 
+## RAG Source Citations & Validation
+
+Assigns stable, deterministic source identifiers (`[S1]`, `[S2]`) to retrieved chunks, separates citation resolution from model generation, and performs post-generation citation validation.
+
+Features:
+
+- **Source & RAG Contract Schemas (`backend/schemas/rag.py`)**: Defines `Source(id, document_id, filename, chunk_index, score)` and `RAGResponse(answer, sources, citation_map, invalid_citations, document_sources)`.
+- **Stable Source Identifiers (`[S1]`, `[S2]`)**: Formats prompt evidence with clear identifiers while mapping them deterministically to physical storage and database metadata.
+- **Application-Owned Citation Mapping**: LLM generates simple citation references (e.g. `[S1]`), while the backend retains absolute authority over mapping IDs to documents and chunks (`citation_map`).
+- **Post-Generation Citation Validation (`validate_citations`)**: Detects and logs hallucinated citation markers (e.g. `[S99]`) without risking prompt injection or model hallucination in source attribution.
+- **Hierarchical Document Deduplication**: Groups chunk-level references into high-level document entries (`document_sources`) with nested chunk index lists (`chunks: [4, 5, 8]`) for frontend UI displays and document viewer navigation.
+
 ## Project Structure
 
 ```text
@@ -650,7 +662,8 @@ ai-research-assistant/
 │   │   └── factory.py
 │   └── schemas/
 │       ├── requests.py
-│       └── responses.py
+│       ├── responses.py
+│       └── rag.py
 ├── alembic/
 │   ├── versions/
 │   │   ├── cd265f0ad5bd_create_users_and_documents.py
@@ -723,6 +736,7 @@ ai-research-assistant/
 ├── test_retrieval_reliability.py
 ├── test_api_validation.py
 ├── test_rag_context.py
+├── test_rag_citations.py
 ├── test_full_suite.py
 ├── llm.py
 ├── prompts.py

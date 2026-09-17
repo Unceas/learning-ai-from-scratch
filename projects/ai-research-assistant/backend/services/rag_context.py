@@ -1,13 +1,17 @@
-"""RAG Context Builder and Source Attribution Service.
+﻿"""RAG Context Builder, Citation Mapping, and Source Attribution Service.
 
 Transforms raw or normalized retrieval results into structured, LLM-ready context,
-enforces context window chunk limits, handles zero-context fallbacks, and separates
-independent source attribution metadata.
+assigns deterministic citation markers ([S1], [S2]), constructs citation maps,
+enforces context window chunk limits, handles zero-context fallbacks, and validates
+generated citations against retrieved sources.
 """
 
+import logging
+import re
 from typing import Any, Dict, List, Optional, Union
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
+logger = logging.getLogger(__name__)
 
 MAX_CONTEXT_CHUNKS = 8
 
@@ -41,13 +45,12 @@ def normalize_chunk(chunk: Union[RetrievedChunk, Dict[str, Any]]) -> RetrievedCh
 
 
 def build_context(chunks: List[RetrievedChunk]) -> str:
-    """Format structured evidence sections for LLM ingestion with explicit source labels."""
+    """Format structured evidence sections for LLM ingestion with explicit [S1], [S2] source markers."""
     sections = []
     for i, chunk in enumerate(chunks, start=1):
         sections.append(
-            f"""SOURCE {i}
+            f"""[S{i}]
 File: {chunk.filename}
-Document ID: {chunk.document_id}
 Chunk: {chunk.chunk_index}
 
 {chunk.text}""".strip()
@@ -55,17 +58,74 @@ Chunk: {chunk.chunk_index}
     return "\n\n".join(sections)
 
 
+def validate_citations(
+    answer: str,
+    sources_or_map: Union[List[Any], Dict[str, Any], int]
+) -> Dict[str, Any]:
+    """Extract and validate citation identifiers [S#] from an LLM response against actual retrieved sources.
+
+    Args:
+        answer: Model-generated text containing potential citations like [S1], [S2], [S99].
+        sources_or_map: Retrieved source list, citation map dict, or integer source count.
+
+    Returns:
+        Dict containing:
+            - valid_citations: list of valid citation tags (e.g. ['[S1]'])
+            - invalid_citations: list of hallucinated citation tags (e.g. ['[S99]'])
+            - is_valid: bool indicating if all generated citations are valid
+    """
+    valid_indices = set()
+    if isinstance(sources_or_map, int):
+        valid_indices = {str(i) for i in range(1, sources_or_map + 1)}
+    elif isinstance(sources_or_map, dict):
+        valid_indices = {str(k).lstrip("S") for k in sources_or_map.keys()}
+    elif isinstance(sources_or_map, list):
+        valid_indices = {str(i) for i in range(1, len(sources_or_map) + 1)}
+        for item in sources_or_map:
+            if isinstance(item, dict) and "id" in item:
+                valid_indices.add(str(item["id"]).lstrip("S"))
+
+    raw_ids = re.findall(r"\[S(\d+)\]", answer)
+    unique_ids = []
+    for sid in raw_ids:
+        if sid not in unique_ids:
+            unique_ids.append(sid)
+
+    valid_citations = []
+    invalid_citations = []
+
+    for sid in unique_ids:
+        tag = f"[S{sid}]"
+        if sid in valid_indices:
+            valid_citations.append(tag)
+        else:
+            invalid_citations.append(tag)
+
+    if invalid_citations:
+        logger.warning(
+            "Generation quality problem: Invalid citation(s) detected in LLM response: %s",
+            invalid_citations
+        )
+
+    return {
+        "valid_citations": valid_citations,
+        "invalid_citations": invalid_citations,
+        "is_valid": len(invalid_citations) == 0
+    }
+
+
 def build_rag_context(
     chunks: List[Union[RetrievedChunk, Dict[str, Any]]],
     max_chunks: int = MAX_CONTEXT_CHUNKS
 ) -> Dict[str, Any]:
-    """Transform retrieved chunks into structured context, chunk-level sources, and deduplicated doc sources.
-    
+    """Transform retrieved chunks into structured context, citation map, and grouped document sources.
+
     Returns:
         Dict containing:
-            - context: Formatted string of evidence for LLM prompt.
-            - sources: Detailed chunk-level source metadata for API responses.
-            - document_sources: Deduplicated document-level references.
+            - context: Formatted string of evidence with [S1], [S2] identifiers for LLM prompt.
+            - sources: Detailed chunk-level source metadata with stable IDs.
+            - citation_map: Deterministic mapping from 'S1', 'S2' to document/chunk metadata.
+            - document_sources: Grouped document references containing chunk index lists.
             - has_context: Boolean indicating whether relevant context was found.
             - fallback_answer: Standardized explanation when no relevant context exists.
     """
@@ -73,9 +133,10 @@ def build_rag_context(
         return {
             "context": "",
             "sources": [],
+            "citation_map": {},
             "document_sources": [],
             "has_context": False,
-            "fallback_answer": "I couldn't find relevant information in the indexed documents."
+            "fallback_answer": "I couldn't find enough information in the indexed documents."
         }
 
     normalized = [normalize_chunk(c) for c in chunks]
@@ -83,31 +144,49 @@ def build_rag_context(
 
     context_str = build_context(limited_chunks)
 
-    sources = [
-        {
+    sources = []
+    citation_map = {}
+    for i, chunk in enumerate(limited_chunks, start=1):
+        source_id = f"S{i}"
+        source_dict = {
+            "id": source_id,
             "document_id": chunk.document_id,
             "filename": chunk.filename,
             "chunk_index": chunk.chunk_index,
-            "page": chunk.page,
+            "score": chunk.score,
+            "page": chunk.page
+        }
+        sources.append(source_dict)
+        citation_map[source_id] = {
+            "id": source_id,
+            "document_id": chunk.document_id,
+            "filename": chunk.filename,
+            "chunk_index": chunk.chunk_index,
             "score": chunk.score
         }
-        for chunk in limited_chunks
-    ]
 
-    seen_docs = set()
-    document_sources = []
+    # Group chunk indices by document for clean UI presentation
+    grouped_docs = {}
     for chunk in limited_chunks:
-        doc_key = (chunk.document_id, chunk.filename)
-        if doc_key not in seen_docs:
-            seen_docs.add(doc_key)
-            document_sources.append({
-                "document_id": chunk.document_id,
-                "filename": chunk.filename
-            })
+        key = (chunk.document_id, chunk.filename)
+        if key not in grouped_docs:
+            grouped_docs[key] = []
+        if chunk.chunk_index not in grouped_docs[key]:
+            grouped_docs[key].append(chunk.chunk_index)
+
+    document_sources = [
+        {
+            "document_id": doc_id,
+            "filename": filename,
+            "chunks": sorted(chunks_list)
+        }
+        for (doc_id, filename), chunks_list in grouped_docs.items()
+    ]
 
     return {
         "context": context_str,
         "sources": sources,
+        "citation_map": citation_map,
         "document_sources": document_sources,
         "has_context": True,
         "fallback_answer": None

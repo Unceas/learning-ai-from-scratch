@@ -17,6 +17,8 @@ class AgentService:
             return {
                 "answer": rag_res.get("answer", "No answer generated."),
                 "sources": rag_res.get("sources", []),
+                "citation_map": rag_res.get("citation_map", {}),
+                "invalid_citations": rag_res.get("invalid_citations", []),
                 "document_sources": rag_res.get("document_sources", []),
                 "user_id": user_id,
                 "latency_ms": rag_res.get("latency_ms", 0.0)
@@ -26,6 +28,9 @@ class AgentService:
             return {
                 "answer": orch_res.get("answer", "No answer generated."),
                 "sources": orch_res.get("sources", []),
+                "citation_map": {},
+                "invalid_citations": [],
+                "document_sources": [],
                 "user_id": user_id,
                 "latency_ms": 0.0
             }

@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from tool_router import execute_tool
 from llm import generate_answer
 from observability import RAGTrace, timed_call, save_trace
-from backend.services.rag_context import build_rag_context
+from backend.services.rag_context import build_rag_context, validate_citations
 from backend.database import SessionLocal
 from retrieval import db_retrieve
 
@@ -17,7 +17,7 @@ def run_rag_pipeline(
     user_id: str = "default_user",
     db: Optional[Session] = None
 ) -> Dict[str, Any]:
-    """Execute the full RAG pipeline with context builder and source attribution."""
+    """Execute the full RAG pipeline with context builder, citation mapping, and source attribution."""
     trace = RAGTrace(query=query)
     start_time = time.time()
 
@@ -62,7 +62,7 @@ def run_rag_pipeline(
     trace.retrieval_ms = search_time
     trace.retrieved_count = len(results)
 
-    # 2. Build structured RAG context and independent source attribution
+    # 2. Build structured RAG context, citation map, and independent source attribution
     rag_payload = build_rag_context(results)
     trace.final_context_count = len(rag_payload["sources"])
 
@@ -73,6 +73,8 @@ def run_rag_pipeline(
             "query": query,
             "answer": rag_payload["fallback_answer"],
             "sources": [],
+            "citation_map": {},
+            "invalid_citations": [],
             "document_sources": [],
             "has_context": False,
             "latency_ms": search_time
@@ -85,6 +87,7 @@ def run_rag_pipeline(
         answer_chunks.append(chunk)
 
     full_answer = "".join(answer_chunks)
+    validation = validate_citations(full_answer, rag_payload["citation_map"])
     trace.sources = rag_payload["sources"]
     save_trace(trace)
 
@@ -92,6 +95,8 @@ def run_rag_pipeline(
         "query": query,
         "answer": full_answer,
         "sources": rag_payload["sources"],
+        "citation_map": rag_payload["citation_map"],
+        "invalid_citations": validation["invalid_citations"],
         "document_sources": rag_payload["document_sources"],
         "has_context": True,
         "latency_ms": search_time

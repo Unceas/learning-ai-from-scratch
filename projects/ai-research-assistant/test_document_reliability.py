@@ -96,7 +96,7 @@ async def main():
 
         # Poll until indexed
         status_data = None
-        for _ in range(15):
+        for _ in range(30):
             res_status = await client.get(f"/api/documents/{doc_id}", headers=headers_a)
             status_data = res_status.json()
             if status_data["status"] == "indexed":

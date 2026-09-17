@@ -23,6 +23,8 @@ class ChatRequest(BaseModel):
 class ChatResponse(BaseModel):
     answer: str
     sources: List[Any] = []
+    citation_map: Optional[Dict[str, Any]] = None
+    invalid_citations: Optional[List[str]] = []
     document_sources: Optional[List[Dict[str, Any]]] = None
     user_id: Optional[str] = None
     latency_ms: Optional[float] = None

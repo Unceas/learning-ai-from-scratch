@@ -51,7 +51,7 @@ def generate_answer(
         formatted_context = rag_payload["context"]
     else:
         if not context.strip():
-            yield "I couldn't find relevant information in the indexed documents."
+            yield "I couldn't find enough information in the indexed documents."
             return
         formatted_context = context
 
@@ -81,21 +81,21 @@ Previous Conversation
 
 {conversation}
 
-Retrieved Context
+Research Context:
 
 {formatted_context}
 
-Current Question
+User Question:
 
 {query}
 
-Rules
-
-- Use retrieved context and persistent memories as the primary sources.
-- Whenever possible, reference the appropriate source number (e.g. [Source 1]).
-- Never cite a source that was not provided.
-- Use previous conversation only to resolve references.
-- Never invent facts.
+Rules:
+1. Use the provided context as the primary source.
+2. Do not invent unsupported facts.
+3. When making a factual claim supported by a source, include its source identifier (e.g. [S1]).
+4. Use only source identifiers that actually exist in the provided context.
+5. If the context does not contain enough information, say so.
+6. Do not create or modify source identifiers.
 """
 
     try:

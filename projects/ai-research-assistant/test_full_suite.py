@@ -24,7 +24,8 @@ TEST_SCRIPTS = [
     "test_memory_lifecycle.py",
     "test_workflow.py",
     "test_multi_agent.py",
-    "test_rag_context.py"
+    "test_rag_context.py",
+    "test_rag_citations.py"
 ]
 
 
