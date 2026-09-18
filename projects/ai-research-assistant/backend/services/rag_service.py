@@ -94,6 +94,7 @@ def run_rag_pipeline(
     return {
         "query": query,
         "answer": full_answer,
+        "context": rag_payload["context"],
         "sources": rag_payload["sources"],
         "citation_map": rag_payload["citation_map"],
         "invalid_citations": validation["invalid_citations"],

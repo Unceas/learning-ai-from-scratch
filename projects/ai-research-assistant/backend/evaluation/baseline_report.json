@@ -1,0 +1,14 @@
+{
+  "questions_count": 15,
+  "retrieval": {
+    "recall_at_3": 1.0,
+    "recall_at_5": 1.0
+  },
+  "citations": {
+    "citation_validity": 1.0
+  },
+  "generation": {
+    "grounded_answers": 1.0
+  },
+  "timestamp": 1789755675.3804076
+}

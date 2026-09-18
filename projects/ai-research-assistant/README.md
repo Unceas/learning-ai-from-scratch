@@ -625,6 +625,21 @@ Features:
 - **Post-Generation Citation Validation (`validate_citations`)**: Detects and logs hallucinated citation markers (e.g. `[S99]`) without risking prompt injection or model hallucination in source attribution.
 - **Hierarchical Document Deduplication**: Groups chunk-level references into high-level document entries (`document_sources`) with nested chunk index lists (`chunks: [4, 5, 8]`) for frontend UI displays and document viewer navigation.
 
+## RAG Evaluation Framework
+
+A comprehensive evaluation pipeline designed to quantify retrieval quality, citation validity, and answer grounding independently without guesswork.
+
+Features:
+
+- **Separated Evaluation Boundaries**: Evaluates retrieval accuracy (did we fetch the right documents?) and generation faithfulness (is the generated answer supported by retrieved context?) independently.
+- **Curated Evaluation Dataset (`backend/evaluation/dataset.py`)**: 15 targeted research queries mapped to expected source documents, expected key topics, and reference answers.
+- **Retrieval Metrics (`backend/evaluation/retrieval_metrics.py`)**: Computes `Recall@K` (`Recall@3`, `Recall@5`) and `Mean Recall` across indexed corpora.
+- **Generation & Citation Metrics (`backend/evaluation/generation_metrics.py`)**:
+  - `citation_precision`: Evaluates valid versus hallucinated citations (`[S1]`, `[S2]`) generated in model responses.
+  - `evaluate_grounding`: Assesses whether answer statements are supported by context chunks using LLM-as-a-judge with deterministic lexical fallbacks.
+- **Standalone Evaluation CLI (`python -m backend.evaluation.run`)**: Automatically seeds an evaluation corpus, runs retrieval & generation metrics, prints formatted reports, and records baseline statistics to `backend/evaluation/baseline_report.json`.
+- **Zero Production Intrusion**: Evaluation runs completely out-of-band, preserving production API routes and latency.
+
 ## Project Structure
 
 ```text
@@ -655,6 +670,13 @@ ai-research-assistant/
 │   │   ├── vector_store.py
 │   │   ├── chunker.py
 │   │   └── memory_service.py
+│   ├── evaluation/
+│   │   ├── __init__.py
+│   │   ├── dataset.py
+│   │   ├── retrieval_metrics.py
+│   │   ├── generation_metrics.py
+│   │   ├── run.py
+│   │   └── baseline_report.json
 │   ├── storage/
 │   │   ├── __init__.py
 │   │   ├── base.py
@@ -737,6 +759,7 @@ ai-research-assistant/
 ├── test_api_validation.py
 ├── test_rag_context.py
 ├── test_rag_citations.py
+├── test_rag_evaluation.py
 ├── test_full_suite.py
 ├── llm.py
 ├── prompts.py

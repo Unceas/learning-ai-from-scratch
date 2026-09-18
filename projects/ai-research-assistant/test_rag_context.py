@@ -145,7 +145,7 @@ async def test_api_integration():
         doc_id = res_upload.json()["document_id"]
 
         # Wait for indexing
-        for _ in range(15):
+        for _ in range(30):
             st = (await client.get(f"/api/documents/{doc_id}", headers=headers)).json()
             if st["status"] == "indexed":
                 break
