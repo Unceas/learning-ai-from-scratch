@@ -8,6 +8,8 @@ from llm import generate_answer
 from observability import RAGTrace, timed_call, save_trace
 from backend.services.rag_context import build_rag_context, validate_citations
 from backend.database import SessionLocal
+from backend.config import settings
+from backend.services.reranker import get_reranker
 from retrieval import db_retrieve
 
 
@@ -17,11 +19,11 @@ def run_rag_pipeline(
     user_id: str = "default_user",
     db: Optional[Session] = None
 ) -> Dict[str, Any]:
-    """Execute the full RAG pipeline with context builder, citation mapping, and source attribution."""
+    """Execute the full RAG pipeline with candidate retrieval, reranking, context building, and citations."""
     trace = RAGTrace(query=query)
     start_time = time.time()
 
-    # 1. Retrieve candidates strictly scoped to user's indexed documents
+    # 1. First stage: Retrieve candidate chunks (prioritize recall) strictly scoped to user's indexed docs
     results = []
     close_db = False
     session = db
@@ -32,9 +34,12 @@ def run_rag_pipeline(
         except Exception:
             session = None
 
+    candidate_k = getattr(settings, "rag_candidate_k", 20)
+    final_k = getattr(settings, "rag_final_k", 5)
+
     if session is not None:
         try:
-            results = db_retrieve(db=session, user_id=user_id, query=query, top_k=8)
+            results = db_retrieve(db=session, user_id=user_id, query=query, top_k=candidate_k)
         except Exception:
             results = []
         finally:
@@ -62,11 +67,20 @@ def run_rag_pipeline(
     trace.retrieval_ms = search_time
     trace.retrieved_count = len(results)
 
-    # 2. Build structured RAG context, citation map, and independent source attribution
+    # 2. Second stage: Cross-encoder reranking (prioritize precision)
+    rerank_start = time.time()
+    if results and getattr(settings, "reranker_enabled", True):
+        reranker = get_reranker()
+        results = reranker.rerank(query=query, chunks=results, top_k=final_k)
+    else:
+        results = results[:final_k]
+    trace.reranking_ms = round((time.time() - rerank_start) * 1000, 2)
+
+    # 3. Build structured RAG context, citation map, and independent source attribution
     rag_payload = build_rag_context(results)
     trace.final_context_count = len(rag_payload["sources"])
 
-    # 3. Clean early exit for zero-chunk retrieval (prevents LLM hallucination and saves tokens)
+    # 4. Clean early exit for zero-chunk retrieval (prevents LLM hallucination and saves tokens)
     if not rag_payload["has_context"]:
         save_trace(trace)
         return {

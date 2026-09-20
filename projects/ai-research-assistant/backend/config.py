@@ -24,6 +24,12 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_expire_minutes: int = 60
 
+    # Two-stage retrieval and reranking configuration
+    rag_candidate_k: int = 20
+    rag_final_k: int = 5
+    reranker_enabled: bool = True
+    reranker_model_name: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

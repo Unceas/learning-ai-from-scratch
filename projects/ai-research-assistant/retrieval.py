@@ -115,6 +115,7 @@ def db_retrieve(
         retrieved.append({
             "text": doc_text,
             "score": score,
+            "vector_score": score,
             "document_id": metadata.get("document_id"),
             "filename": metadata.get("filename", metadata.get("document", "Unknown")),
             "chunk_index": metadata.get("chunk_index", metadata.get("chunk_id", 0)),

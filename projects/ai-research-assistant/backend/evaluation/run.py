@@ -16,6 +16,7 @@ project_root = str(Path(__file__).resolve().parent.parent.parent)
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
+from backend.config import settings
 from backend.database import SessionLocal
 from backend.models import User, Document
 from backend.services.user_service import create_user
@@ -120,13 +121,18 @@ def seed_eval_corpus_if_needed(user_id: str = "eval_benchmark_user") -> None:
 def run_evaluation(
     dataset: Optional[List[Dict[str, Any]]] = None,
     user_id: str = "eval_benchmark_user",
-    baseline_output_path: str = "backend/evaluation/baseline_report.json"
+    baseline_output_path: str = "backend/evaluation/baseline_report.json",
+    reranker_enabled: Optional[bool] = None
 ) -> Dict[str, Any]:
     """Execute complete RAG evaluation benchmark and output report."""
     if dataset is None:
         dataset = EVAL_DATASET
 
     seed_eval_corpus_if_needed(user_id)
+
+    original_reranker_setting = getattr(settings, "reranker_enabled", True)
+    if reranker_enabled is not None:
+        settings.reranker_enabled = reranker_enabled
 
     db = SessionLocal()
     try:
@@ -180,6 +186,7 @@ def run_evaluation(
 
         results = {
             "questions_count": len(dataset),
+            "reranker_enabled": getattr(settings, "reranker_enabled", True),
             "retrieval": {
                 "recall_at_3": mean_r3,
                 "recall_at_5": mean_r5,
@@ -199,8 +206,9 @@ def run_evaluation(
             json.dump(results, f, indent=2)
 
         # Print structured terminal report
-        print("\nRAG Evaluation")
-        print("==============")
+        mode_label = "Two-Stage Reranked" if results["reranker_enabled"] else "Vector-Only Baseline"
+        print(f"\nRAG Evaluation ({mode_label})")
+        print("=" * (17 + len(mode_label)))
         print(f"\nQuestions: {results['questions_count']}")
         print("\nRetrieval")
         print("---------")
@@ -212,12 +220,72 @@ def run_evaluation(
         print("\nGeneration")
         print("----------")
         print(f"Grounded answers: {grounded_ratio:.2f}")
-        print(f"\n[Baseline Recorded] Saved report to {baseline_output_path}")
+        print(f"\n[Report Recorded] Saved report to {baseline_output_path}")
 
         return results
     finally:
+        settings.reranker_enabled = original_reranker_setting
         db.close()
 
 
+def run_comparison(
+    dataset: Optional[List[Dict[str, Any]]] = None,
+    user_id: str = "eval_benchmark_user",
+    output_path: str = "backend/evaluation/comparison_report.json"
+) -> Dict[str, Any]:
+    """Execute evaluation with and without reranker, printing side-by-side comparison."""
+    if dataset is None:
+        dataset = EVAL_DATASET
+
+    print("==================================================")
+    print("RUNNING BASELINE (Vector only, Reranker Disabled)")
+    print("==================================================")
+    baseline_res = run_evaluation(
+        dataset=dataset,
+        user_id=user_id,
+        baseline_output_path="backend/evaluation/baseline_vector_only.json",
+        reranker_enabled=False
+    )
+
+    print("\n==================================================")
+    print("RUNNING TWO-STAGE (Vector + Cross-Encoder Reranker)")
+    print("==================================================")
+    reranked_res = run_evaluation(
+        dataset=dataset,
+        user_id=user_id,
+        baseline_output_path="backend/evaluation/baseline_report.json",
+        reranker_enabled=True
+    )
+
+    comparison = {
+        "questions_count": len(dataset),
+        "vector_only": baseline_res,
+        "reranked": reranked_res,
+        "timestamp": time.time()
+    }
+
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    with open(output_path, "w", encoding="utf-8") as f:
+        json.dump(comparison, f, indent=2)
+
+    print("\n==================================================")
+    print("           RERANKING IMPACT COMPARISON            ")
+    print("==================================================")
+    print(f"{'Metric':<22} | {'Vector only':<12} | {'Reranked':<12}")
+    print("-" * 52)
+    print(f"{'Recall@3':<22} | {baseline_res['retrieval']['recall_at_3']:<12.2f} | {reranked_res['retrieval']['recall_at_3']:<12.2f}")
+    print(f"{'Recall@5':<22} | {baseline_res['retrieval']['recall_at_5']:<12.2f} | {reranked_res['retrieval']['recall_at_5']:<12.2f}")
+    print(f"{'Citation validity':<22} | {baseline_res['citations']['citation_validity']:<12.2f} | {reranked_res['citations']['citation_validity']:<12.2f}")
+    print(f"{'Grounded answers':<22} | {baseline_res['generation']['grounded_answers']:<12.2f} | {reranked_res['generation']['grounded_answers']:<12.2f}")
+    print("==================================================")
+    print(f"Saved comparison report to {output_path}")
+
+    return comparison
+
+
 if __name__ == "__main__":
-    run_evaluation()
+    if "--compare" in sys.argv:
+        run_comparison()
+    else:
+        run_evaluation()
+

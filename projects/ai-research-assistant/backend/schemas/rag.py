@@ -1,4 +1,4 @@
-﻿"""Pydantic schemas for RAG requests, responses, and citations."""
+"""Pydantic schemas for RAG requests, responses, and citations."""
 
 from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, Field
@@ -11,6 +11,8 @@ class Source(BaseModel):
     filename: str
     chunk_index: int
     score: float = 0.0
+    vector_score: Optional[float] = None
+    reranker_score: Optional[float] = None
 
 
 class DocumentGroupedSource(BaseModel):

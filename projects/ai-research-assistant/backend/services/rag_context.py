@@ -1,4 +1,4 @@
-﻿"""RAG Context Builder, Citation Mapping, and Source Attribution Service.
+"""RAG Context Builder, Citation Mapping, and Source Attribution Service.
 
 Transforms raw or normalized retrieval results into structured, LLM-ready context,
 assigns deterministic citation markers ([S1], [S2]), constructs citation maps,
@@ -20,6 +20,8 @@ class RetrievedChunk(BaseModel):
     """Normalized representation of a single retrieved document chunk."""
     text: str
     score: float = 0.0
+    vector_score: Optional[float] = None
+    reranker_score: Optional[float] = None
     document_id: Optional[int] = None
     filename: str = "Unknown"
     chunk_index: int = 0
@@ -35,6 +37,8 @@ def normalize_chunk(chunk: Union[RetrievedChunk, Dict[str, Any]]) -> RetrievedCh
         return RetrievedChunk(
             text=chunk.get("text", ""),
             score=float(chunk.get("score", 0.0)),
+            vector_score=float(chunk["vector_score"]) if chunk.get("vector_score") is not None else None,
+            reranker_score=float(chunk["reranker_score"]) if chunk.get("reranker_score") is not None else None,
             document_id=chunk.get("document_id"),
             filename=chunk.get("filename") or chunk.get("document") or "Unknown",
             chunk_index=chunk.get("chunk_index", chunk.get("chunk_id", chunk.get("chunk", 0))),
@@ -154,6 +158,8 @@ def build_rag_context(
             "filename": chunk.filename,
             "chunk_index": chunk.chunk_index,
             "score": chunk.score,
+            "vector_score": chunk.vector_score,
+            "reranker_score": chunk.reranker_score,
             "page": chunk.page
         }
         sources.append(source_dict)
@@ -162,7 +168,9 @@ def build_rag_context(
             "document_id": chunk.document_id,
             "filename": chunk.filename,
             "chunk_index": chunk.chunk_index,
-            "score": chunk.score
+            "score": chunk.score,
+            "vector_score": chunk.vector_score,
+            "reranker_score": chunk.reranker_score
         }
 
     # Group chunk indices by document for clean UI presentation

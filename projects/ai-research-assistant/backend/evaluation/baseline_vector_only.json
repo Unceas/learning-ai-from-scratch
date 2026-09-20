@@ -1,6 +1,6 @@
 {
   "questions_count": 15,
-  "reranker_enabled": true,
+  "reranker_enabled": false,
   "retrieval": {
     "recall_at_3": 1.0,
     "recall_at_5": 1.0
@@ -11,5 +11,5 @@
   "generation": {
     "grounded_answers": 1.0
   },
-  "timestamp": 1789928179.7888653
+  "timestamp": 1789928169.0366697
 }

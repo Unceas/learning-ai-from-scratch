@@ -1,0 +1,34 @@
+{
+  "questions_count": 15,
+  "vector_only": {
+    "questions_count": 15,
+    "reranker_enabled": false,
+    "retrieval": {
+      "recall_at_3": 1.0,
+      "recall_at_5": 1.0
+    },
+    "citations": {
+      "citation_validity": 1.0
+    },
+    "generation": {
+      "grounded_answers": 1.0
+    },
+    "timestamp": 1789928169.0366697
+  },
+  "reranked": {
+    "questions_count": 15,
+    "reranker_enabled": true,
+    "retrieval": {
+      "recall_at_3": 1.0,
+      "recall_at_5": 1.0
+    },
+    "citations": {
+      "citation_validity": 1.0
+    },
+    "generation": {
+      "grounded_answers": 1.0
+    },
+    "timestamp": 1789928179.7888653
+  },
+  "timestamp": 1789928179.7893927
+}
