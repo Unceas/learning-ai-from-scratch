@@ -640,6 +640,52 @@ Features:
 - **Standalone Evaluation CLI (`python -m backend.evaluation.run`)**: Automatically seeds an evaluation corpus, runs retrieval & generation metrics, prints formatted reports, and records baseline statistics to `backend/evaluation/baseline_report.json`.
 - **Zero Production Intrusion**: Evaluation runs completely out-of-band, preserving production API routes and latency.
 
+## Retrieval Quality: Reranking
+
+Implements a two-stage retrieve-and-rerank architecture to optimize both retrieval recall and generation precision.
+
+### Architecture
+
+```text
+                     USER QUERY
+                         │
+                         ▼
+                  Query Embedding
+                         │
+                         ▼
+                  ┌─────────────┐
+                  │  ChromaDB   │
+                  └──────┬──────┘
+                         │
+               Top 20 candidates (Recall)
+                         │
+                         ▼
+                  ┌─────────────┐
+                  │  Reranker   │ (Cross-Encoder)
+                  └──────┬──────┘
+                         │
+                 Top 5 chunks (Precision)
+                         │
+                         ▼
+                ┌─────────────────┐
+                │ Context Builder │
+                └────────┬────────┘
+                         │
+                         ▼
+                    Gemini LLM
+                         │
+                         ▼
+                 Answer + Sources
+```
+
+Features:
+
+- **Two-Stage Retrieve-and-Rerank**: First stage queries ChromaDB for a broader candidate pool (`RAG_CANDIDATE_K = 20`) to maximize recall; second stage scores `(query, chunk)` pairs jointly with a cross-encoder to select the most relevant chunks (`RAG_FINAL_K = 5`) for LLM context.
+- **Abstract Reranker Interface (`backend/services/reranker.py`)**: Defines `Reranker(ABC)` and `CrossEncoderReranker` using `cross-encoder/ms-marco-MiniLM-L-6-v2`.
+- **Dual Score Preservation**: Preserves both `vector_score` and `reranker_score` across retrieved chunks, citation maps, and source schemas.
+- **Configurable Feature Toggle**: `RERANKER_ENABLED` in `backend/config.py` allows instant switching between vector-only baseline and two-stage reranked retrieval.
+- **Side-by-Side Evaluation CLI (`python -m backend.evaluation.run --compare`)**: Benchmarks baseline vector-only vs two-stage reranking on retrieval recall, citation validity, and grounding.
+
 ## Project Structure
 
 ```text
@@ -663,6 +709,7 @@ ai-research-assistant/
 │   │   ├── document_processor.py
 │   │   ├── rag_service.py
 │   │   ├── rag_context.py
+│   │   ├── reranker.py
 │   │   ├── agent_service.py
 │   │   ├── document_service.py
 │   │   ├── document_hash.py
@@ -760,6 +807,7 @@ ai-research-assistant/
 ├── test_rag_context.py
 ├── test_rag_citations.py
 ├── test_rag_evaluation.py
+├── test_rag_reranker.py
 ├── test_full_suite.py
 ├── llm.py
 ├── prompts.py
