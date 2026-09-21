@@ -12,6 +12,9 @@ class RAGTrace:
     """Data structure representing telemetry metrics for a single RAG request."""
 
     query: str
+    query_type: str = "semantic"
+    candidate_k: int = 20
+    final_k: int = 5
 
     retrieval_ms: float = 0.0
     reranking_ms: float = 0.0

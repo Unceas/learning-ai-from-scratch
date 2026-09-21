@@ -141,9 +141,16 @@ def run_evaluation(
         citation_scores = []
         grounding_scores = []
 
+        scores_by_type = {
+            "semantic": {"r3": [], "r5": [], "citations": [], "grounding": []},
+            "factual": {"r3": [], "r5": [], "citations": [], "grounding": []},
+            "comparison": {"r3": [], "r5": [], "citations": [], "grounding": []},
+        }
+
         for item in dataset:
             question = item["question"]
             expected_docs = item.get("expected_documents", [])
+            q_type = item.get("type") or "semantic"
 
             # Run through RAG pipeline (outside user-facing request flow)
             rag_output = run_rag_pipeline(query=question, user_id=user_id, db=db)
@@ -177,12 +184,31 @@ def run_evaluation(
 
             # 3. Grounding Evaluation
             grounding = evaluate_grounding(context=context_str, answer=answer)
-            grounding_scores.append(1.0 if grounding == "SUPPORTED" else 0.0)
+            grounding_val = 1.0 if grounding == "SUPPORTED" else 0.0
+            grounding_scores.append(grounding_val)
+
+            # 4. Group scores by query archetype
+            if q_type in scores_by_type:
+                scores_by_type[q_type]["r3"].append(r3)
+                scores_by_type[q_type]["r5"].append(r5)
+                scores_by_type[q_type]["citations"].append(prec)
+                scores_by_type[q_type]["grounding"].append(grounding_val)
 
         mean_r3 = round(mean_recall(r3_scores), 2)
         mean_r5 = round(mean_recall(r5_scores), 2)
         mean_citation = round(mean_recall(citation_scores), 2)
         grounded_ratio = round(mean_recall(grounding_scores), 2)
+
+        by_query_type = {}
+        for qtype, s in scores_by_type.items():
+            if s["r5"]:
+                by_query_type[qtype] = {
+                    "count": len(s["r5"]),
+                    "recall_at_3": round(mean_recall(s["r3"]), 2),
+                    "recall_at_5": round(mean_recall(s["r5"]), 2),
+                    "citation_validity": round(mean_recall(s["citations"]), 2),
+                    "grounded_answers": round(mean_recall(s["grounding"]), 2),
+                }
 
         results = {
             "questions_count": len(dataset),
@@ -197,6 +223,7 @@ def run_evaluation(
             "generation": {
                 "grounded_answers": grounded_ratio,
             },
+            "by_query_type": by_query_type,
             "timestamp": time.time(),
         }
 
@@ -220,6 +247,16 @@ def run_evaluation(
         print("\nGeneration")
         print("----------")
         print(f"Grounded answers: {grounded_ratio:.2f}")
+        if by_query_type:
+            print("\nQuery Type Breakdown")
+            print("--------------------")
+            for qtype, stats in by_query_type.items():
+                print(
+                    f"  {qtype.capitalize():<12} (N={stats['count']}): "
+                    f"Recall@3={stats['recall_at_3']:.2f}, "
+                    f"Recall@5={stats['recall_at_5']:.2f}, "
+                    f"Grounding={stats['grounded_answers']:.2f}"
+                )
         print(f"\n[Report Recorded] Saved report to {baseline_output_path}")
 
         return results
@@ -277,6 +314,15 @@ def run_comparison(
     print(f"{'Recall@5':<22} | {baseline_res['retrieval']['recall_at_5']:<12.2f} | {reranked_res['retrieval']['recall_at_5']:<12.2f}")
     print(f"{'Citation validity':<22} | {baseline_res['citations']['citation_validity']:<12.2f} | {reranked_res['citations']['citation_validity']:<12.2f}")
     print(f"{'Grounded answers':<22} | {baseline_res['generation']['grounded_answers']:<12.2f} | {reranked_res['generation']['grounded_answers']:<12.2f}")
+    print("\n--------------------------------------------------")
+    print("           RECALL@5 BY QUERY ARCHETYPE            ")
+    print("--------------------------------------------------")
+    print(f"{'Query Archetype':<22} | {'Vector only':<12} | {'Reranked':<12}")
+    print("-" * 52)
+    for qtype in ["semantic", "factual", "comparison"]:
+        b_val = baseline_res.get("by_query_type", {}).get(qtype, {}).get("recall_at_5", 0.0)
+        r_val = reranked_res.get("by_query_type", {}).get(qtype, {}).get("recall_at_5", 0.0)
+        print(f"{qtype.capitalize():<22} | {b_val:<12.2f} | {r_val:<12.2f}")
     print("==================================================")
     print(f"Saved comparison report to {output_path}")
 

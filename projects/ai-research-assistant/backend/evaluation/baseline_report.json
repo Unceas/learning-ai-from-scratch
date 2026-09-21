@@ -11,5 +11,28 @@
   "generation": {
     "grounded_answers": 1.0
   },
-  "timestamp": 1789928179.7888653
+  "by_query_type": {
+    "semantic": {
+      "count": 7,
+      "recall_at_3": 1.0,
+      "recall_at_5": 1.0,
+      "citation_validity": 1.0,
+      "grounded_answers": 1.0
+    },
+    "factual": {
+      "count": 5,
+      "recall_at_3": 1.0,
+      "recall_at_5": 1.0,
+      "citation_validity": 1.0,
+      "grounded_answers": 1.0
+    },
+    "comparison": {
+      "count": 3,
+      "recall_at_3": 1.0,
+      "recall_at_5": 1.0,
+      "citation_validity": 1.0,
+      "grounded_answers": 1.0
+    }
+  },
+  "timestamp": 1790010212.7543242
 }

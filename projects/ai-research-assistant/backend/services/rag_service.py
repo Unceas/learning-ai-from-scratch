@@ -1,5 +1,6 @@
 """RAG Service encapsulating retrieval, ranking, context construction, and answer generation logic."""
 
+import logging
 import time
 from typing import Dict, Any, Optional
 from sqlalchemy.orm import Session
@@ -10,7 +11,10 @@ from backend.services.rag_context import build_rag_context, validate_citations
 from backend.database import SessionLocal
 from backend.config import settings
 from backend.services.reranker import get_reranker
+from backend.services.query_router import classify_query, get_retrieval_config, QueryType
 from retrieval import db_retrieve
+
+logger = logging.getLogger(__name__)
 
 
 def run_rag_pipeline(
@@ -20,7 +24,27 @@ def run_rag_pipeline(
     db: Optional[Session] = None
 ) -> Dict[str, Any]:
     """Execute the full RAG pipeline with candidate retrieval, reranking, context building, and citations."""
-    trace = RAGTrace(query=query)
+    # 0. Query Routing: Classify query archetype and resolve retrieval configuration
+    if getattr(settings, "query_routing_enabled", True):
+        query_type = classify_query(query)
+        routing_cfg = get_retrieval_config(query_type)
+        candidate_k = routing_cfg["candidate_k"]
+        final_k = routing_cfg["final_k"]
+    else:
+        query_type = QueryType.SEMANTIC
+        candidate_k = getattr(settings, "rag_candidate_k", 20)
+        final_k = getattr(settings, "rag_final_k", 5)
+
+    trace = RAGTrace(
+        query=query,
+        query_type=query_type.value,
+        candidate_k=candidate_k,
+        final_k=final_k
+    )
+    logger.info(
+        "Query routing: query='%s', type=%s, candidate_k=%d, final_k=%d",
+        query, query_type.value, candidate_k, final_k
+    )
     start_time = time.time()
 
     # 1. First stage: Retrieve candidate chunks (prioritize recall) strictly scoped to user's indexed docs
@@ -33,9 +57,6 @@ def run_rag_pipeline(
             close_db = True
         except Exception:
             session = None
-
-    candidate_k = getattr(settings, "rag_candidate_k", 20)
-    final_k = getattr(settings, "rag_final_k", 5)
 
     if session is not None:
         try:
@@ -85,16 +106,22 @@ def run_rag_pipeline(
         save_trace(trace)
         return {
             "query": query,
+            "query_type": query_type.value,
+            "routing": {
+                "query_type": query_type.value,
+                "candidate_k": candidate_k,
+                "final_k": final_k
+            },
             "answer": rag_payload["fallback_answer"],
             "sources": [],
             "citation_map": {},
             "invalid_citations": [],
             "document_sources": [],
             "has_context": False,
-            "latency_ms": search_time
+            "latency_ms": search_time + trace.reranking_ms
         }
 
-    # 4. Stream response using Gemini LLM with grounded evidence context
+    # 5. Stream response using Gemini LLM with grounded evidence context
     stream = generate_answer(query=query, context=rag_payload["context"], user_id=user_id)
     answer_chunks = []
     for chunk in stream:
@@ -107,6 +134,12 @@ def run_rag_pipeline(
 
     return {
         "query": query,
+        "query_type": query_type.value,
+        "routing": {
+            "query_type": query_type.value,
+            "candidate_k": candidate_k,
+            "final_k": final_k
+        },
         "answer": full_answer,
         "context": rag_payload["context"],
         "sources": rag_payload["sources"],
@@ -114,5 +147,5 @@ def run_rag_pipeline(
         "invalid_citations": validation["invalid_citations"],
         "document_sources": rag_payload["document_sources"],
         "has_context": True,
-        "latency_ms": search_time
+        "latency_ms": search_time + trace.reranking_ms
     }

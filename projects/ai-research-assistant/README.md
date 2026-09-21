@@ -686,6 +686,53 @@ Features:
 - **Configurable Feature Toggle**: `RERANKER_ENABLED` in `backend/config.py` allows instant switching between vector-only baseline and two-stage reranked retrieval.
 - **Side-by-Side Evaluation CLI (`python -m backend.evaluation.run --compare`)**: Benchmarks baseline vector-only vs two-stage reranking on retrieval recall, citation validity, and grounding.
 
+## RAG Query Routing
+
+A lightweight, deterministic query routing layer that classifies incoming questions into analytical archetypes and dynamically adapts retrieval depth.
+
+### Architecture
+
+```text
+                     USER QUERY
+                         │
+                         ▼
+                  ┌─────────────┐
+                  │Query Router │
+                  └──────┬──────┘
+                         │
+         ┌───────────────┼───────────────┐
+         ▼               ▼               ▼
+      Semantic        Factual       Comparison
+  (20 cand / 5 top) (10 cand / 3 top) (30 cand / 8 top)
+         │               │               │
+         └───────────────┼───────────────┘
+                         ▼
+                  Vector Retrieval
+                         │
+                         ▼
+                Cross-Encoder Rerank
+                         │
+                         ▼
+                  Context Builder
+                         │
+                         ▼
+                    Gemini LLM
+                         │
+                         ▼
+                 Answer + Sources
+```
+
+Features:
+
+- **Deterministic Classification (`backend/services/query_router.py`)**: Rule-based categorization into `semantic`, `factual`, or `comparison` archetypes without added LLM latency or costs.
+- **Dynamic Retrieval Sizing**:
+  - `factual`: High precision, concise context (`candidate_k: 10`, `final_k: 3`).
+  - `comparison`: Broad recall across multiple entities/documents (`candidate_k: 30`, `final_k: 8`).
+  - `semantic`: Standard balanced retrieval (`candidate_k: 20`, `final_k: 5`).
+- **Strict Decoupling from Security Boundaries**: The router controls only query strategy parameters; authentication, user isolation, and document statuses remain strictly enforced.
+- **Routing Observability**: Traced via `RAGTrace` with `query_type`, `candidate_k`, and `final_k`, and returned in API responses.
+- **Query Archetype Evaluation Breakdown**: The evaluation runner (`backend/evaluation/run.py`) measures retrieval recall, citation validity, and grounding grouped by query archetype.
+
 ## Project Structure
 
 ```text
@@ -710,6 +757,7 @@ ai-research-assistant/
 │   │   ├── rag_service.py
 │   │   ├── rag_context.py
 │   │   ├── reranker.py
+│   │   ├── query_router.py
 │   │   ├── agent_service.py
 │   │   ├── document_service.py
 │   │   ├── document_hash.py
@@ -808,6 +856,7 @@ ai-research-assistant/
 ├── test_rag_citations.py
 ├── test_rag_evaluation.py
 ├── test_rag_reranker.py
+├── test_rag_query_routing.py
 ├── test_full_suite.py
 ├── llm.py
 ├── prompts.py

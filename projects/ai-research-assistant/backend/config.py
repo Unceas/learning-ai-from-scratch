@@ -29,6 +29,7 @@ class Settings(BaseSettings):
     rag_final_k: int = 5
     reranker_enabled: bool = True
     reranker_model_name: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"
+    query_routing_enabled: bool = True
 
     model_config = SettingsConfigDict(
         env_file=".env",
