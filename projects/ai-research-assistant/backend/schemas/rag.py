@@ -13,6 +13,7 @@ class Source(BaseModel):
     score: float = 0.0
     vector_score: Optional[float] = None
     reranker_score: Optional[float] = None
+    matched_queries: Optional[List[str]] = Field(default_factory=list)
 
 
 class DocumentGroupedSource(BaseModel):
@@ -29,3 +30,4 @@ class RAGResponse(BaseModel):
     citation_map: Optional[Dict[str, Source]] = None
     invalid_citations: Optional[List[str]] = Field(default_factory=list)
     document_sources: Optional[List[DocumentGroupedSource]] = None
+    subqueries: Optional[List[str]] = Field(default_factory=list)

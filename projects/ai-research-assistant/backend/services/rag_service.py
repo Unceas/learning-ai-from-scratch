@@ -12,6 +12,7 @@ from backend.database import SessionLocal
 from backend.config import settings
 from backend.services.reranker import get_reranker
 from backend.services.query_router import classify_query, get_retrieval_config, QueryType
+from backend.services.query_decomposer import decompose_query
 from retrieval import db_retrieve
 
 logger = logging.getLogger(__name__)
@@ -35,22 +36,39 @@ def run_rag_pipeline(
         candidate_k = getattr(settings, "rag_candidate_k", 20)
         final_k = getattr(settings, "rag_final_k", 5)
 
+    # 1. Multi-Query Decomposition:
+    # Decompose complex comparison queries into focused search subqueries
+    multi_query_active = (
+        getattr(settings, "multi_query_enabled", True)
+        and query_type == QueryType.COMPARISON
+    )
+    if multi_query_active:
+        subqueries = decompose_query(query)
+        if not subqueries:
+            subqueries = [query]
+    else:
+        subqueries = [query]
+
+    # Enforce maximum subqueries limit
+    max_subs = getattr(settings, "max_subqueries", 4)
+    subqueries = subqueries[:max_subs]
+
     trace = RAGTrace(
         query=query,
         query_type=query_type.value,
         candidate_k=candidate_k,
-        final_k=final_k
+        final_k=final_k,
+        subqueries=subqueries
     )
     logger.info(
-        "Query routing: query='%s', type=%s, candidate_k=%d, final_k=%d",
-        query, query_type.value, candidate_k, final_k
+        "Query routing: query='%s', type=%s, candidate_k=%d, final_k=%d, subqueries=%s",
+        query, query_type.value, candidate_k, final_k, subqueries
     )
     start_time = time.time()
 
-    # 1. First stage: Retrieve candidate chunks (prioritize recall) strictly scoped to user's indexed docs
-    results = []
-    close_db = False
+    # 2. First stage: Retrieve candidate chunks across subqueries strictly scoped to user's indexed docs
     session = db
+    close_db = False
     if session is None:
         try:
             session = SessionLocal()
@@ -58,37 +76,71 @@ def run_rag_pipeline(
         except Exception:
             session = None
 
-    if session is not None:
-        try:
-            results = db_retrieve(db=session, user_id=user_id, query=query, top_k=candidate_k)
-        except Exception:
-            results = []
-        finally:
-            if close_db and session is not None:
-                session.close()
+    deduped_candidates: Dict[Any, Dict[str, Any]] = {}
 
-    # Fallback to tool router document search for unindexed or legacy mocks
-    if not results:
-        try:
-            trace.tool_calls.append({
-                "tool": "document_search",
-                "arguments": {"query": query, "filename": filename, "user_id": user_id}
-            })
-            tool_results = execute_tool(
-                "document_search",
-                {"query": query, "filename": filename, "user_id": user_id}
-            )
-            if isinstance(tool_results, list) and len(tool_results) > 0:
-                if not (isinstance(tool_results[0], dict) and "error" in tool_results[0]):
-                    results = tool_results
-        except Exception:
-            pass
+    try:
+        for sq in subqueries:
+            sq_results = []
+            if session is not None:
+                try:
+                    sq_results = db_retrieve(db=session, user_id=user_id, query=sq, top_k=candidate_k)
+                except Exception:
+                    sq_results = []
+
+            # Fallback to tool router document search for unindexed or legacy mocks
+            if not sq_results:
+                try:
+                    trace.tool_calls.append({
+                        "tool": "document_search",
+                        "arguments": {"query": sq, "filename": filename, "user_id": user_id}
+                    })
+                    tool_results = execute_tool(
+                        "document_search",
+                        {"query": sq, "filename": filename, "user_id": user_id}
+                    )
+                    if isinstance(tool_results, list) and len(tool_results) > 0:
+                        if not (isinstance(tool_results[0], dict) and "error" in tool_results[0]):
+                            sq_results = tool_results
+                except Exception:
+                    pass
+
+            for chunk in sq_results:
+                # Key chunk by (document_id, chunk_index) or fallback identifiers
+                doc_id = chunk.get("document_id")
+                c_idx = chunk.get("chunk_index", chunk.get("chunk_id", chunk.get("chunk", 0)))
+                if doc_id is not None:
+                    chunk_key = (doc_id, c_idx)
+                elif chunk.get("filename"):
+                    chunk_key = (chunk.get("filename"), c_idx)
+                else:
+                    chunk_key = chunk.get("id") or chunk.get("text", "")[:100]
+
+                if chunk_key not in deduped_candidates:
+                    chunk_copy = dict(chunk)
+                    chunk_copy["matched_queries"] = [sq]
+                    deduped_candidates[chunk_key] = chunk_copy
+                else:
+                    existing = deduped_candidates[chunk_key]
+                    if "matched_queries" not in existing:
+                        existing["matched_queries"] = []
+                    if sq not in existing["matched_queries"]:
+                        existing["matched_queries"].append(sq)
+                    current_score = float(chunk.get("score", 0.0))
+                    existing_score = float(existing.get("score", 0.0))
+                    if current_score > existing_score:
+                        existing["score"] = current_score
+                        existing["vector_score"] = float(chunk.get("vector_score", current_score))
+    finally:
+        if close_db and session is not None:
+            session.close()
+
+    results = list(deduped_candidates.values())
 
     search_time = round((time.time() - start_time) * 1000, 2)
     trace.retrieval_ms = search_time
     trace.retrieved_count = len(results)
 
-    # 2. Second stage: Cross-encoder reranking (prioritize precision)
+    # 3. Second stage: Cross-encoder reranking against ORIGINAL query (prioritize precision)
     rerank_start = time.time()
     if results and getattr(settings, "reranker_enabled", True):
         reranker = get_reranker()
@@ -107,10 +159,12 @@ def run_rag_pipeline(
         return {
             "query": query,
             "query_type": query_type.value,
+            "subqueries": subqueries,
             "routing": {
                 "query_type": query_type.value,
                 "candidate_k": candidate_k,
-                "final_k": final_k
+                "final_k": final_k,
+                "subqueries": subqueries
             },
             "answer": rag_payload["fallback_answer"],
             "sources": [],
@@ -135,10 +189,12 @@ def run_rag_pipeline(
     return {
         "query": query,
         "query_type": query_type.value,
+        "subqueries": subqueries,
         "routing": {
             "query_type": query_type.value,
             "candidate_k": candidate_k,
-            "final_k": final_k
+            "final_k": final_k,
+            "subqueries": subqueries
         },
         "answer": full_answer,
         "context": rag_payload["context"],

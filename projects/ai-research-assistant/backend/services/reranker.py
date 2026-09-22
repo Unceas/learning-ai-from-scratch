@@ -86,7 +86,8 @@ class CrossEncoderReranker(Reranker):
                     "filename": chunk.filename,
                     "chunk_index": chunk.chunk_index,
                     "page": chunk.page,
-                    "file_hash": chunk.file_hash
+                    "file_hash": chunk.file_hash,
+                    "matched_queries": getattr(chunk, "matched_queries", [])
                 }
             elif isinstance(chunk, dict):
                 orig_score = float(chunk.get("score", 0.0))
@@ -100,7 +101,8 @@ class CrossEncoderReranker(Reranker):
                     "filename": chunk.get("filename") or chunk.get("document") or "Unknown",
                     "chunk_index": chunk.get("chunk_index", chunk.get("chunk_id", chunk.get("chunk", 0))),
                     "page": chunk.get("page", 1),
-                    "file_hash": chunk.get("file_hash")
+                    "file_hash": chunk.get("file_hash"),
+                    "matched_queries": chunk.get("matched_queries", [])
                 }
             else:
                 c_dict = {
@@ -112,7 +114,8 @@ class CrossEncoderReranker(Reranker):
                     "filename": "Unknown",
                     "chunk_index": 0,
                     "page": 1,
-                    "file_hash": None
+                    "file_hash": None,
+                    "matched_queries": []
                 }
             prepared_chunks.append(c_dict)
 

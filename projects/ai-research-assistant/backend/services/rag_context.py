@@ -27,6 +27,7 @@ class RetrievedChunk(BaseModel):
     chunk_index: int = 0
     page: Optional[int] = 1
     file_hash: Optional[str] = None
+    matched_queries: List[str] = []
 
 
 def normalize_chunk(chunk: Union[RetrievedChunk, Dict[str, Any]]) -> RetrievedChunk:
@@ -43,7 +44,8 @@ def normalize_chunk(chunk: Union[RetrievedChunk, Dict[str, Any]]) -> RetrievedCh
             filename=chunk.get("filename") or chunk.get("document") or "Unknown",
             chunk_index=chunk.get("chunk_index", chunk.get("chunk_id", chunk.get("chunk", 0))),
             page=chunk.get("page", 1),
-            file_hash=chunk.get("file_hash")
+            file_hash=chunk.get("file_hash"),
+            matched_queries=chunk.get("matched_queries", [])
         )
     return RetrievedChunk(text=str(chunk))
 
@@ -160,7 +162,8 @@ def build_rag_context(
             "score": chunk.score,
             "vector_score": chunk.vector_score,
             "reranker_score": chunk.reranker_score,
-            "page": chunk.page
+            "page": chunk.page,
+            "matched_queries": chunk.matched_queries
         }
         sources.append(source_dict)
         citation_map[source_id] = {
@@ -170,7 +173,8 @@ def build_rag_context(
             "chunk_index": chunk.chunk_index,
             "score": chunk.score,
             "vector_score": chunk.vector_score,
-            "reranker_score": chunk.reranker_score
+            "reranker_score": chunk.reranker_score,
+            "matched_queries": chunk.matched_queries
         }
 
     # Group chunk indices by document for clean UI presentation

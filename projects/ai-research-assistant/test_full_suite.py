@@ -28,7 +28,8 @@ TEST_SCRIPTS = [
     "test_rag_citations.py",
     "test_rag_evaluation.py",
     "test_rag_reranker.py",
-    "test_rag_query_routing.py"
+    "test_rag_query_routing.py",
+    "test_rag_multi_query.py"
 ]
 
 

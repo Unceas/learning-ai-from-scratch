@@ -20,6 +20,8 @@ class AgentService:
                 "citation_map": rag_res.get("citation_map", {}),
                 "invalid_citations": rag_res.get("invalid_citations", []),
                 "document_sources": rag_res.get("document_sources", []),
+                "subqueries": rag_res.get("subqueries", []),
+                "query_type": rag_res.get("query_type"),
                 "user_id": user_id,
                 "latency_ms": rag_res.get("latency_ms", 0.0)
             }
@@ -31,6 +33,8 @@ class AgentService:
                 "citation_map": {},
                 "invalid_citations": [],
                 "document_sources": [],
+                "subqueries": [query],
+                "query_type": "orchestrator",
                 "user_id": user_id,
                 "latency_ms": 0.0
             }

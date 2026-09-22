@@ -15,6 +15,7 @@ class RAGTrace:
     query_type: str = "semantic"
     candidate_k: int = 20
     final_k: int = 5
+    subqueries: List[str] = field(default_factory=list)
 
     retrieval_ms: float = 0.0
     reranking_ms: float = 0.0
@@ -71,6 +72,10 @@ def save_trace(trace: RAGTrace, path: str = "rag_traces.jsonl") -> None:
     """
     record = {
         "query": trace.query,
+        "query_type": trace.query_type,
+        "subqueries": trace.subqueries,
+        "candidate_k": trace.candidate_k,
+        "final_k": trace.final_k,
         "retrieval_ms": round(trace.retrieval_ms, 2),
         "reranking_ms": round(trace.reranking_ms, 2),
         "generation_ms": round(trace.generation_ms, 2),

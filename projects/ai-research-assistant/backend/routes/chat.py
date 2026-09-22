@@ -28,6 +28,8 @@ def chat(
             citation_map=result.get("citation_map"),
             invalid_citations=result.get("invalid_citations", []),
             document_sources=result.get("document_sources", []),
+            subqueries=result.get("subqueries"),
+            query_type=result.get("query_type"),
             user_id=user_id,
             latency_ms=result.get("latency_ms")
         )

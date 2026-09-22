@@ -733,6 +733,60 @@ Features:
 - **Routing Observability**: Traced via `RAGTrace` with `query_type`, `candidate_k`, and `final_k`, and returned in API responses.
 - **Query Archetype Evaluation Breakdown**: The evaluation runner (`backend/evaluation/run.py`) measures retrieval recall, citation validity, and grounding grouped by query archetype.
 
+## Multi-Query Retrieval (Day 146)
+
+Complex research questions often contain multiple information needs across different dimensions or entities (e.g., comparing architectures across latency, throughput, and memory). Rather than relying on a single embedding that dilutes multi-faceted queries, the system conditionally decomposes complex comparison queries into 1 to 4 focused search queries.
+
+```text
+                     Original Complex Query
+                                │
+                                ▼
+                       Query Decomposer
+                    (LLM + Heuristic Fallback)
+                                │
+               ┌────────────────┼────────────────┐
+               ▼                ▼                ▼
+          Subquery 1       Subquery 2       Subquery 3
+               │                │                │
+               ▼                ▼                ▼
+          Chroma Search    Chroma Search    Chroma Search
+          (candidate_k)    (candidate_k)    (candidate_k)
+               │                │                │
+               └────────────────┼────────────────┘
+                                │
+                                ▼
+                     Merge & Deduplicate
+                     (Key: doc_id, chunk_index)
+                     (Track matched_queries)
+                                │
+                                ▼
+                   Cross-Encoder Reranker
+                 (Jointly scored against
+                     ORIGINAL query)
+                                │
+                                ▼
+                         Top final_k
+                                │
+                                ▼
+                         Context Builder
+                                │
+                                ▼
+                           Gemini LLM
+                                │
+                                ▼
+                         Answer + Sources
+```
+
+Features:
+
+- **Query Decomposition Service (`backend/services/query_decomposer.py`)**: Generates 1 to 4 focused search queries using Gemini structured JSON generation with a robust offline heuristic fallback.
+- **MAX_SUBQUERIES Enforced**: Hard-capped at 4 (`MAX_SUBQUERIES = 4`) to prevent unbounded vector searches and latency degradation.
+- **Conditional Triggering**: Multi-query retrieval runs dynamically for `QueryType.COMPARISON` (or complex multi-aspect questions) while `FACTUAL` and `SEMANTIC` queries execute single-query search directly.
+- **Candidate Merging & Deduplication**: Retrieved chunks are deduplicated by `(document_id, chunk_index)`, keeping the maximum similarity score and collecting `matched_queries` indicating which subqueries retrieved each chunk.
+- **Original Query Reranking**: Cross-encoder reranking and Gemini answer generation evaluate context against the **original user query**, ensuring accurate semantic synthesis.
+- **Observability & Schema Integration**: Subqueries are tracked in `RAGTrace`, preserved on `Source` schemas, and returned in chat API responses.
+- **Independent Security Isolation**: Subqueries execute under identical tenant isolation, only accessing indexed documents belonging to the authenticated user.
+
 ## Project Structure
 
 ```text
@@ -758,6 +812,7 @@ ai-research-assistant/
 │   │   ├── rag_context.py
 │   │   ├── reranker.py
 │   │   ├── query_router.py
+│   │   ├── query_decomposer.py
 │   │   ├── agent_service.py
 │   │   ├── document_service.py
 │   │   ├── document_hash.py
@@ -857,6 +912,7 @@ ai-research-assistant/
 ├── test_rag_evaluation.py
 ├── test_rag_reranker.py
 ├── test_rag_query_routing.py
+├── test_rag_multi_query.py
 ├── test_full_suite.py
 ├── llm.py
 ├── prompts.py

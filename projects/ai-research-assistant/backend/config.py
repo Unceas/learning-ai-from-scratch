@@ -24,12 +24,14 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_expire_minutes: int = 60
 
-    # Two-stage retrieval and reranking configuration
+    # Two-stage retrieval, reranking, and multi-query configuration
     rag_candidate_k: int = 20
     rag_final_k: int = 5
     reranker_enabled: bool = True
     reranker_model_name: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"
     query_routing_enabled: bool = True
+    multi_query_enabled: bool = True
+    max_subqueries: int = 4
 
     model_config = SettingsConfigDict(
         env_file=".env",

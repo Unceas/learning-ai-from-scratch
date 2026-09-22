@@ -28,6 +28,8 @@ class ChatResponse(BaseModel):
     document_sources: Optional[List[Dict[str, Any]]] = None
     user_id: Optional[str] = None
     latency_ms: Optional[float] = None
+    subqueries: Optional[List[str]] = None
+    query_type: Optional[str] = None
 
 
 class MemoryRequest(BaseModel):
