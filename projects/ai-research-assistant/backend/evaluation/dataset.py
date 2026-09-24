@@ -94,3 +94,34 @@ EVAL_DATASET: List[Dict[str, Any]] = [
         "type": "comparison",
     },
 ]
+
+HYBRID_EVAL_CASES: List[Dict[str, Any]] = [
+    {
+        "category": "exact_terminology",
+        "question": "What is the purpose of RFC 7231?",
+        "expected_documents": ["rfc7231.pdf"],
+        "expected_topics": ["HTTP/1.1", "semantics", "content negotiation"],
+        "advantage": "bm25",
+    },
+    {
+        "category": "acronyms",
+        "question": "What does LoRA change during LLM fine-tuning?",
+        "expected_documents": ["lora_finetuning.pdf"],
+        "expected_topics": ["low-rank adaptation", "weight matrices", "rank decomposition"],
+        "advantage": "bm25",
+    },
+    {
+        "category": "semantic_question",
+        "question": "How can models retain information over long sequences?",
+        "expected_documents": ["attention.pdf"],
+        "expected_topics": ["self-attention", "long-range dependencies", "recurrence"],
+        "advantage": "dense",
+    },
+    {
+        "category": "paper_entity_names",
+        "question": "What architecture was introduced by the original BERT paper?",
+        "expected_documents": ["bert.pdf"],
+        "expected_topics": ["bidirectional encoder", "masked language model", "transformers"],
+        "advantage": "hybrid",
+    },
+]

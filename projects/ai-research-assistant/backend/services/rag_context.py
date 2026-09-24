@@ -32,6 +32,12 @@ class RetrievedChunk(BaseModel):
 
 def normalize_chunk(chunk: Union[RetrievedChunk, Dict[str, Any]]) -> RetrievedChunk:
     """Normalize a chunk dictionary or model instance into a standard RetrievedChunk."""
+    if isinstance(chunk, dict) and "chunk" in chunk:
+        wrapper_score = float(chunk.get("score", 0.0))
+        inner = normalize_chunk(chunk["chunk"])
+        if wrapper_score != 0.0 and inner.score == 0.0:
+            inner.score = wrapper_score
+        return inner
     if isinstance(chunk, RetrievedChunk):
         return chunk
     if isinstance(chunk, dict):

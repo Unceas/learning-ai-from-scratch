@@ -126,6 +126,64 @@ def db_retrieve(
     return retrieved
 
 
+def db_keyword_retrieve(
+    db: Session,
+    user_id: str,
+    query: str,
+    top_k: int = 10
+) -> List[Dict[str, Any]]:
+    """Retrieve top-K matching chunks using BM25 keyword search strictly scoped to user's indexed docs."""
+    if not query or not query.strip():
+        return []
+
+    indexed_document_ids = get_indexed_document_ids(db, user_id)
+    if not indexed_document_ids:
+        return []
+
+    vector_store = VectorStore()
+    user_chunks = vector_store.get_user_chunks(user_id=user_id, document_ids=indexed_document_ids)
+    if not user_chunks:
+        return []
+
+    from backend.services.keyword_retriever import KeywordRetriever
+    retriever = KeywordRetriever(user_chunks)
+    kw_results = retriever.retrieve(query=query, top_k=top_k)
+
+    retrieved = []
+    for item in kw_results:
+        chunk = item["chunk"]
+        retrieved.append({
+            "text": chunk.get("text", ""),
+            "score": item["score"],
+            "keyword_score": item["score"],
+            "document_id": chunk.get("document_id"),
+            "filename": chunk.get("filename", "Unknown"),
+            "chunk_index": chunk.get("chunk_index", 0),
+            "page": chunk.get("page", 1),
+            "file_hash": chunk.get("file_hash")
+        })
+    return retrieved
+
+
+def db_hybrid_retrieve(
+    db: Session,
+    user_id: str,
+    query: str,
+    dense_k: int = 10,
+    keyword_k: int = 10,
+    top_k: int = 10,
+    rrf_k: int = 60
+) -> List[Dict[str, Any]]:
+    """Retrieve candidate chunks using hybrid dense + BM25 keyword search fused with Reciprocal Rank Fusion."""
+    dense_res = db_retrieve(db=db, user_id=user_id, query=query, top_k=dense_k)
+    kw_res = db_keyword_retrieve(db=db, user_id=user_id, query=query, top_k=keyword_k)
+
+    from backend.services.rank_fusion import reciprocal_rank_fusion
+    fused = reciprocal_rank_fusion([dense_res, kw_res], k=rrf_k)
+
+    return [item["chunk"] for item in fused[:top_k]]
+
+
 def retrieve(*args, **kwargs):
     """Adaptive retrieve interface routing to either db_retrieve or tfidf_retrieve based on arguments."""
     if args and isinstance(args[0], str):

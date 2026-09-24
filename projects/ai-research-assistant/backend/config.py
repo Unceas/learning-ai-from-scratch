@@ -32,6 +32,9 @@ class Settings(BaseSettings):
     query_routing_enabled: bool = True
     multi_query_enabled: bool = True
     max_subqueries: int = 4
+    hybrid_retrieval_enabled: bool = True
+    bm25_enabled: bool = True
+    rrf_k: int = 60
 
     model_config = SettingsConfigDict(
         env_file=".env",

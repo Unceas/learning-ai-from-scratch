@@ -787,6 +787,51 @@ Features:
 - **Observability & Schema Integration**: Subqueries are tracked in `RAGTrace`, preserved on `Source` schemas, and returned in chat API responses.
 - **Independent Security Isolation**: Subqueries execute under identical tenant isolation, only accessing indexed documents belonging to the authenticated user.
 
+## Hybrid Retrieval with BM25 & RRF (Day 147)
+
+Combines dense semantic search (meaning, thematic queries) with lexical BM25 retrieval (exact technical terms, RFC numbers, function/class names, acronyms) to dramatically improve recall and robustness across all query archetypes.
+
+```text
+                    User Query
+                        │
+                 Query Router
+                        │
+                Query Decomposition
+                        │
+             ┌──────────┴──────────┐
+             ▼                     ▼
+       Dense Retrieval        BM25 Retrieval
+       (ChromaDB vectors)   (BM25Okapi on indexed chunks)
+             │                     │
+             └──────────┬──────────┘
+                        │
+                   RRF Fusion
+               sum(1 / (k + rank))
+                        │
+                 Candidate Pool
+                        │
+               Cross-Encoder Reranker
+            (Scored against ORIGINAL query)
+                        │
+                  Top final_k
+                        │
+                 Context Builder
+                        │
+                    Gemini LLM
+                        │
+                 Answer + [S1]
+```
+
+Features:
+
+- **Lexical Retriever (`backend/services/keyword_retriever.py`)**: BM25Okapi implementation indexing only an authenticated user's indexed document chunks, ensuring strict multi-tenant isolation.
+- **Reciprocal Rank Fusion (`backend/services/rank_fusion.py`)**: Fuses disparate score scales using rank-based reciprocal fusion:
+  $$\text{RRF Score} = \sum_{m \in M} \frac{1}{k + \text{rank}_m}$$
+  Chunks appearing prominently across both retrieval systems receive cumulative score boosts (e.g. Rank 1 in Dense + Rank 3 in BM25 \(\to\) \(\frac{1}{61} + \frac{1}{63} \approx 0.0322\)).
+- **Hybrid Coordinator (`backend/services/hybrid_retriever.py`)**: Encapsulates dense and keyword retrieval execution and automatic RRF ranking.
+- **Multi-Query Integration**: Each decomposed subquery independently executes dense search + BM25 search + RRF fusion before global candidate merging, deduplication, and cross-encoder reranking against the user's original query.
+- **Tenant Security Preservation**: Chunks fed to BM25 are strictly constrained to SQLite documents matching `user_id` and `status == 'indexed'`. Processing or failed documents are never searchable.
+
 ## Project Structure
 
 ```text
@@ -813,6 +858,9 @@ ai-research-assistant/
 │   │   ├── reranker.py
 │   │   ├── query_router.py
 │   │   ├── query_decomposer.py
+│   │   ├── keyword_retriever.py
+│   │   ├── rank_fusion.py
+│   │   ├── hybrid_retriever.py
 │   │   ├── agent_service.py
 │   │   ├── document_service.py
 │   │   ├── document_hash.py
@@ -913,6 +961,7 @@ ai-research-assistant/
 ├── test_rag_reranker.py
 ├── test_rag_query_routing.py
 ├── test_rag_multi_query.py
+├── test_rag_hybrid_retrieval.py
 ├── test_full_suite.py
 ├── llm.py
 ├── prompts.py

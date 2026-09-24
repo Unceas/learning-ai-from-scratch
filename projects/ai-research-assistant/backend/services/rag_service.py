@@ -13,6 +13,10 @@ from backend.config import settings
 from backend.services.reranker import get_reranker
 from backend.services.query_router import classify_query, get_retrieval_config, QueryType
 from backend.services.query_decomposer import decompose_query
+from backend.services.keyword_retriever import KeywordRetriever
+from backend.services.rank_fusion import reciprocal_rank_fusion
+from backend.services.document_db_service import get_indexed_document_ids
+from backend.services.vector_store import VectorStore
 from retrieval import db_retrieve
 
 logger = logging.getLogger(__name__)
@@ -76,16 +80,48 @@ def run_rag_pipeline(
         except Exception:
             session = None
 
+    # Initialize BM25 KeywordRetriever once across eligible indexed documents
+    keyword_retriever = None
+    if session is not None and getattr(settings, "hybrid_retrieval_enabled", True) and getattr(settings, "bm25_enabled", True):
+        try:
+            indexed_doc_ids = get_indexed_document_ids(session, user_id)
+            if indexed_doc_ids:
+                vector_store = VectorStore()
+                user_chunks = vector_store.get_user_chunks(user_id=user_id, document_ids=indexed_doc_ids)
+                if user_chunks:
+                    keyword_retriever = KeywordRetriever(user_chunks)
+        except Exception as e:
+            logger.debug("Failed initializing KeywordRetriever: %s", e)
+            keyword_retriever = None
+
     deduped_candidates: Dict[Any, Dict[str, Any]] = {}
 
     try:
         for sq in subqueries:
-            sq_results = []
+            dense_results = []
             if session is not None:
                 try:
-                    sq_results = db_retrieve(db=session, user_id=user_id, query=sq, top_k=candidate_k)
+                    dense_results = db_retrieve(db=session, user_id=user_id, query=sq, top_k=candidate_k)
                 except Exception:
-                    sq_results = []
+                    dense_results = []
+
+            # Retrieve BM25 keyword candidates if hybrid retrieval is active
+            keyword_results = []
+            if keyword_retriever is not None:
+                try:
+                    keyword_results = keyword_retriever.retrieve(query=sq, top_k=candidate_k)
+                except Exception:
+                    keyword_results = []
+
+            # Fuse dense and keyword results with Reciprocal Rank Fusion
+            if keyword_results and dense_results:
+                rrf_k = getattr(settings, "rrf_k", 60)
+                fused = reciprocal_rank_fusion([dense_results, keyword_results], k=rrf_k)
+                sq_results = [item["chunk"] for item in fused[:candidate_k]]
+            elif keyword_results:
+                sq_results = [item["chunk"] for item in keyword_results[:candidate_k]]
+            else:
+                sq_results = dense_results
 
             # Fallback to tool router document search for unindexed or legacy mocks
             if not sq_results:

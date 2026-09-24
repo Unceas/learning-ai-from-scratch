@@ -73,9 +73,16 @@ class CrossEncoderReranker(Reranker):
 
         # Extract text and preserve original metadata
         prepared_chunks: List[Dict[str, Any]] = []
-        for chunk in chunks:
+        for item in chunks:
+            if isinstance(item, dict) and "chunk" in item:
+                chunk = item["chunk"]
+                wrapper_score = float(item.get("score", 0.0))
+            else:
+                chunk = item
+                wrapper_score = None
+
             if isinstance(chunk, RetrievedChunk):
-                orig_score = float(chunk.score)
+                orig_score = wrapper_score if wrapper_score is not None else float(chunk.score)
                 v_score = chunk.vector_score if chunk.vector_score is not None else orig_score
                 c_dict = {
                     "text": chunk.text,
@@ -90,7 +97,7 @@ class CrossEncoderReranker(Reranker):
                     "matched_queries": getattr(chunk, "matched_queries", [])
                 }
             elif isinstance(chunk, dict):
-                orig_score = float(chunk.get("score", 0.0))
+                orig_score = wrapper_score if wrapper_score is not None else float(chunk.get("score", 0.0))
                 v_score = float(chunk.get("vector_score", orig_score))
                 c_dict = {
                     "text": chunk.get("text", ""),

@@ -62,6 +62,52 @@ class VectorStore:
             where={"document_id": document_id}
         )
 
+    def get_user_chunks(
+        self,
+        user_id: str,
+        document_ids: Optional[List[int]] = None
+    ) -> List[Dict[str, Any]]:
+        """Retrieve all indexed chunks belonging to authenticated user and eligible document IDs."""
+        if document_ids is not None:
+            if not document_ids:
+                return []
+            if len(document_ids) == 1:
+                doc_filter = {"document_id": document_ids[0]}
+            else:
+                doc_filter = {"document_id": {"$in": document_ids}}
+
+            where = {
+                "$and": [
+                    {"user_id": user_id},
+                    doc_filter
+                ]
+            }
+        else:
+            where = {"user_id": user_id}
+
+        results = self.collection.get(
+            where=where,
+            include=["documents", "metadatas"]
+        )
+
+        documents = results.get("documents", []) or []
+        metadatas = results.get("metadatas", []) or []
+        ids = results.get("ids", []) or []
+
+        chunks = []
+        for doc_text, metadata, vec_id in zip(documents, metadatas, ids):
+            metadata = metadata or {}
+            chunks.append({
+                "text": doc_text,
+                "document_id": metadata.get("document_id"),
+                "filename": metadata.get("filename", metadata.get("document", "Unknown")),
+                "chunk_index": metadata.get("chunk_index", metadata.get("chunk_id", 0)),
+                "page": metadata.get("page", 1),
+                "file_hash": metadata.get("file_hash"),
+                "id": vec_id
+            })
+        return chunks
+
     def search(
         self,
         query_embedding: List[float],
