@@ -16,6 +16,8 @@ class RAGTrace:
     candidate_k: int = 20
     final_k: int = 5
     subqueries: List[str] = field(default_factory=list)
+    expanded_queries: List[str] = field(default_factory=list)
+    used_hyde: bool = False
 
     retrieval_ms: float = 0.0
     reranking_ms: float = 0.0
@@ -74,6 +76,8 @@ def save_trace(trace: RAGTrace, path: str = "rag_traces.jsonl") -> None:
         "query": trace.query,
         "query_type": trace.query_type,
         "subqueries": trace.subqueries,
+        "expanded_queries": trace.expanded_queries,
+        "used_hyde": trace.used_hyde,
         "candidate_k": trace.candidate_k,
         "final_k": trace.final_k,
         "retrieval_ms": round(trace.retrieval_ms, 2),

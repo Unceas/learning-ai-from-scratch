@@ -29,6 +29,8 @@ class ChatResponse(BaseModel):
     user_id: Optional[str] = None
     latency_ms: Optional[float] = None
     subqueries: Optional[List[str]] = None
+    expanded_queries: Optional[List[str]] = None
+    used_hyde: Optional[bool] = None
     query_type: Optional[str] = None
 
 

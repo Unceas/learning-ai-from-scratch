@@ -29,6 +29,8 @@ def chat(
             invalid_citations=result.get("invalid_citations", []),
             document_sources=result.get("document_sources", []),
             subqueries=result.get("subqueries"),
+            expanded_queries=result.get("expanded_queries"),
+            used_hyde=result.get("used_hyde"),
             query_type=result.get("query_type"),
             user_id=user_id,
             latency_ms=result.get("latency_ms")

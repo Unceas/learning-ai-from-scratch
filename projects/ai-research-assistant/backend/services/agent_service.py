@@ -21,6 +21,8 @@ class AgentService:
                 "invalid_citations": rag_res.get("invalid_citations", []),
                 "document_sources": rag_res.get("document_sources", []),
                 "subqueries": rag_res.get("subqueries", []),
+                "expanded_queries": rag_res.get("expanded_queries", []),
+                "used_hyde": rag_res.get("used_hyde", False),
                 "query_type": rag_res.get("query_type"),
                 "user_id": user_id,
                 "latency_ms": rag_res.get("latency_ms", 0.0)
@@ -34,6 +36,8 @@ class AgentService:
                 "invalid_citations": [],
                 "document_sources": [],
                 "subqueries": [query],
+                "expanded_queries": [],
+                "used_hyde": False,
                 "query_type": "orchestrator",
                 "user_id": user_id,
                 "latency_ms": 0.0

@@ -30,7 +30,8 @@ TEST_SCRIPTS = [
     "test_rag_reranker.py",
     "test_rag_query_routing.py",
     "test_rag_multi_query.py",
-    "test_rag_hybrid_retrieval.py"
+    "test_rag_hybrid_retrieval.py",
+    "test_rag_query_expansion_hyde.py"
 ]
 
 

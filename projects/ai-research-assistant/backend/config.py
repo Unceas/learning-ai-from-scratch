@@ -35,6 +35,9 @@ class Settings(BaseSettings):
     hybrid_retrieval_enabled: bool = True
     bm25_enabled: bool = True
     rrf_k: int = 60
+    query_expansion_enabled: bool = True
+    max_expanded_queries: int = 2
+    hyde_enabled: bool = True
 
     model_config = SettingsConfigDict(
         env_file=".env",

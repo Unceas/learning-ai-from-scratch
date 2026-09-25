@@ -31,3 +31,5 @@ class RAGResponse(BaseModel):
     invalid_citations: Optional[List[str]] = Field(default_factory=list)
     document_sources: Optional[List[DocumentGroupedSource]] = None
     subqueries: Optional[List[str]] = Field(default_factory=list)
+    expanded_queries: Optional[List[str]] = Field(default_factory=list)
+    used_hyde: Optional[bool] = False

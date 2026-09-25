@@ -125,3 +125,34 @@ HYBRID_EVAL_CASES: List[Dict[str, Any]] = [
         "advantage": "hybrid",
     },
 ]
+
+EXPANSION_HYDE_EVAL_CASES: List[Dict[str, Any]] = [
+    {
+        "category": "short_query",
+        "question": "What is LoRA?",
+        "expected_documents": ["lora_finetuning.pdf"],
+        "expected_topics": ["low-rank adaptation", "parameter-efficient fine-tuning"],
+        "advantage": "query_expansion",
+    },
+    {
+        "category": "terminology_mismatch",
+        "question": "How do models remember distant tokens?",
+        "expected_documents": ["attention.pdf"],
+        "expected_topics": ["long-range dependencies", "self-attention mechanism"],
+        "advantage": "hyde",
+    },
+    {
+        "category": "exact_technical_query",
+        "question": "What is the purpose of scaled dot-product attention?",
+        "expected_documents": ["attention.pdf"],
+        "expected_topics": ["scaled dot-product", "temperature", "softmax scaling"],
+        "advantage": "hybrid",
+    },
+    {
+        "category": "complex_query",
+        "question": "Compare RNNs and Transformers for long-range dependencies.",
+        "expected_documents": ["attention.pdf", "neural_search.pdf"],
+        "expected_topics": ["sequential path length", "recurrent computation", "constant path length"],
+        "advantage": "expansion_and_hyde",
+    },
+]

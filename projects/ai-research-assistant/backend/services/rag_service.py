@@ -13,6 +13,8 @@ from backend.config import settings
 from backend.services.reranker import get_reranker
 from backend.services.query_router import classify_query, get_retrieval_config, QueryType
 from backend.services.query_decomposer import decompose_query
+from backend.services.query_expander import expand_query, deduplicate_queries
+from backend.services.hyde import HyDE
 from backend.services.keyword_retriever import KeywordRetriever
 from backend.services.rank_fusion import reciprocal_rank_fusion
 from backend.services.document_db_service import get_indexed_document_ids
@@ -80,48 +82,103 @@ def run_rag_pipeline(
         except Exception:
             session = None
 
-    # Initialize BM25 KeywordRetriever once across eligible indexed documents
+    # Initialize BM25 KeywordRetriever and VectorStore once across eligible indexed documents
     keyword_retriever = None
-    if session is not None and getattr(settings, "hybrid_retrieval_enabled", True) and getattr(settings, "bm25_enabled", True):
+    vector_store = None
+    indexed_doc_ids = []
+    if session is not None:
         try:
             indexed_doc_ids = get_indexed_document_ids(session, user_id)
             if indexed_doc_ids:
                 vector_store = VectorStore()
-                user_chunks = vector_store.get_user_chunks(user_id=user_id, document_ids=indexed_doc_ids)
-                if user_chunks:
-                    keyword_retriever = KeywordRetriever(user_chunks)
+                if getattr(settings, "hybrid_retrieval_enabled", True) and getattr(settings, "bm25_enabled", True):
+                    user_chunks = vector_store.get_user_chunks(user_id=user_id, document_ids=indexed_doc_ids)
+                    if user_chunks:
+                        keyword_retriever = KeywordRetriever(user_chunks)
         except Exception as e:
-            logger.debug("Failed initializing KeywordRetriever: %s", e)
+            logger.debug("Failed initializing retrieval resources: %s", e)
             keyword_retriever = None
 
     deduped_candidates: Dict[Any, Dict[str, Any]] = {}
+    all_expanded_queries: List[str] = []
+    used_hyde_flag = False
 
     try:
         for sq in subqueries:
-            dense_results = []
-            if session is not None:
-                try:
-                    dense_results = db_retrieve(db=session, user_id=user_id, query=sq, top_k=candidate_k)
-                except Exception:
-                    dense_results = []
-
-            # Retrieve BM25 keyword candidates if hybrid retrieval is active
-            keyword_results = []
-            if keyword_retriever is not None:
-                try:
-                    keyword_results = keyword_retriever.retrieve(query=sq, top_k=candidate_k)
-                except Exception:
-                    keyword_results = []
-
-            # Fuse dense and keyword results with Reciprocal Rank Fusion
-            if keyword_results and dense_results:
-                rrf_k = getattr(settings, "rrf_k", 60)
-                fused = reciprocal_rank_fusion([dense_results, keyword_results], k=rrf_k)
-                sq_results = [item["chunk"] for item in fused[:candidate_k]]
-            elif keyword_results:
-                sq_results = [item["chunk"] for item in keyword_results[:candidate_k]]
+            # Query Expansion: generate alternative query formulations preserving original intent
+            if getattr(settings, "query_expansion_enabled", True):
+                search_queries = expand_query(sq)
+                for eq in search_queries[1:]:
+                    if eq not in all_expanded_queries:
+                        all_expanded_queries.append(eq)
             else:
-                sq_results = dense_results
+                search_queries = [sq]
+
+            query_result_lists: List[List[Dict[str, Any]]] = []
+
+            for q_var in search_queries:
+                dense_results = []
+                if session is not None:
+                    try:
+                        dense_results = db_retrieve(db=session, user_id=user_id, query=q_var, top_k=candidate_k)
+                    except Exception:
+                        dense_results = []
+
+                # Retrieve BM25 keyword candidates if hybrid retrieval is active
+                keyword_results = []
+                if keyword_retriever is not None:
+                    try:
+                        keyword_results = keyword_retriever.retrieve(query=q_var, top_k=candidate_k)
+                    except Exception:
+                        keyword_results = []
+
+                # Fuse dense and keyword results with Reciprocal Rank Fusion
+                if keyword_results and dense_results:
+                    rrf_k = getattr(settings, "rrf_k", 60)
+                    fused = reciprocal_rank_fusion([dense_results, keyword_results], k=rrf_k)
+                    var_results = [item["chunk"] for item in fused[:candidate_k]]
+                elif keyword_results:
+                    var_results = [item["chunk"] for item in keyword_results[:candidate_k]]
+                else:
+                    var_results = dense_results
+
+                for c in var_results:
+                    if isinstance(c, dict):
+                        c["matched_queries"] = [q_var]
+                if var_results:
+                    query_result_lists.append(var_results)
+
+            # HyDE: Hypothetical Document Embeddings for semantic exploration
+            if (
+                getattr(settings, "hyde_enabled", True)
+                and query_type == QueryType.SEMANTIC
+                and session is not None
+                and indexed_doc_ids
+            ):
+                try:
+                    hyde = HyDE()
+                    hyde_results = hyde.retrieve(
+                        query=sq,
+                        user_id=user_id,
+                        document_ids=indexed_doc_ids,
+                        vector_store=vector_store,
+                        top_k=candidate_k
+                    )
+                    if hyde_results:
+                        used_hyde_flag = True
+                        query_result_lists.append(hyde_results)
+                except Exception as e:
+                    logger.debug("HyDE retrieval error: %s", e)
+
+            # Fuse across all search queries and HyDE candidates for this subquery
+            if len(query_result_lists) > 1:
+                rrf_k = getattr(settings, "rrf_k", 60)
+                sq_fused = reciprocal_rank_fusion(query_result_lists, k=rrf_k)
+                sq_results = [item["chunk"] for item in sq_fused[:candidate_k]]
+            elif len(query_result_lists) == 1:
+                sq_results = query_result_lists[0][:candidate_k]
+            else:
+                sq_results = []
 
             # Fallback to tool router document search for unindexed or legacy mocks
             if not sq_results:
@@ -151,16 +208,18 @@ def run_rag_pipeline(
                 else:
                     chunk_key = chunk.get("id") or chunk.get("text", "")[:100]
 
+                chunk_matched = chunk.get("matched_queries", [sq])
                 if chunk_key not in deduped_candidates:
                     chunk_copy = dict(chunk)
-                    chunk_copy["matched_queries"] = [sq]
+                    chunk_copy["matched_queries"] = list(chunk_matched)
                     deduped_candidates[chunk_key] = chunk_copy
                 else:
                     existing = deduped_candidates[chunk_key]
                     if "matched_queries" not in existing:
                         existing["matched_queries"] = []
-                    if sq not in existing["matched_queries"]:
-                        existing["matched_queries"].append(sq)
+                    for mq in chunk_matched:
+                        if mq not in existing["matched_queries"]:
+                            existing["matched_queries"].append(mq)
                     current_score = float(chunk.get("score", 0.0))
                     existing_score = float(existing.get("score", 0.0))
                     if current_score > existing_score:
@@ -171,6 +230,9 @@ def run_rag_pipeline(
             session.close()
 
     results = list(deduped_candidates.values())
+
+    trace.expanded_queries = all_expanded_queries
+    trace.used_hyde = used_hyde_flag
 
     search_time = round((time.time() - start_time) * 1000, 2)
     trace.retrieval_ms = search_time
@@ -185,22 +247,26 @@ def run_rag_pipeline(
         results = results[:final_k]
     trace.reranking_ms = round((time.time() - rerank_start) * 1000, 2)
 
-    # 3. Build structured RAG context, citation map, and independent source attribution
+    # 4. Build structured RAG context, citation map, and independent source attribution
     rag_payload = build_rag_context(results)
     trace.final_context_count = len(rag_payload["sources"])
 
-    # 4. Clean early exit for zero-chunk retrieval (prevents LLM hallucination and saves tokens)
+    # 5. Clean early exit for zero-chunk retrieval (prevents LLM hallucination and saves tokens)
     if not rag_payload["has_context"]:
         save_trace(trace)
         return {
             "query": query,
             "query_type": query_type.value,
             "subqueries": subqueries,
+            "expanded_queries": all_expanded_queries,
+            "used_hyde": used_hyde_flag,
             "routing": {
                 "query_type": query_type.value,
                 "candidate_k": candidate_k,
                 "final_k": final_k,
-                "subqueries": subqueries
+                "subqueries": subqueries,
+                "expanded_queries": all_expanded_queries,
+                "used_hyde": used_hyde_flag
             },
             "answer": rag_payload["fallback_answer"],
             "sources": [],
@@ -226,11 +292,15 @@ def run_rag_pipeline(
         "query": query,
         "query_type": query_type.value,
         "subqueries": subqueries,
+        "expanded_queries": all_expanded_queries,
+        "used_hyde": used_hyde_flag,
         "routing": {
             "query_type": query_type.value,
             "candidate_k": candidate_k,
             "final_k": final_k,
-            "subqueries": subqueries
+            "subqueries": subqueries,
+            "expanded_queries": all_expanded_queries,
+            "used_hyde": used_hyde_flag
         },
         "answer": full_answer,
         "context": rag_payload["context"],
