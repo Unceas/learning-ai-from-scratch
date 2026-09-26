@@ -156,3 +156,50 @@ EXPANSION_HYDE_EVAL_CASES: List[Dict[str, Any]] = [
         "advantage": "expansion_and_hyde",
     },
 ]
+
+CONVERSATIONAL_EVAL = [
+    {
+        "id": "conv-1",
+        "description": "Comparison aspect follow-up",
+        "history": [
+            "Compare Transformers and RNNs."
+        ],
+        "query": "What about computational cost?",
+        "expected_query": "Compare Transformers and RNNs in terms of computational cost.",
+        "expected_documents": ["attention.pdf"],
+        "expected_topics": ["computational cost", "complexity per layer", "self-attention vs recurrent"],
+    },
+    {
+        "id": "conv-2",
+        "description": "Pronoun resolution for definition query",
+        "history": [
+            "What is self-attention?"
+        ],
+        "query": "How does it improve sequence modeling?",
+        "expected_query": "How does self-attention improve sequence modeling?",
+        "expected_documents": ["attention.pdf"],
+        "expected_topics": ["self-attention", "sequence modeling", "long-range dependencies"],
+    },
+    {
+        "id": "conv-3",
+        "description": "Vague possessive reference to comparative entities",
+        "history": [
+            "Compare BERT and GPT architectures."
+        ],
+        "query": "What about their training objectives?",
+        "expected_query": "Compare the training objectives of BERT and GPT.",
+        "expected_documents": ["attention.pdf", "neural_search.pdf"],
+        "expected_topics": ["masked language modeling", "autoregressive", "pre-training"],
+    },
+    {
+        "id": "conv-4",
+        "description": "Already standalone query in conversation context",
+        "history": [
+            "Compare BERT and GPT architectures."
+        ],
+        "query": "What is retrieval-augmented generation?",
+        "expected_query": "What is retrieval-augmented generation?",
+        "expected_documents": ["rag_survey.pdf"],
+        "expected_topics": ["retrieval-augmented generation", "dense retrieval", "external knowledge"],
+    }
+]

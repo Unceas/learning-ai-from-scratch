@@ -38,6 +38,8 @@ class Settings(BaseSettings):
     query_expansion_enabled: bool = True
     max_expanded_queries: int = 2
     hyde_enabled: bool = True
+    query_rewriting_enabled: bool = True
+    max_history_messages: int = 10
 
     model_config = SettingsConfigDict(
         env_file=".env",

@@ -885,6 +885,62 @@ Features:
 - **Original Query Reranking**: All deduplicated candidates discovered across original, expanded, and HyDE paths are evaluated and reranked by the CrossEncoder against the **original user query**, preserving user intent alignment.
 - **Telemetry & Contract Extensions**: `expanded_queries` and `used_hyde` are tracked in `RAGTrace`, included in `RAGResponse`, and returned in FastAPI chat responses.
 
+## Conversation Memory & Query Rewriting (Day 149)
+
+Solves conversational context drift in multi-turn RAG research dialogues. When a user asks vague follow-up questions such as *"What about computational cost?"* or *"How does it improve sequence modeling?"*, standard search retrievers fail because they lack the prior turn's topic.
+
+```text
+                     User Question
+              ("What about computational cost?")
+                           │
+                     Authenticated
+                           │
+                    Conversation DB
+                    (Load recent turns)
+                           │
+                     Query Rewriter
+          ("Compare Transformers and RNNs in
+             terms of computational cost.")
+                           │
+                    Standalone Query
+                           │
+                     Query Router
+                           │
+                  Query Decomposition
+                           │
+                   Query Expansion
+                           │
+                 Hybrid Retrieval
+                   /          \
+                Dense         BM25
+                   \          /
+                    RRF Fusion
+                         │
+                      Reranker
+                         │
+                    RAG Context
+                         │
+                    Source IDs
+                    ([S1], [S2])
+                         │
+                     Gemini LLM
+                         │
+                  Answer + Sources
+                         │
+               Persist Exchange to DB
+```
+
+Features:
+
+- **Query Rewriter Service (`backend/services/query_rewriter.py`)**: Rewrites ambiguous follow-up questions into self-contained research queries by resolving pronouns ("it", "they", "that", "the above"), possessives ("their training objectives"), and comparative aspect questions ("What about computational cost?").
+- **Intent & Standalone Preservation**: If a user query is already self-contained (e.g., *"What is retrieval-augmented generation?"*), the rewriter preserves it unchanged without introducing spurious modifications.
+- **Separation of Memory from Document Evidence**: Conversation memory is used solely to understand and disambiguate the question; it is **never** injected as retrieval chunks or treated as factual document evidence. Citations and sources derive exclusively from verified indexed documents.
+- **Multi-Tenant Conversation Storage (`backend/models/conversation.py`, `backend/services/conversation_service.py`)**: Stores `Conversation` and `ConversationMessage` records scoped strictly by `user_id` and `conversation_id`. Unauthorized cross-tenant access returns HTTP 404.
+- **Windowed Message Retrieval**: Enforces `MAX_HISTORY_MESSAGES = 10` in chronological order to protect token limits while maintaining immediate context continuity.
+- **Alembic Schema Evolution**: Database migrated safely via revision `e83052ca03a5_add_conversation_memory.py` without manual `create_all()`.
+- **Dedicated REST API (`backend/routes/conversations.py`)**: Full lifecycle management covering `POST /api/conversations`, `GET /api/conversations`, `GET /api/conversations/{id}`, `DELETE /api/conversations/{id}`, and `POST /api/conversations/{id}/messages`.
+- **Query Provenance Telemetry**: Both `original` and `rewritten` queries are tracked in `RAGTrace`, included in `RAGResponse`, and returned in API responses.
+
 ## Project Structure
 
 ```text
@@ -893,17 +949,22 @@ ai-research-assistant/
 │   ├── main.py
 │   ├── config.py
 │   ├── database.py
-│   ├── models.py
+│   ├── models/
+│   │   ├── __init__.py
+│   │   └── conversation.py
 │   ├── exceptions.py
 │   ├── dependencies.py
 │   ├── routes/
 │   │   ├── auth.py
 │   │   ├── chat.py
+│   │   ├── conversations.py
 │   │   ├── documents.py
 │   │   └── memory.py
 │   ├── services/
 │   │   ├── auth_service.py
 │   │   ├── user_service.py
+│   │   ├── conversation_service.py
+│   │   ├── query_rewriter.py
 │   │   ├── document_db_service.py
 │   │   ├── document_processor.py
 │   │   ├── rag_service.py
@@ -944,7 +1005,8 @@ ai-research-assistant/
 │   │   ├── cd265f0ad5bd_create_users_and_documents.py
 │   │   ├── 16c517d8c41d_add_document_processing_status.py
 │   │   ├── 87f4679eca77_add_document_storage_path.py
-│   │   └── de557f7c80c5_add_document_processing_attempts.py
+│   │   ├── de557f7c80c5_add_document_processing_attempts.py
+│   │   └── e83052ca03a5_add_conversation_memory.py
 │   ├── env.py
 │   ├── script.py.mako
 │   └── README
@@ -1018,6 +1080,7 @@ ai-research-assistant/
 ├── test_rag_multi_query.py
 ├── test_rag_hybrid_retrieval.py
 ├── test_rag_query_expansion_hyde.py
+├── test_rag_conversation_memory.py
 ├── test_full_suite.py
 ├── llm.py
 ├── prompts.py

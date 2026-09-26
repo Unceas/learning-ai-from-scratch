@@ -23,6 +23,11 @@ class DocumentGroupedSource(BaseModel):
     chunks: List[int] = Field(default_factory=list)
 
 
+class QueryInfo(BaseModel):
+    original: str
+    rewritten: Optional[str] = None
+
+
 class RAGResponse(BaseModel):
     """Structured response contract for RAG answer generation and citation attribution."""
     answer: str
@@ -33,3 +38,5 @@ class RAGResponse(BaseModel):
     subqueries: Optional[List[str]] = Field(default_factory=list)
     expanded_queries: Optional[List[str]] = Field(default_factory=list)
     used_hyde: Optional[bool] = False
+    query: Optional[Any] = None
+    conversation_id: Optional[int] = None

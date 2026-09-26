@@ -4,7 +4,7 @@ import json
 import os
 import time
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, List, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 
 @dataclass
@@ -18,6 +18,8 @@ class RAGTrace:
     subqueries: List[str] = field(default_factory=list)
     expanded_queries: List[str] = field(default_factory=list)
     used_hyde: bool = False
+    original_query: Optional[str] = None
+    rewritten_query: Optional[str] = None
 
     retrieval_ms: float = 0.0
     reranking_ms: float = 0.0
@@ -74,6 +76,8 @@ def save_trace(trace: RAGTrace, path: str = "rag_traces.jsonl") -> None:
     """
     record = {
         "query": trace.query,
+        "original_query": trace.original_query,
+        "rewritten_query": trace.rewritten_query,
         "query_type": trace.query_type,
         "subqueries": trace.subqueries,
         "expanded_queries": trace.expanded_queries,

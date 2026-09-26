@@ -18,6 +18,7 @@ class ChatRequest(BaseModel):
     query: str = Field(min_length=1, max_length=5000)
     filename: Optional[str] = None
     user_id: Optional[str] = None
+    conversation_id: Optional[int] = None
 
 
 class ChatResponse(BaseModel):
@@ -32,6 +33,8 @@ class ChatResponse(BaseModel):
     expanded_queries: Optional[List[str]] = None
     used_hyde: Optional[bool] = None
     query_type: Optional[str] = None
+    query: Optional[Any] = None
+    conversation_id: Optional[int] = None
 
 
 class MemoryRequest(BaseModel):

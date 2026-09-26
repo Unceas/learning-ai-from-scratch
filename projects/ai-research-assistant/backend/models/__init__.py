@@ -8,6 +8,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import relationship
 from backend.database import Base
+from backend.models.conversation import Conversation, ConversationMessage
 
 
 class User(Base):
@@ -26,6 +27,12 @@ class User(Base):
     documents = relationship(
         "Document",
         back_populates="user",
+        cascade="all, delete-orphan"
+    )
+
+    conversations = relationship(
+        "Conversation",
+        backref="user",
         cascade="all, delete-orphan"
     )
 
@@ -89,3 +96,6 @@ class Document(Base):
         "User",
         back_populates="documents"
     )
+
+
+__all__ = ["Base", "User", "Document", "Conversation", "ConversationMessage"]

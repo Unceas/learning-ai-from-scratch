@@ -8,6 +8,7 @@ from backend.routes.auth import router as auth_router
 from backend.routes.chat import router as chat_router
 from backend.routes.documents import router as documents_router
 from backend.routes.memory import router as memory_router
+from backend.routes.conversations import router as conversations_router
 
 app = FastAPI(
     title=settings.app_name,
@@ -51,6 +52,12 @@ app.include_router(
     memory_router,
     prefix="/api/memory",
     tags=["Memory"]
+)
+
+app.include_router(
+    conversations_router,
+    prefix="/api/conversations",
+    tags=["Conversations"]
 )
 
 
