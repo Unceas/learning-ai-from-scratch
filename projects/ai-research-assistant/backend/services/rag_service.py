@@ -36,7 +36,8 @@ def run_rag_pipeline(
     user_id: str = "default_user",
     db: Optional[Session] = None,
     conversation_id: Optional[int] = None,
-    conversation_history: Optional[list] = None
+    conversation_history: Optional[list] = None,
+    persist_messages: bool = True
 ) -> Dict[str, Any]:
     """Execute the full RAG pipeline with candidate retrieval, reranking, context building, and citations."""
     # Initialize database session
@@ -286,7 +287,7 @@ def run_rag_pipeline(
         # 5. Clean early exit for zero-chunk retrieval (prevents LLM hallucination and saves tokens)
         if not rag_payload["has_context"]:
             save_trace(trace)
-            if conversation_id is not None and session is not None:
+            if persist_messages and conversation_id is not None and session is not None:
                 try:
                     add_message(session, conversation_id=conversation_id, role="user", content=original_query)
                     add_message(session, conversation_id=conversation_id, role="assistant", content=rag_payload["fallback_answer"])
@@ -329,7 +330,7 @@ def run_rag_pipeline(
         trace.sources = rag_payload["sources"]
         save_trace(trace)
 
-        if conversation_id is not None and session is not None:
+        if persist_messages and conversation_id is not None and session is not None:
             try:
                 add_message(session, conversation_id=conversation_id, role="user", content=original_query)
                 add_message(session, conversation_id=conversation_id, role="assistant", content=full_answer)

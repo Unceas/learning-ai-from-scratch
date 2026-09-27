@@ -941,6 +941,45 @@ Features:
 - **Dedicated REST API (`backend/routes/conversations.py`)**: Full lifecycle management covering `POST /api/conversations`, `GET /api/conversations`, `GET /api/conversations/{id}`, `DELETE /api/conversations/{id}`, and `POST /api/conversations/{id}/messages`.
 - **Query Provenance Telemetry**: Both `original` and `rewritten` queries are tracked in `RAGTrace`, included in `RAGResponse`, and returned in API responses.
 
+## Session & Chat Architecture (Day 150)
+
+Cleanly separates conversation state management from the retrieval and answer generation pipeline.
+
+```text
+                         API Layer
+                   (/api/chat, /api/conversations)
+                              │
+                         ChatService
+                  (Workflow Orchestration)
+                              │
+                    ConversationService
+                 (State, History, Pagination)
+                              │
+                        Query Pipeline
+             (Rewriter, Router, Decomposition, HyDE)
+                              │
+                    Hybrid Retrieval & RRF
+                     (Dense Chroma + BM25)
+                              │
+                     Cross-Encoder Reranker
+                              │
+                      RAG Context Builder
+                              │
+                          Gemini LLM
+                              │
+                   Persist Actual Dialogue
+```
+
+Features:
+
+- **Chat Service Layer (`backend/services/chat_service.py`)**: Orchestrates the multi-turn conversational chat workflow, isolating the API endpoints from lower-level retrieval, ranking, and context-building details.
+- **Automatic Session Provisioning**: Requests to `POST /api/chat` with `conversation_id: null` automatically provision a new conversation session with a descriptive preview title.
+- **Strict Tenant Authorization**: Any request referencing an existing `conversation_id` validates ownership (`conversation.user_id == authenticated_user_id`). Unauthorized access immediately yields HTTP 404.
+- **Clean Dialogue Storage**: Persists exclusively genuine conversational turns (`user` question and `assistant` answer). Internal pipeline artifacts (rewritten query, expansion terms, HyDE hypothetical abstracts, BM25 scores, RRF ranks) are omitted from conversation memory.
+- **Message Pagination (`GET /api/conversations/{id}/messages`)**: Supports UI history browsing with `limit` and `offset` query parameters and a `has_more` boolean flag, distinct from the smaller recent-turn window (`MAX_HISTORY_MESSAGES = 10`) used for LLM context.
+- **Decoupled Lifecycle**: Deleting a conversation cascades to delete its stored messages via database foreign keys, but leaves uploaded documents completely intact.
+- **Multi-Tenant Retrieval Isolation**: Conversational memory and query rewriting respect document tenant boundaries—users can only retrieve chunks from documents they own.
+
 ## Project Structure
 
 ```text
@@ -964,6 +1003,7 @@ ai-research-assistant/
 │   │   ├── auth_service.py
 │   │   ├── user_service.py
 │   │   ├── conversation_service.py
+│   │   ├── chat_service.py
 │   │   ├── query_rewriter.py
 │   │   ├── document_db_service.py
 │   │   ├── document_processor.py
@@ -999,7 +1039,9 @@ ai-research-assistant/
 │   └── schemas/
 │       ├── requests.py
 │       ├── responses.py
-│       └── rag.py
+│       ├── rag.py
+│       ├── chat.py
+│       └── conversation.py
 ├── alembic/
 │   ├── versions/
 │   │   ├── cd265f0ad5bd_create_users_and_documents.py
@@ -1081,6 +1123,7 @@ ai-research-assistant/
 ├── test_rag_hybrid_retrieval.py
 ├── test_rag_query_expansion_hyde.py
 ├── test_rag_conversation_memory.py
+├── test_session_chat_architecture.py
 ├── test_full_suite.py
 ├── llm.py
 ├── prompts.py

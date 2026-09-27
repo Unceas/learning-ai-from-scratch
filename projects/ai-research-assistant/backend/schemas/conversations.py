@@ -38,6 +38,14 @@ class ConversationResponse(BaseModel):
         from_attributes = True
 
 
+class ConversationMessagesPageResponse(BaseModel):
+    """Schema representing paginated messages response."""
+    messages: List[MessageResponse] = Field(default_factory=list)
+    limit: int
+    offset: int
+    has_more: bool
+
+
 class ConversationChatResponse(BaseModel):
     """Schema representing response from sending a message to a conversation."""
     answer: str

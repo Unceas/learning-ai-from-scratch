@@ -9,6 +9,7 @@ from backend.schemas.conversations import (
     ConversationCreate,
     ConversationMessageCreate,
     ConversationResponse,
+    ConversationMessagesPageResponse,
     ConversationChatResponse,
 )
 from backend.services.conversation_service import (
@@ -16,8 +17,9 @@ from backend.services.conversation_service import (
     get_conversation,
     list_conversations,
     delete_conversation,
+    get_paginated_messages,
 )
-from backend.services.rag_service import run_rag_pipeline
+from backend.services.chat_service import default_chat_service
 
 router = APIRouter()
 
@@ -72,6 +74,7 @@ def delete_user_conversation(
     """Delete an authenticated user's conversation.
     
     Enforces multi-tenant isolation: deleting another user's conversation yields 404.
+    Cascades to delete conversation messages while leaving documents intact.
     """
     deleted = delete_conversation(db, user_id=user_id, conversation_id=conversation_id)
     if not deleted:
@@ -80,6 +83,33 @@ def delete_user_conversation(
             detail=f"Conversation {conversation_id} not found."
         )
     return {"status": "deleted", "conversation_id": conversation_id}
+
+
+@router.get("/{conversation_id}/messages", response_model=ConversationMessagesPageResponse)
+def get_conversation_messages_paginated(
+    conversation_id: int,
+    limit: int = 50,
+    offset: int = 0,
+    db: Session = Depends(get_db),
+    user_id: str = Depends(get_current_user)
+):
+    """Retrieve paginated messages for an authenticated user's conversation.
+    
+    Enforces multi-tenant isolation: accessing another user's messages yields 404.
+    """
+    page_data = get_paginated_messages(
+        db,
+        user_id=user_id,
+        conversation_id=conversation_id,
+        limit=limit,
+        offset=offset
+    )
+    if page_data is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Conversation {conversation_id} not found."
+        )
+    return page_data
 
 
 @router.post("/{conversation_id}/messages", response_model=ConversationChatResponse)
@@ -91,42 +121,35 @@ def send_conversation_message(
 ):
     """Send a message to a conversation.
     
-    Loads recent conversation history, rewrites the query into a standalone query,
-    executes RAG retrieval using the standalone query, synthesizes the answer,
-    records the exchange in conversation memory, and returns the response with
-    source attribution and query rewrite tracking.
+    Orchestrates query rewriting, RAG retrieval, answer generation, and message
+    persistence via ChatService.
     """
-    conv = get_conversation(db, user_id=user_id, conversation_id=conversation_id)
-    if not conv:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Conversation {conversation_id} not found."
-        )
-
     try:
-        rag_res = run_rag_pipeline(
-            query=payload.message,
-            filename=payload.filename,
-            user_id=user_id,
+        result = default_chat_service.chat(
             db=db,
-            conversation_id=conversation_id
+            user_id=user_id,
+            message=payload.message,
+            conversation_id=conversation_id,
+            filename=payload.filename
         )
 
         return ConversationChatResponse(
-            answer=rag_res["answer"],
-            sources=rag_res.get("sources", []),
-            query=rag_res.get("query", {
+            answer=result["answer"],
+            sources=result.get("sources", []),
+            query=result.get("query", {
                 "original": payload.message,
-                "rewritten": rag_res.get("rewritten_query", payload.message)
+                "rewritten": result.get("rewritten_query", payload.message)
             }),
             conversation_id=conversation_id,
-            citation_map=rag_res.get("citation_map"),
-            invalid_citations=rag_res.get("invalid_citations", []),
-            subqueries=rag_res.get("subqueries", []),
-            expanded_queries=rag_res.get("expanded_queries", []),
-            used_hyde=rag_res.get("used_hyde", False),
+            citation_map=result.get("citation_map"),
+            invalid_citations=result.get("invalid_citations", []),
+            subqueries=result.get("subqueries", []),
+            expanded_queries=result.get("expanded_queries", []),
+            used_hyde=result.get("used_hyde", False),
             user_id=user_id
         )
+    except HTTPException:
+        raise
     except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

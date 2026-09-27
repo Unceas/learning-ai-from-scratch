@@ -1,45 +1,44 @@
-"""Chat API route handling query generation endpoints."""
+"""Chat API route handling query generation and conversation chat orchestration."""
 
 from fastapi import APIRouter, HTTPException, Depends
-from backend.schemas.requests import ChatRequest, ChatResponse
-from backend.services.agent_service import AgentService
+from sqlalchemy.orm import Session
+from backend.database import get_db
+from backend.schemas.chat import ChatRequest, ChatResponse
+from backend.services.chat_service import default_chat_service
 from backend.dependencies import get_current_user
 
 router = APIRouter()
-agent_service = AgentService()
+chat_service = default_chat_service
 
 
 @router.post("/", response_model=ChatResponse)
 def chat(
     request: ChatRequest,
+    db: Session = Depends(get_db),
     user_id: str = Depends(get_current_user)
 ):
-    """Execute chat query via AgentService layer with error handling and request validation."""
+    """Execute chat query via ChatService layer with conversation management and error handling."""
     try:
-        result = agent_service.run(
-            query=request.query,
-            user_id=user_id,
-            filename=request.filename,
-            conversation_id=request.conversation_id
-        )
+        message = request.get_message()
+    except ValueError as val_err:
+        raise HTTPException(
+            status_code=400,
+            detail=str(val_err)
+        ) from val_err
 
-        return ChatResponse(
-            answer=result["answer"],
-            sources=result.get("sources", []),
-            citation_map=result.get("citation_map"),
-            invalid_citations=result.get("invalid_citations", []),
-            document_sources=result.get("document_sources", []),
-            subqueries=result.get("subqueries"),
-            expanded_queries=result.get("expanded_queries"),
-            used_hyde=result.get("used_hyde"),
-            query_type=result.get("query_type"),
-            query=result.get("query"),
-            conversation_id=result.get("conversation_id"),
+    try:
+        result = chat_service.chat(
+            db=db,
             user_id=user_id,
-            latency_ms=result.get("latency_ms")
+            message=message,
+            conversation_id=request.conversation_id,
+            filename=request.filename
         )
+        return ChatResponse(**result)
+    except HTTPException:
+        raise
     except Exception as exc:
         raise HTTPException(
             status_code=500,
-            detail="AI processing failed."
+            detail=f"AI processing failed: {str(exc)}"
         ) from exc
