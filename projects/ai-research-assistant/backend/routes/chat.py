@@ -11,6 +11,7 @@ router = APIRouter()
 chat_service = default_chat_service
 
 
+@router.post("", response_model=ChatResponse, include_in_schema=False)
 @router.post("/", response_model=ChatResponse)
 def chat(
     request: ChatRequest,

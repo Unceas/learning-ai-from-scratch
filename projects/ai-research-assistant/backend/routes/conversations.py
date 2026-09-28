@@ -24,6 +24,7 @@ from backend.services.chat_service import default_chat_service
 router = APIRouter()
 
 
+@router.post("", response_model=ConversationResponse, status_code=status.HTTP_201_CREATED, include_in_schema=False)
 @router.post("/", response_model=ConversationResponse, status_code=status.HTTP_201_CREATED)
 def create_new_conversation(
     payload: ConversationCreate,
@@ -35,6 +36,7 @@ def create_new_conversation(
     return conv
 
 
+@router.get("", response_model=List[ConversationResponse], include_in_schema=False)
 @router.get("/", response_model=List[ConversationResponse])
 def get_user_conversations(
     limit: int = 50,

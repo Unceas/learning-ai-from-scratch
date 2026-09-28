@@ -29,6 +29,7 @@ document_service = DocumentService()
 vector_store = VectorStore()
 
 
+@router.get("", response_model=DocumentListResponse, include_in_schema=False)
 @router.get("/", response_model=DocumentListResponse)
 def get_documents(
     db: Session = Depends(get_db),

@@ -980,6 +980,37 @@ Features:
 - **Decoupled Lifecycle**: Deleting a conversation cascades to delete its stored messages via database foreign keys, but leaves uploaded documents completely intact.
 - **Multi-Tenant Retrieval Isolation**: Conversational memory and query rewriting respect document tenant boundaries—users can only retrieve chunks from documents they own.
 
+## Research Assistant Frontend Foundation (Day 151)
+
+Establishes a modular React/Vite frontend architecture connected to the FastAPI backend, preparing the presentation layer for full conversational research and document management.
+
+```text
+       React Browser UI (Vite @ port 5173)
+           │
+     src/api/client.js (Auto Bearer Auth Bridge)
+     ┌─────┴───────────────┬───────────────────┐
+     ▼                     ▼                   ▼
+  chat.js             documents.js      conversations.js
+     │                     │                   │
+     └──────────────┬──────┴───────────────────┘
+                    ▼
+          FastAPI CORSMiddleware
+        (http://localhost:5173 allowed)
+                    │
+         POST /api/chat/   GET /api/documents/   GET /api/conversations
+                    │
+           AI Research Backend
+```
+
+Features:
+- **FastAPI CORS Integration (`backend/main.py`)**: Enables secure cross-origin requests from Vite dev server origins (`http://localhost:5173`, `http://127.0.0.1:5173`, `http://localhost:3000`).
+- **Standardized API Client (`frontend/src/api/client.js`)**: Base `apiFetch` with automatic JSON header setting, FormData pass-through for file uploads, standard error translation, and a development JWT token bridge.
+- **Chat API Wrapper (`frontend/src/api/chat.js`)**: `sendMessage(message, conversationId, filename)` targeting `/api/chat/`.
+- **Documents API Wrapper (`frontend/src/api/documents.js`)**: `getDocuments()`, `getDocumentStatus(id)`, `retryDocument(id)`, `deleteDocument(fileHash)`, and `uploadDocument(file)`.
+- **Conversations API Wrapper (`frontend/src/api/conversations.js`)**: `getConversations()`, `getConversation(id)`, `createConversation(title)`, `deleteConversation(id)`, and `getConversationMessages(id)`.
+- **Modular Frontend Skeleton**: Structured directories (`api/`, `components/chat/`, `components/documents/`, `components/sources/`, `hooks/`, `pages/`), `.env`, `.env.example`, `vite.config.js`, and clean `index.css`.
+- **Fast Production Bundling**: Verified with Vite `npm run build` compiling in ~150ms.
+
 ## Project Structure
 
 ```text
@@ -1042,6 +1073,23 @@ ai-research-assistant/
 │       ├── rag.py
 │       ├── chat.py
 │       └── conversation.py
+├── frontend/
+│   ├── src/
+│   │   ├── api/
+│   │   │   ├── client.js
+│   │   │   ├── chat.js
+│   │   │   ├── documents.js
+│   │   │   └── conversations.js
+│   │   ├── components/
+│   │   ├── hooks/
+│   │   ├── pages/
+│   │   ├── App.jsx
+│   │   ├── index.css
+│   │   └── main.jsx
+│   ├── .env.example
+│   ├── index.html
+│   ├── package.json
+│   └── vite.config.js
 ├── alembic/
 │   ├── versions/
 │   │   ├── cd265f0ad5bd_create_users_and_documents.py
@@ -1124,6 +1172,7 @@ ai-research-assistant/
 ├── test_rag_query_expansion_hyde.py
 ├── test_rag_conversation_memory.py
 ├── test_session_chat_architecture.py
+├── test_frontend_integration.py
 ├── test_full_suite.py
 ├── llm.py
 ├── prompts.py
@@ -1137,7 +1186,19 @@ ai-research-assistant/
 
 ## Run Locally
 
+### 1. Backend Service (FastAPI)
+
 ```powershell
 pip install -r requirements.txt
-streamlit run app_streamlit.py
+uvicorn backend.main:app --port 8000
 ```
+
+### 2. Frontend Application (React + Vite)
+
+```powershell
+cd frontend
+npm install
+npm run dev
+```
+
+The application runs on `http://localhost:5173` and communicates directly with the FastAPI backend at `http://localhost:8000`.
