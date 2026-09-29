@@ -1011,6 +1011,49 @@ Features:
 - **Modular Frontend Skeleton**: Structured directories (`api/`, `components/chat/`, `components/documents/`, `components/sources/`, `hooks/`, `pages/`), `.env`, `.env.example`, `vite.config.js`, and clean `index.css`.
 - **Fast Production Bundling**: Verified with Vite `npm run build` compiling in ~150ms.
 
+## Chat State & useChat (Day 152)
+
+Transforms the frontend into an active conversational research workspace powered by the custom `useChat` hook, optimistic state updates, auto-scrolling dialogue, and source attribution badges.
+
+```text
+                 React
+                   │
+            ┌──────┴──────┐
+            │             │
+       ChatWindow     ChatInput
+            │             │
+            └──────┬──────┘
+                   │
+                useChat
+                   │
+              api/chat.js
+                   │
+              client.js
+                   │
+             FastAPI /api/chat
+                   │
+              ChatService
+                   │
+       ┌───────────┼────────────┐
+       │           │            │
+  Query Rewrite  Retrieval     RAG
+       │           │            │
+       └───────────┴────────────┘
+                   │
+              ChatResponse
+                   │
+          answer + sources
+```
+
+Features:
+- **`useChat` Hook (`frontend/src/hooks/useChat.js`)**: Encapsulates conversational state (`messages`, `conversationId`, `conversations`, `loading`, `error`), optimistic message dispatching, backend turn integration, session recovery, and reset behavior.
+- **Immediate Optimistic Updates**: Appends user questions immediately to local state (`role: "user"`) with a client-generated UUID before the asynchronous network request starts.
+- **Single-Roundtrip Session Provisioning**: Dispatches first message with `conversation_id: null` to allow `ChatService` to auto-provision the conversation and return `conversation_id`, eliminating redundant initial requests.
+- **Conversational Context Continuity**: Automatically propagates returned `conversation_id` on subsequent follow-up queries, preserving backend query rewriting and context resolution.
+- **`ChatInput` Component (`frontend/src/components/chat/ChatInput.jsx`)**: Supports `Enter` to send, `Shift+Enter` for multiline input, auto-clearing upon submission, and disabled state handling.
+- **`MessageBubble` Component (`frontend/src/components/chat/MessageBubble.jsx`)**: Differentiates user vs assistant turns with dedicated styling and renders structured source badges (`[S1]`, `[S2]`).
+- **`TypingIndicator` & `ChatWindow`**: Animated "Thinking..." indicator during active generation and auto-scroll to bottom via `scrollIntoView`.
+
 ## Project Structure
 
 ```text
@@ -1081,7 +1124,13 @@ ai-research-assistant/
 │   │   │   ├── documents.js
 │   │   │   └── conversations.js
 │   │   ├── components/
+│   │   │   └── chat/
+│   │   │       ├── ChatInput.jsx
+│   │   │       ├── ChatWindow.jsx
+│   │   │       ├── MessageBubble.jsx
+│   │   │       └── TypingIndicator.jsx
 │   │   ├── hooks/
+│   │   │   └── useChat.js
 │   │   ├── pages/
 │   │   ├── App.jsx
 │   │   ├── index.css
@@ -1173,6 +1222,7 @@ ai-research-assistant/
 ├── test_rag_conversation_memory.py
 ├── test_session_chat_architecture.py
 ├── test_frontend_integration.py
+├── test_chat_state_usechat.py
 ├── test_full_suite.py
 ├── llm.py
 ├── prompts.py

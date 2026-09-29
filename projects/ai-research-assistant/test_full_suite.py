@@ -34,7 +34,8 @@ TEST_SCRIPTS = [
     "test_rag_query_expansion_hyde.py",
     "test_rag_conversation_memory.py",
     "test_session_chat_architecture.py",
-    "test_frontend_integration.py"
+    "test_frontend_integration.py",
+    "test_chat_state_usechat.py"
 ]
 
 

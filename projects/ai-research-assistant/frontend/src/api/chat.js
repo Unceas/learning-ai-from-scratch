@@ -8,7 +8,7 @@ import { apiFetch } from "./client";
  * @param {string|null} [filename=null] - Optional document scope filter.
  * @returns {Promise<Object>} Chat response with answer, sources, and conversation ID.
  */
-export async function sendMessage(
+export function sendMessage(
   message,
   conversationId = null,
   filename = null
@@ -22,7 +22,7 @@ export async function sendMessage(
     payload.filename = filename;
   }
 
-  return apiFetch("/api/chat/", {
+  return apiFetch("/api/chat", {
     method: "POST",
     body: JSON.stringify(payload),
   });
