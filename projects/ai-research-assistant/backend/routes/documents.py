@@ -204,14 +204,19 @@ def retry_document(
     }
 
 
-@router.delete("/{file_hash}")
+@router.delete("/{identifier}")
 def delete_document(
-    file_hash: str,
+    identifier: str,
     db: Session = Depends(get_db),
     user_id: str = Depends(get_current_user)
 ):
     """Delete document entry from SQLite, purge stored file via storage abstraction, and delete vectors from ChromaDB."""
-    document = get_document(db, user_id, file_hash)
+    document = None
+    if identifier.isdigit():
+        document = get_document_by_id(db, user_id, int(identifier))
+    if not document:
+        document = get_document(db, user_id, identifier)
+
     if not document:
         raise DocumentNotFoundError()
 
@@ -219,10 +224,11 @@ def delete_document(
         storage.delete(document.storage_path)
 
     vector_store.delete_by_document_id(document.id)
-    vector_store.delete_document(user_id, file_hash)
-    delete_document_record(db, user_id, file_hash)
+    vector_store.delete_document(user_id, document.file_hash)
+    delete_document_record(db, user_id, document.file_hash)
 
     return {
         "status": "deleted",
-        "file_hash": file_hash
+        "id": document.id,
+        "file_hash": document.file_hash
     }

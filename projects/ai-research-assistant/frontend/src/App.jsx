@@ -1,51 +1,35 @@
-import ChatWindow from "./components/chat/ChatWindow";
-import ChatInput from "./components/chat/ChatInput";
-import { useChat } from "./hooks/useChat";
+import { useState } from "react";
+import Documents from "./pages/Documents";
+import Chat from "./pages/Chat";
 
 function App() {
-  const {
-    messages,
-    loading,
-    error,
-    send,
-    newChat,
-  } = useChat();
+  const [page, setPage] = useState("chat");
 
   return (
-    <main className="app">
-      <header className="app-header">
-        <div>
-          <h1>AI Research Assistant</h1>
-          <p>
-            Ask questions across your research
-            documents.
-          </p>
-        </div>
+    <div className="app-container">
+      <nav className="main-nav">
+        <button
+          type="button"
+          className={`nav-btn ${page === "chat" ? "active" : ""}`}
+          onClick={() => setPage("chat")}
+        >
+          Chat
+        </button>
 
         <button
           type="button"
-          onClick={newChat}
+          className={`nav-btn ${page === "documents" ? "active" : ""}`}
+          onClick={() => setPage("documents")}
         >
-          New Chat
+          Documents
         </button>
-      </header>
+      </nav>
 
-      <ChatWindow
-        messages={messages}
-        loading={loading}
-      />
-
-      {error && (
-        <div className="error-message">
-          {error}
-        </div>
-      )}
-
-      <ChatInput
-        onSend={send}
-        disabled={loading}
-      />
-    </main>
+      <div className="page-content">
+        {page === "chat" && <Chat />}
+        {page === "documents" && <Documents />}
+      </div>
+    </div>
   );
 }
 

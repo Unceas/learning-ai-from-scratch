@@ -28,12 +28,12 @@ export function retryDocument(id) {
 }
 
 /**
- * Delete a document by file hash across storage, database, and vector index.
+ * Delete a document by ID or file hash across storage, database, and vector index.
  *
- * @param {string} fileHash - Document SHA-256 hash.
+ * @param {number|string} id - Document ID or SHA-256 hash.
  */
-export function deleteDocument(fileHash) {
-  return apiFetch(`/api/documents/${fileHash}`, {
+export function deleteDocument(id) {
+  return apiFetch(`/api/documents/${id}`, {
     method: "DELETE",
   });
 }

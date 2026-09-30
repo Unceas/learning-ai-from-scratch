@@ -1054,6 +1054,46 @@ Features:
 - **`MessageBubble` Component (`frontend/src/components/chat/MessageBubble.jsx`)**: Differentiates user vs assistant turns with dedicated styling and renders structured source badges (`[S1]`, `[S2]`).
 - **`TypingIndicator` & `ChatWindow`**: Animated "Thinking..." indicator during active generation and auto-scroll to bottom via `scrollIntoView`.
 
+## Document State, Upload & Processing (Day 153)
+
+Connects the asynchronous backend document ingestion pipeline to the frontend via the `useDocuments` hook, recursive status polling, status-grouped lists, drag-and-drop PDF uploading, and retry/deletion operations.
+
+```text
+                     React
+                       │
+            ┌──────────┴──────────┐
+            │                     │
+          Chat                Documents
+            │                     │
+        useChat             useDocuments
+            │                     │
+        chat API            document API
+            │                     │
+            └──────────┬──────────┘
+                       │
+                     FastAPI
+                       │
+          ┌────────────┴────────────┐
+          │                         │
+       /api/chat              /api/documents
+          │                         │
+      ChatService              DocumentService
+                                    │
+                             Background Worker
+                                    │
+                          extract → chunk → embed
+                                    │
+                                  Chroma
+```
+
+Features:
+- **`useDocuments` Hook (`frontend/src/hooks/useDocuments.js`)**: Encapsulates document state (`documents`, `loading`, `uploading`, `error`), document fetching, multipart PDF uploading, failed document retry, and document removal.
+- **Recursive Status Polling**: Identifies documents with `status === "processing"` and polls `GET /api/documents/{id}` at controlled intervals (2.5s) until transitioning to `"indexed"` or `"failed"`, avoiding stale intervals and unnecessary network traffic.
+- **Status-Grouped Presentation (`DocumentList.jsx`)**: Automatically groups documents into distinct "Processing", "Indexed", and "Failed" categories, reflecting authoritative backend state rather than client-inferred properties.
+- **Drag-and-Drop PDF Upload (`UploadDocument.jsx`)**: Clean upload zone supporting drag-and-drop and file browser selection with client-side PDF type validation.
+- **Resilient Operations (`DocumentCard.jsx`)**: Displays chunk counts for indexed documents, error messages and a "Retry" button for failed ingestions, and a "Delete" button that purges records across SQLite, storage, and ChromaDB.
+- **Dual-Identifier Deletion (`backend/routes/documents.py`)**: Enhanced `DELETE /api/documents/{identifier}` to transparently handle both integer document IDs and SHA-256 file hashes while preserving strict multi-tenant isolation.
+
 ## Project Structure
 
 ```text
@@ -1124,14 +1164,21 @@ ai-research-assistant/
 │   │   │   ├── documents.js
 │   │   │   └── conversations.js
 │   │   ├── components/
-│   │   │   └── chat/
-│   │   │       ├── ChatInput.jsx
-│   │   │       ├── ChatWindow.jsx
-│   │   │       ├── MessageBubble.jsx
-│   │   │       └── TypingIndicator.jsx
+│   │   │   ├── chat/
+│   │   │   │   ├── ChatInput.jsx
+│   │   │   │   ├── ChatWindow.jsx
+│   │   │   │   ├── MessageBubble.jsx
+│   │   │   │   └── TypingIndicator.jsx
+│   │   │   └── documents/
+│   │   │       ├── DocumentCard.jsx
+│   │   │       ├── DocumentList.jsx
+│   │   │       └── UploadDocument.jsx
 │   │   ├── hooks/
-│   │   │   └── useChat.js
+│   │   │   ├── useChat.js
+│   │   │   └── useDocuments.js
 │   │   ├── pages/
+│   │   │   ├── Chat.jsx
+│   │   │   └── Documents.jsx
 │   │   ├── App.jsx
 │   │   ├── index.css
 │   │   └── main.jsx
@@ -1223,6 +1270,7 @@ ai-research-assistant/
 ├── test_session_chat_architecture.py
 ├── test_frontend_integration.py
 ├── test_chat_state_usechat.py
+├── test_document_state_upload_processing.py
 ├── test_full_suite.py
 ├── llm.py
 ├── prompts.py

@@ -35,7 +35,8 @@ TEST_SCRIPTS = [
     "test_rag_conversation_memory.py",
     "test_session_chat_architecture.py",
     "test_frontend_integration.py",
-    "test_chat_state_usechat.py"
+    "test_chat_state_usechat.py",
+    "test_document_state_upload_processing.py"
 ]
 
 
