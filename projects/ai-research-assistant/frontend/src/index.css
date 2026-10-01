@@ -129,8 +129,22 @@ input {
   justify-content: flex-start;
 }
 
-.message-bubble {
+.message-content-wrapper {
   max-width: 75%;
+  display: flex;
+  flex-direction: column;
+}
+
+.message-row.user .message-content-wrapper {
+  align-items: flex-end;
+}
+
+.message-row.assistant .message-content-wrapper {
+  align-items: flex-start;
+}
+
+.message-bubble {
+  max-width: 100%;
   padding: 12px 16px;
   border-radius: 12px;
   background: #e8e8e8;
@@ -146,26 +160,84 @@ input {
   line-height: 1.5;
 }
 
-.message-sources {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 8px;
-}
-
 .source-reference {
   display: inline-block;
-  font-size: 0.75rem;
-  font-weight: 600;
-  padding: 2px 6px;
-  background: rgba(0, 0, 0, 0.08);
+  margin-left: 4px;
+  padding: 1px 5px;
   border-radius: 4px;
-  color: #444;
+  background: #e5e5e5;
+  color: #222;
+  font-size: 0.78em;
+  font-weight: 600;
 }
 
 .message-row.user .source-reference {
   background: rgba(255, 255, 255, 0.2);
   color: #eee;
+}
+
+/* Source Attribution Styling */
+.source-list {
+  margin-top: 10px;
+  max-width: 760px;
+  width: 100%;
+}
+
+.source-list-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.source-list-header h3 {
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.source-list-header span {
+  font-size: 0.75rem;
+  color: #666;
+}
+
+.source-card {
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background: #fafafa;
+}
+
+.source-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.source-id {
+  font-weight: 700;
+  font-size: 0.8rem;
+}
+
+.source-filename {
+  flex: 1;
+  font-size: 0.88rem;
+  font-weight: 500;
+}
+
+.source-score {
+  font-size: 0.75rem;
+  padding: 3px 6px;
+  border-radius: 4px;
+  background: #e7e7e7;
+}
+
+.source-metadata {
+  display: flex;
+  gap: 12px;
+  margin-top: 6px;
+  color: #666;
+  font-size: 0.75rem;
 }
 
 .chat-input {

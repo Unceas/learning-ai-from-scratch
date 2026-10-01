@@ -1094,6 +1094,31 @@ Features:
 - **Resilient Operations (`DocumentCard.jsx`)**: Displays chunk counts for indexed documents, error messages and a "Retry" button for failed ingestions, and a "Delete" button that purges records across SQLite, storage, and ChromaDB.
 - **Dual-Identifier Deletion (`backend/routes/documents.py`)**: Enhanced `DELETE /api/documents/{identifier}` to transparently handle both integer document IDs and SHA-256 file hashes while preserving strict multi-tenant isolation.
 
+## Source Attribution UI (Day 154)
+
+Day 154 introduces end-to-end source provenance and attribution in the user interface, rendering traceable RAG outputs with clean separation between conversational answers, inline citation markers, and detailed source cards.
+
+### Architecture
+
+```text
+Assistant answer
+      │
+      ├── [S1]  (inline citation marker)
+      ├── [S2]
+      └── [S3]
+             ↓
+        Source cards (below message bubble)
+             ↓
+   filename / document / chunk / score
+```
+
+Features:
+- **Source Normalization (`frontend/src/utils/sources.js`)**: Normalizes disparate backend retrieval payloads into a reliable presentation model (`id`, `documentId`, `filename`, `chunkIndex`, `page`, `score`), shielding components from internal API schema variations.
+- **SourceCard Component (`frontend/src/components/sources/SourceCard.jsx`)**: Renders provenance cards containing source identifier `[S1]`, document filename, chunk index, document ID, page metadata, and a retrieval score badge (`Score 0.913`) rather than misleading percentage semantics.
+- **SourceList Component (`frontend/src/components/sources/SourceList.jsx`)**: Displays an ordered collection of source cards below the assistant's message bubble with item count, preserving the backend's retrieval/reranking ranking.
+- **Distinct Inline Citations (`frontend/src/components/chat/MessageBubble.jsx`)**: Scans assistant answers for citation markers `[S#]` and renders them as styled `.source-reference` tokens without breaking answer flow or crashing on unindexed/malformed markers.
+- **Independent Conversation Sources**: Maintains isolated sources per assistant response turn in multi-turn dialogues, preventing cross-turn source contamination.
+
 ## Project Structure
 
 ```text
@@ -1169,16 +1194,21 @@ ai-research-assistant/
 │   │   │   │   ├── ChatWindow.jsx
 │   │   │   │   ├── MessageBubble.jsx
 │   │   │   │   └── TypingIndicator.jsx
-│   │   │   └── documents/
-│   │   │       ├── DocumentCard.jsx
-│   │   │       ├── DocumentList.jsx
-│   │   │       └── UploadDocument.jsx
+│   │   │   ├── documents/
+│   │   │   │   ├── DocumentCard.jsx
+│   │   │   │   ├── DocumentList.jsx
+│   │   │   │   └── UploadDocument.jsx
+│   │   │   └── sources/
+│   │   │       ├── SourceCard.jsx
+│   │   │       └── SourceList.jsx
 │   │   ├── hooks/
 │   │   │   ├── useChat.js
 │   │   │   └── useDocuments.js
 │   │   ├── pages/
 │   │   │   ├── Chat.jsx
 │   │   │   └── Documents.jsx
+│   │   ├── utils/
+│   │   │   └── sources.js
 │   │   ├── App.jsx
 │   │   ├── index.css
 │   │   └── main.jsx
@@ -1271,6 +1301,7 @@ ai-research-assistant/
 ├── test_frontend_integration.py
 ├── test_chat_state_usechat.py
 ├── test_document_state_upload_processing.py
+├── test_source_attribution_ui.py
 ├── test_full_suite.py
 ├── llm.py
 ├── prompts.py

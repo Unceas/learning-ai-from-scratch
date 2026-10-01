@@ -1,7 +1,25 @@
+import SourceList from "../sources/SourceList";
+
+function formatContent(content) {
+  if (typeof content !== "string") return content;
+  const parts = content.split(/(\[S\d+\])/g);
+  if (parts.length === 1) return content;
+  return parts.map((part, index) =>
+    /^\[S\d+\]$/.test(part) ? (
+      <span key={index} className="source-reference">
+        {part}
+      </span>
+    ) : (
+      part
+    )
+  );
+}
+
 export default function MessageBubble({
   message,
 }) {
-  const isUser = message.role === "user";
+  const isUser =
+    message.role === "user";
 
   return (
     <div
@@ -9,23 +27,19 @@ export default function MessageBubble({
         isUser ? "user" : "assistant"
       }`}
     >
-      <div className="message-bubble">
-        <div className="message-content">
-          {message.content}
+      <div className="message-content-wrapper">
+        <div className="message-bubble">
+          <div className="message-content">
+            {formatContent(message.content)}
+          </div>
         </div>
 
-        {message.sources?.length > 0 && (
-          <div className="message-sources">
-            {message.sources.map((source, index) => (
-              <span
-                key={source.id || `${source.document_id}-${source.chunk_index}-${index}`}
-                className="source-reference"
-              >
-                [{source.id || "S?"}]
-              </span>
-            ))}
-          </div>
-        )}
+        {!isUser &&
+          message.sources?.length > 0 && (
+            <SourceList
+              sources={message.sources}
+            />
+          )}
       </div>
     </div>
   );

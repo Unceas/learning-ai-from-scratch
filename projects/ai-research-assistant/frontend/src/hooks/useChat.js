@@ -4,6 +4,7 @@ import {
   getConversation,
 } from "../api/conversations";
 import { sendMessage } from "../api/chat";
+import { normalizeSource } from "../utils/sources";
 
 function generateId() {
   if (typeof crypto !== "undefined" && crypto.randomUUID) {
@@ -22,11 +23,15 @@ function createUserMessage(content) {
 }
 
 function createAssistantMessage(data) {
+  const sources = (data?.sources || []).map(
+    (source, index) => normalizeSource(source, index)
+  );
+
   return {
     id: generateId(),
     role: "assistant",
     content: data?.answer || "",
-    sources: data?.sources || [],
+    sources,
   };
 }
 
@@ -102,7 +107,9 @@ export function useChat() {
             id: message.id || generateId(),
             role: message.role,
             content: message.content,
-            sources: message.sources || [],
+            sources: (message.sources || []).map((source, index) =>
+              normalizeSource(source, index)
+            ),
           }))
         );
       } catch (err) {

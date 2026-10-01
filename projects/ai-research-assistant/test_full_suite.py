@@ -36,7 +36,8 @@ TEST_SCRIPTS = [
     "test_session_chat_architecture.py",
     "test_frontend_integration.py",
     "test_chat_state_usechat.py",
-    "test_document_state_upload_processing.py"
+    "test_document_state_upload_processing.py",
+    "test_source_attribution_ui.py"
 ]
 
 
