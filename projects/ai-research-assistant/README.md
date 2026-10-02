@@ -1119,6 +1119,52 @@ Features:
 - **Distinct Inline Citations (`frontend/src/components/chat/MessageBubble.jsx`)**: Scans assistant answers for citation markers `[S#]` and renders them as styled `.source-reference` tokens without breaking answer flow or crashing on unindexed/malformed markers.
 - **Independent Conversation Sources**: Maintains isolated sources per assistant response turn in multi-turn dialogues, preventing cross-turn source contamination.
 
+## Conversation History & Sidebar (Day 155)
+
+Day 155 transforms the chat interface into a complete research workspace by adding persistent conversation lifecycle management, an interactive sidebar for session switching, fresh conversation provisioning, and session deletion.
+
+### Architecture
+
+```text
+                         App
+                          │
+                 ┌────────┴────────┐
+                 │                 │
+               Chat           Documents
+                 │
+       ┌─────────┴─────────┐
+       │                   │
+ConversationSidebar     ChatMain
+       │                   │
+       │             ┌─────┴─────┐
+       │             │           │
+       │        ChatWindow   ChatInput
+       │             │
+       │        MessageBubble
+       │             │
+       │        SourceList
+       │
+       └──────────────┐
+                      ↓
+                   useChat
+                      │
+        ┌─────────────┼─────────────┐
+        ↓             ↓             ↓
+ conversations      chat       conversation
+     API             API            API
+        │             │             │
+        └─────────────┼─────────────┘
+                      ↓
+                   FastAPI
+```
+
+Features:
+- **`useChat` Complete Lifecycle (`frontend/src/hooks/useChat.js`)**: Encapsulates conversation list state (`conversations`, `conversationsLoading`), active session selection (`conversationId`), and complete CRUD operations (`loadConversations`, `loadConversation`, `send`, `newChat`, `removeConversation`).
+- **Interactive Sidebar (`frontend/src/components/sidebar/ConversationSidebar.jsx`)**: Chronological listing of research conversations with active state highlighting, "+ New Chat" reset button, and individual deletion controls.
+- **Auto-Provisioning & State Sync**: First message sent without an active ID automatically provisions a database session and refreshes the sidebar list. Subsequent queries in that session preserve the conversation ID.
+- **Multi-Tenant Session Isolation**: Conversations and messages are strictly partitioned per authenticated user; cross-tenant operations return 404.
+- **Responsive Workspace Layout (`frontend/src/App.jsx`, `frontend/src/index.css`)**: Implements an `app-shell` layout with sticky `top-nav` navigation and media queries adapting sidebar width on mobile screens.
+
 ## Project Structure
 
 ```text
@@ -1198,6 +1244,8 @@ ai-research-assistant/
 │   │   │   │   ├── DocumentCard.jsx
 │   │   │   │   ├── DocumentList.jsx
 │   │   │   │   └── UploadDocument.jsx
+│   │   │   ├── sidebar/
+│   │   │   │   └── ConversationSidebar.jsx
 │   │   │   └── sources/
 │   │   │       ├── SourceCard.jsx
 │   │   │       └── SourceList.jsx
@@ -1302,6 +1350,7 @@ ai-research-assistant/
 ├── test_chat_state_usechat.py
 ├── test_document_state_upload_processing.py
 ├── test_source_attribution_ui.py
+├── test_conversation_sidebar.py
 ├── test_full_suite.py
 ├── llm.py
 ├── prompts.py

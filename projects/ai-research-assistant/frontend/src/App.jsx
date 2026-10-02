@@ -1,16 +1,16 @@
 import { useState } from "react";
-import Documents from "./pages/Documents";
 import Chat from "./pages/Chat";
+import Documents from "./pages/Documents";
 
-function App() {
+export default function App() {
   const [page, setPage] = useState("chat");
 
   return (
-    <div className="app-container">
-      <nav className="main-nav">
+    <div className="app-shell">
+      <nav className="top-nav">
         <button
           type="button"
-          className={`nav-btn ${page === "chat" ? "active" : ""}`}
+          className={page === "chat" ? "active" : ""}
           onClick={() => setPage("chat")}
         >
           Chat
@@ -18,19 +18,15 @@ function App() {
 
         <button
           type="button"
-          className={`nav-btn ${page === "documents" ? "active" : ""}`}
+          className={page === "documents" ? "active" : ""}
           onClick={() => setPage("documents")}
         >
           Documents
         </button>
       </nav>
 
-      <div className="page-content">
-        {page === "chat" && <Chat />}
-        {page === "documents" && <Documents />}
-      </div>
+      {page === "chat" && <Chat />}
+      {page === "documents" && <Documents />}
     </div>
   );
 }
-
-export default App;

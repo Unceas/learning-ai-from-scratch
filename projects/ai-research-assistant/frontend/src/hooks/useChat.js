@@ -1,8 +1,15 @@
-import { useCallback, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useState,
+} from "react";
+
 import {
   getConversations,
   getConversation,
+  deleteConversation,
 } from "../api/conversations";
+
 import { sendMessage } from "../api/chat";
 import { normalizeSource } from "../utils/sources";
 
@@ -23,15 +30,13 @@ function createUserMessage(content) {
 }
 
 function createAssistantMessage(data) {
-  const sources = (data?.sources || []).map(
-    (source, index) => normalizeSource(source, index)
-  );
-
   return {
     id: generateId(),
     role: "assistant",
     content: data?.answer || "",
-    sources,
+    sources: (data?.sources || []).map(
+      (source, index) => normalizeSource(source, index)
+    ),
   };
 }
 
@@ -41,7 +46,57 @@ export function useChat() {
   const [conversations, setConversations] = useState([]);
 
   const [loading, setLoading] = useState(false);
+  const [conversationsLoading, setConversationsLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  const loadConversations = useCallback(async () => {
+    setConversationsLoading(true);
+
+    try {
+      const data = await getConversations();
+      setConversations(data || []);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Failed to load conversations."
+      );
+    } finally {
+      setConversationsLoading(false);
+    }
+  }, []);
+
+  const loadConversation = useCallback(async (id) => {
+    setError(null);
+    setLoading(true);
+
+    try {
+      const conversation = await getConversation(id);
+
+      setConversationId(conversation.id);
+
+      const loadedMessages = (conversation.messages || []).map(
+        (message) => ({
+          id: message.id || generateId(),
+          role: message.role,
+          content: message.content,
+          sources: (message.sources || []).map(
+            (source, index) => normalizeSource(source, index)
+          ),
+        })
+      );
+
+      setMessages(loadedMessages);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Failed to load conversation."
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   const send = useCallback(
     async (content) => {
@@ -55,7 +110,6 @@ export function useChat() {
 
       const userMessage = createUserMessage(trimmed);
 
-      // Optimistic UI update
       setMessages((current) => [
         ...current,
         userMessage,
@@ -79,64 +133,22 @@ export function useChat() {
           ...current,
           assistantMessage,
         ]);
+
+        // Refresh sidebar because a new conversation/message
+        // may have changed its title/order.
+        await loadConversations();
       } catch (err) {
         setError(
           err instanceof Error
             ? err.message
-            : "Something went wrong."
+            : "Failed to send message."
         );
       } finally {
         setLoading(false);
       }
     },
-    [conversationId, loading]
+    [conversationId, loading, loadConversations]
   );
-
-  const loadConversation = useCallback(
-    async (id) => {
-      setError(null);
-      setLoading(true);
-
-      try {
-        const conversation = await getConversation(id);
-
-        setConversationId(conversation.id);
-
-        setMessages(
-          (conversation.messages || []).map((message) => ({
-            id: message.id || generateId(),
-            role: message.role,
-            content: message.content,
-            sources: (message.sources || []).map((source, index) =>
-              normalizeSource(source, index)
-            ),
-          }))
-        );
-      } catch (err) {
-        setError(
-          err instanceof Error
-            ? err.message
-            : "Failed to load conversation."
-        );
-      } finally {
-        setLoading(false);
-      }
-    },
-    []
-  );
-
-  const loadConversations = useCallback(async () => {
-    try {
-      const data = await getConversations();
-      setConversations(data);
-    } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Failed to load conversations."
-      );
-    }
-  }, []);
 
   const newChat = useCallback(() => {
     setConversationId(null);
@@ -144,16 +156,49 @@ export function useChat() {
     setError(null);
   }, []);
 
+  const removeConversation = useCallback(
+    async (id) => {
+      setError(null);
+
+      try {
+        await deleteConversation(id);
+
+        setConversations((current) =>
+          current.filter((conversation) => conversation.id !== id)
+        );
+
+        if (conversationId === id) {
+          setConversationId(null);
+          setMessages([]);
+        }
+      } catch (err) {
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Failed to delete conversation."
+        );
+      }
+    },
+    [conversationId]
+  );
+
+  useEffect(() => {
+    loadConversations();
+  }, [loadConversations]);
+
   return {
     messages,
     conversationId,
     conversations,
+
     loading,
+    conversationsLoading,
     error,
 
     send,
     loadConversation,
     loadConversations,
     newChat,
+    removeConversation,
   };
 }
