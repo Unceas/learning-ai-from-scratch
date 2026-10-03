@@ -196,9 +196,13 @@ export function useChat() {
     error,
 
     send,
+    sendMessage: send,
     loadConversation,
     loadConversations,
     newChat,
     removeConversation,
+    deleteConversation: removeConversation,
   };
 }
+
+export default useChat;

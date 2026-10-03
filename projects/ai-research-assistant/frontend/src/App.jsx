@@ -1,32 +1,24 @@
-import { useState } from "react";
+import {
+  BrowserRouter,
+  Navigate,
+  Route,
+  Routes,
+} from "react-router-dom";
+
+import AppShell from "./components/navigation/AppShell";
 import Chat from "./pages/Chat";
 import Documents from "./pages/Documents";
 
 export default function App() {
-  const [page, setPage] = useState("chat");
-
   return (
-    <div className="app-shell">
-      <nav className="top-nav">
-        <button
-          type="button"
-          className={page === "chat" ? "active" : ""}
-          onClick={() => setPage("chat")}
-        >
-          Chat
-        </button>
-
-        <button
-          type="button"
-          className={page === "documents" ? "active" : ""}
-          onClick={() => setPage("documents")}
-        >
-          Documents
-        </button>
-      </nav>
-
-      {page === "chat" && <Chat />}
-      {page === "documents" && <Documents />}
-    </div>
+    <BrowserRouter>
+      <Routes>
+        <Route element={<AppShell />}>
+          <Route path="/" element={<Navigate to="/chat" replace />} />
+          <Route path="/chat" element={<Chat />} />
+          <Route path="/documents" element={<Documents />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
   );
 }

@@ -38,7 +38,8 @@ TEST_SCRIPTS = [
     "test_chat_state_usechat.py",
     "test_document_state_upload_processing.py",
     "test_source_attribution_ui.py",
-    "test_conversation_sidebar.py"
+    "test_conversation_sidebar.py",
+    "test_app_shell_and_navigation.py"
 ]
 
 

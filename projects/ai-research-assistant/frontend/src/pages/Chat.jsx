@@ -1,7 +1,7 @@
 import ConversationSidebar from "../components/sidebar/ConversationSidebar";
 import ChatWindow from "../components/chat/ChatWindow";
 import ChatInput from "../components/chat/ChatInput";
-import { useChat } from "../hooks/useChat";
+import { useChatContext } from "../context/ChatContext";
 
 export default function Chat() {
   const {
@@ -17,7 +17,7 @@ export default function Chat() {
     loadConversation,
     newChat,
     removeConversation,
-  } = useChat();
+  } = useChatContext();
 
   return (
     <div className="chat-page">

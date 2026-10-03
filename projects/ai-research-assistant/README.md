@@ -1165,6 +1165,49 @@ Features:
 - **Multi-Tenant Session Isolation**: Conversations and messages are strictly partitioned per authenticated user; cross-tenant operations return 404.
 - **Responsive Workspace Layout (`frontend/src/App.jsx`, `frontend/src/index.css`)**: Implements an `app-shell` layout with sticky `top-nav` navigation and media queries adapting sidebar width on mobile screens.
 
+## Application Shell & Navigation (Day 156)
+
+Day 156 transitions the frontend architecture to a structured Single-Page Application (SPA) with persistent client-side routing, shared state preservation via React Context, and reusable UI states.
+
+### Architecture
+
+```text
+                   React App
+                       │
+                 ┌─────▼─────┐
+                 │ ChatProvider│
+                 └─────┬─────┘
+                       │
+                 ┌─────▼─────┐
+                 │   Router   │
+                 └─────┬─────┘
+                       │
+              ┌────────┴────────┐
+              │                 │
+           /chat           /documents
+              │                 │
+       ┌──────▼──────┐          │
+       │ Chat Page   │          │
+       └──────┬──────┘          │
+              │                 │
+       ┌──────▼──────┐   ┌──────▼──────┐
+       │ useChat     │   │useDocuments │
+       └──────┬──────┘   └──────┬──────┘
+              │                 │
+              └────────┬────────┘
+                       │
+                  API Clients
+                       │
+                    FastAPI
+```
+
+Features:
+- **Client-Side Routing (`react-router-dom`)**: Declarative routing with `<BrowserRouter>`, `<Routes>`, `<Route element={<AppShell />}>`, and automatic redirect from `/` to `/chat`.
+- **Persistent Navigation Shell (`AppShell.jsx`, `Navigation.jsx`)**: Sticky header navigation with brand identification, route links (`NavLink`), and `<Outlet />` allowing the shell to remain mounted during route transitions.
+- **Cross-Route State Preservation (`ChatContext.jsx`)**: Encapsulates `useChat()` state above route boundaries via `<ChatProvider>` in `main.jsx`, ensuring conversation history, active IDs, and messages survive navigation between `/chat` and `/documents`.
+- **Reusable Feedback States (`LoadingState.jsx`, `ErrorState.jsx`, `EmptyState.jsx`)**: Centralized components for spinner loaders, error displays with retry actions, and placeholder empty states across the application.
+- **Viewport Layout**: Full-height application shell (`calc(100vh - 64px)` workspace height) and responsive navigation collapsing on mobile viewports.
+
 ## Project Structure
 
 ```text
@@ -1240,15 +1283,24 @@ ai-research-assistant/
 │   │   │   │   ├── ChatWindow.jsx
 │   │   │   │   ├── MessageBubble.jsx
 │   │   │   │   └── TypingIndicator.jsx
+│   │   │   ├── common/
+│   │   │   │   ├── EmptyState.jsx
+│   │   │   │   ├── ErrorState.jsx
+│   │   │   │   └── LoadingState.jsx
 │   │   │   ├── documents/
 │   │   │   │   ├── DocumentCard.jsx
 │   │   │   │   ├── DocumentList.jsx
 │   │   │   │   └── UploadDocument.jsx
+│   │   │   ├── navigation/
+│   │   │   │   ├── AppShell.jsx
+│   │   │   │   └── Navigation.jsx
 │   │   │   ├── sidebar/
 │   │   │   │   └── ConversationSidebar.jsx
 │   │   │   └── sources/
 │   │   │       ├── SourceCard.jsx
 │   │   │       └── SourceList.jsx
+│   │   ├── context/
+│   │   │   └── ChatContext.jsx
 │   │   ├── hooks/
 │   │   │   ├── useChat.js
 │   │   │   └── useDocuments.js
@@ -1351,6 +1403,7 @@ ai-research-assistant/
 ├── test_document_state_upload_processing.py
 ├── test_source_attribution_ui.py
 ├── test_conversation_sidebar.py
+├── test_app_shell_and_navigation.py
 ├── test_full_suite.py
 ├── llm.py
 ├── prompts.py
