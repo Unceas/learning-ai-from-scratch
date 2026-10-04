@@ -1,4 +1,5 @@
 import SourceList from "../sources/SourceList";
+import FailedMessage from "./FailedMessage";
 
 function formatContent(content) {
   if (typeof content !== "string") return content;
@@ -17,9 +18,12 @@ function formatContent(content) {
 
 export default function MessageBubble({
   message,
+  onRetry,
 }) {
   const isUser =
     message.role === "user";
+
+  const statusClass = message.status ? `message-${message.status}` : "";
 
   return (
     <div
@@ -28,11 +32,17 @@ export default function MessageBubble({
       }`}
     >
       <div className="message-content-wrapper">
-        <div className="message-bubble">
+        <div className={`message-bubble ${statusClass}`}>
           <div className="message-content">
             {formatContent(message.content)}
           </div>
         </div>
+
+        {isUser && message.status === "failed" && (
+          <FailedMessage
+            onRetry={() => onRetry && onRetry(message)}
+          />
+        )}
 
         {!isUser &&
           message.sources?.length > 0 && (

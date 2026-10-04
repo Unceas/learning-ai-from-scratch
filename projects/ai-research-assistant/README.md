@@ -1208,6 +1208,47 @@ Features:
 - **Reusable Feedback States (`LoadingState.jsx`, `ErrorState.jsx`, `EmptyState.jsx`)**: Centralized components for spinner loaders, error displays with retry actions, and placeholder empty states across the application.
 - **Viewport Layout**: Full-height application shell (`calc(100vh - 64px)` workspace height) and responsive navigation collapsing on mobile viewports.
 
+## Chat UX & API Resilience (Day 157)
+
+Day 157 hardens the chat user experience into an addressable, fault-tolerant research tool with URL synchronization, optimistic UI tracking, retry recovery, explicit asynchronous states, and network timeouts.
+
+### Architecture
+
+```text
+                         Browser
+                            │
+                     React Router
+                            │
+              ┌─────────────┴─────────────┐
+              │                           │
+          /chat/:id                  /documents
+              │
+         ChatProvider
+              │
+          useChat
+              │
+        ┌─────┴─────┐
+        │           │
+     Optimistic   API client
+      messages       │ (60s timeout, normalized errors)
+        │            │
+        │         FastAPI
+        │            │
+        │       ChatService
+        │            │
+        │       RAG pipeline
+        │
+    Retry / error
+       recovery
+```
+
+Features:
+- **URL-Addressable Sessions (`/chat/:conversationId`)**: Route-synchronized chat workspaces allowing direct deep-linking, bookmarking, and page refreshes without losing conversational context.
+- **First-Message Navigation**: Queries initiated on `/chat` automatically navigate to `/chat/{conversation_id}` via `replace: true`, updating history cleanly.
+- **Fault-Tolerant Optimistic Messaging**: Dispatched messages remain visible on failure with status `failed` and inline `FailedMessage` component providing single-click `Retry` without losing original draft content.
+- **Granular Lifecycle States**: Distinguishes `sending` (answer generation), `loadingConversation` (session hydration), and `conversationsLoading` (sidebar polling), preventing premature empty screens or duplicate form submissions.
+- **Client Timeout & Normalized Errors (`client.js`)**: Enforces 60-second fetch timeouts via `AbortController` and maps HTTP statuses (401, 404, 500+) to friendly user explanations with `getUserError`.
+
 ## Project Structure
 
 ```text
@@ -1281,6 +1322,7 @@ ai-research-assistant/
 │   │   │   ├── chat/
 │   │   │   │   ├── ChatInput.jsx
 │   │   │   │   ├── ChatWindow.jsx
+│   │   │   │   ├── FailedMessage.jsx
 │   │   │   │   ├── MessageBubble.jsx
 │   │   │   │   └── TypingIndicator.jsx
 │   │   │   ├── common/
@@ -1404,6 +1446,7 @@ ai-research-assistant/
 ├── test_source_attribution_ui.py
 ├── test_conversation_sidebar.py
 ├── test_app_shell_and_navigation.py
+├── test_chat_ux_and_resilience.py
 ├── test_full_suite.py
 ├── llm.py
 ├── prompts.py

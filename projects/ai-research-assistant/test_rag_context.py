@@ -145,11 +145,12 @@ async def test_api_integration():
         doc_id = res_upload.json()["document_id"]
 
         # Wait for indexing
-        for _ in range(30):
+        for _ in range(50):
             st = (await client.get(f"/api/documents/{doc_id}", headers=headers)).json()
             if st["status"] == "indexed":
                 break
             await asyncio.sleep(0.5)
+        assert st["status"] == "indexed", f"Document failed to index in time: {st}"
 
         # Query after indexing
         res_chat = await client.post("/api/chat/", json={"query": "What temperature do superconducting qubits operate at?"}, headers=headers)

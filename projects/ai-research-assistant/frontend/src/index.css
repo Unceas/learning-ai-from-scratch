@@ -332,6 +332,35 @@ input {
   line-height: 1.5;
 }
 
+.message-pending {
+  opacity: 0.65;
+}
+
+.message-failed {
+  border: 1px solid #d4d4d4;
+  background: #fdf2f2 !important;
+  color: #333 !important;
+}
+
+.failed-message {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 6px;
+  color: #a00;
+  font-size: 13px;
+}
+
+.failed-message button {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: #171717;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
 .source-reference {
   display: inline-block;
   margin-left: 4px;

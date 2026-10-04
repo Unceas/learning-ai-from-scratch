@@ -10,7 +10,8 @@ import {
   deleteConversation,
 } from "../api/conversations";
 
-import { sendMessage } from "../api/chat";
+import { sendMessage as sendChatMessage } from "../api/chat";
+import { getUserError } from "../api/client";
 import { normalizeSource } from "../utils/sources";
 
 function generateId() {
@@ -20,32 +21,13 @@ function generateId() {
   return String(Date.now()) + "-" + Math.random().toString(36).slice(2, 9);
 }
 
-function createUserMessage(content) {
-  return {
-    id: generateId(),
-    role: "user",
-    content,
-    sources: [],
-  };
-}
-
-function createAssistantMessage(data) {
-  return {
-    id: generateId(),
-    role: "assistant",
-    content: data?.answer || "",
-    sources: (data?.sources || []).map(
-      (source, index) => normalizeSource(source, index)
-    ),
-  };
-}
-
 export function useChat() {
   const [messages, setMessages] = useState([]);
   const [conversationId, setConversationId] = useState(null);
   const [conversations, setConversations] = useState([]);
 
-  const [loading, setLoading] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [loadingConversation, setLoadingConversation] = useState(false);
   const [conversationsLoading, setConversationsLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -56,98 +38,117 @@ export function useChat() {
       const data = await getConversations();
       setConversations(data || []);
     } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Failed to load conversations."
-      );
+      setError(getUserError(err));
     } finally {
       setConversationsLoading(false);
     }
   }, []);
 
   const loadConversation = useCallback(async (id) => {
+    if (!id) return;
     setError(null);
-    setLoading(true);
+    setLoadingConversation(true);
 
     try {
       const conversation = await getConversation(id);
-
       setConversationId(conversation.id);
 
-      const loadedMessages = (conversation.messages || []).map(
-        (message) => ({
-          id: message.id || generateId(),
-          role: message.role,
-          content: message.content,
-          sources: (message.sources || []).map(
-            (source, index) => normalizeSource(source, index)
-          ),
-        })
-      );
+      const loadedMessages = (conversation.messages || []).map((message) => ({
+        id: message.id || generateId(),
+        role: message.role,
+        content: message.content,
+        status: "sent",
+        sources: (message.sources || []).map((source, index) =>
+          normalizeSource(source, index)
+        ),
+      }));
 
       setMessages(loadedMessages);
+      return conversation;
     } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Failed to load conversation."
-      );
+      setError(getUserError(err));
     } finally {
-      setLoading(false);
+      setLoadingConversation(false);
     }
   }, []);
 
   const send = useCallback(
     async (content) => {
-      const trimmed = content.trim();
+      const trimmed = content?.trim() || "";
 
-      if (!trimmed || loading) {
-        return;
+      if (!trimmed || sending) {
+        return null;
       }
 
       setError(null);
 
-      const userMessage = createUserMessage(trimmed);
+      const optimisticId = `temp-${Date.now()}`;
+      const optimisticMessage = {
+        id: optimisticId,
+        role: "user",
+        content: trimmed,
+        status: "pending",
+        sources: [],
+      };
 
-      setMessages((current) => [
-        ...current,
-        userMessage,
-      ]);
-
-      setLoading(true);
+      setMessages((prev) => [...prev, optimisticMessage]);
+      setSending(true);
 
       try {
-        const response = await sendMessage(
-          trimmed,
-          conversationId
-        );
+        const response = await sendChatMessage(trimmed, conversationId);
+
+        setMessages((prev) => [
+          ...prev.map((msg) =>
+            msg.id === optimisticId
+              ? { ...msg, status: "sent" }
+              : msg
+          ),
+          {
+            id: `assistant-${Date.now()}`,
+            role: "assistant",
+            content: response?.answer || "",
+            status: "sent",
+            sources: (response?.sources || []).map((source, index) =>
+              normalizeSource(source, index)
+            ),
+          },
+        ]);
 
         if (response && response.conversation_id) {
           setConversationId(response.conversation_id);
         }
 
-        const assistantMessage = createAssistantMessage(response);
-
-        setMessages((current) => [
-          ...current,
-          assistantMessage,
-        ]);
-
-        // Refresh sidebar because a new conversation/message
-        // may have changed its title/order.
         await loadConversations();
+        return response;
       } catch (err) {
-        setError(
-          err instanceof Error
-            ? err.message
-            : "Failed to send message."
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === optimisticId
+              ? { ...msg, status: "failed" }
+              : msg
+          )
         );
+        setError(getUserError(err));
+        return null;
       } finally {
-        setLoading(false);
+        setSending(false);
       }
     },
-    [conversationId, loading, loadConversations]
+    [conversationId, sending, loadConversations]
+  );
+
+  const retryMessage = useCallback(
+    async (failedMessage) => {
+      if (!failedMessage?.content || sending) return null;
+
+      // Remove the failed temporary message before retrying
+      setMessages((prev) =>
+        prev.filter((msg) => msg.id !== failedMessage.id)
+      );
+
+      return await send(failedMessage.content);
+    },
+    [send, sending]
   );
 
   const newChat = useCallback(() => {
@@ -172,11 +173,7 @@ export function useChat() {
           setMessages([]);
         }
       } catch (err) {
-        setError(
-          err instanceof Error
-            ? err.message
-            : "Failed to delete conversation."
-        );
+        setError(getUserError(err));
       }
     },
     [conversationId]
@@ -191,12 +188,15 @@ export function useChat() {
     conversationId,
     conversations,
 
-    loading,
+    sending,
+    loadingConversation,
     conversationsLoading,
+    loading: sending || loadingConversation,
     error,
 
     send,
     sendMessage: send,
+    retryMessage,
     loadConversation,
     loadConversations,
     newChat,

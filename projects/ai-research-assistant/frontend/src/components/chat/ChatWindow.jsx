@@ -1,39 +1,41 @@
 import { useEffect, useRef } from "react";
 import MessageBubble from "./MessageBubble";
 import TypingIndicator from "./TypingIndicator";
+import EmptyState from "../common/EmptyState";
 
 export default function ChatWindow({
-  messages,
-  loading,
+  messages = [],
+  sending = false,
+  loading = false,
+  onRetry,
 }) {
   const bottomRef = useRef(null);
+  const isWaiting = sending || loading;
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({
       behavior: "smooth",
     });
-  }, [messages, loading]);
+  }, [messages, isWaiting]);
 
   return (
     <section className="chat-window">
-      {messages.length === 0 && !loading ? (
-        <div className="empty-chat">
-          <h2>Research Assistant</h2>
-          <p>
-            Ask a question about the documents
-            you've uploaded.
-          </p>
-        </div>
+      {messages.length === 0 && !isWaiting ? (
+        <EmptyState
+          title="Start your research"
+          description="Ask a question about the documents you've uploaded."
+        />
       ) : (
         messages.map((message) => (
           <MessageBubble
             key={message.id}
             message={message}
+            onRetry={onRetry}
           />
         ))
       )}
 
-      {loading && <TypingIndicator />}
+      {isWaiting && <TypingIndicator />}
 
       <div ref={bottomRef} />
     </section>

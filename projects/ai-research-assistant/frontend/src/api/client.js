@@ -1,20 +1,52 @@
 /**
- * Base API client with configuration, error handling, and development token bridge.
+ * Base API client with configuration, timeout handling, error normalization,
+ * and development token bridge.
  */
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_URL || "http://localhost:8000";
+const env = (typeof import.meta !== "undefined" && import.meta.env) ? import.meta.env : {};
+const API_BASE_URL = env.VITE_API_URL || "http://localhost:8000";
+
+const DEFAULT_TIMEOUT_MS = 60_000;
 
 export function getAuthToken() {
-  return localStorage.getItem("token") || import.meta.env.VITE_DEV_TOKEN || null;
+  if (typeof localStorage === "undefined") {
+    return env.VITE_DEV_TOKEN || null;
+  }
+  return localStorage.getItem("token") || env.VITE_DEV_TOKEN || null;
 }
 
 export function setAuthToken(token) {
+  if (typeof localStorage === "undefined") return;
   if (token) {
     localStorage.setItem("token", token);
   } else {
     localStorage.removeItem("token");
   }
+}
+
+/**
+ * Maps raw API/network errors into clear, friendly user explanations.
+ */
+export function getUserError(error) {
+  if (!error) return "Something went wrong.";
+
+  if (error.name === "AbortError" || error.message?.includes("took too long")) {
+    return "The request took too long. Please try again.";
+  }
+
+  if (error.status === 401) {
+    return "Your session has expired. Please sign in again.";
+  }
+
+  if (error.status === 404) {
+    return "The requested conversation could not be found.";
+  }
+
+  if (error.status >= 500) {
+    return "The research assistant is temporarily unavailable.";
+  }
+
+  return error.message || "Something went wrong.";
 }
 
 /**
@@ -25,8 +57,8 @@ export async function ensureAuth() {
   if (token) return token;
 
   try {
-    const devUser = import.meta.env.VITE_DEV_USER || "dev_researcher";
-    const devPass = import.meta.env.VITE_DEV_PASSWORD || "password123";
+    const devUser = env.VITE_DEV_USER || "dev_researcher";
+    const devPass = env.VITE_DEV_PASSWORD || "password123";
 
     // Attempt login first
     const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
@@ -68,36 +100,58 @@ export async function apiFetch(endpoint, options = {}) {
 
   const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
 
-  const response = await fetch(
-    `${API_BASE_URL}${endpoint}`,
-    {
-      ...options,
-      headers: {
-        ...(options.body instanceof FormData
-          ? {}
-          : { "Content-Type": "application/json" }),
-        ...authHeaders,
-        ...(options.headers || {}),
-      },
-    }
-  );
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => {
+    controller.abort();
+  }, DEFAULT_TIMEOUT_MS);
 
-  if (!response.ok) {
-    let message = `Request failed: ${response.status}`;
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}${endpoint}`,
+      {
+        ...options,
+        signal: options.signal || controller.signal,
+        headers: {
+          ...(options.body instanceof FormData
+            ? {}
+            : { "Content-Type": "application/json" }),
+          ...authHeaders,
+          ...(options.headers || {}),
+        },
+      }
+    );
 
+    let data = null;
     try {
-      const data = await response.json();
-      message = data.detail || message;
+      data = await response.json();
     } catch {
-      // Keep default error message.
+      data = null;
     }
 
-    throw new Error(message);
-  }
+    if (!response.ok) {
+      const message =
+        data?.detail ||
+        data?.message ||
+        `Request failed (${response.status})`;
 
-  if (response.status === 204) {
-    return null;
-  }
+      const error = new Error(message);
+      error.status = response.status;
+      throw error;
+    }
 
-  return response.json();
+    if (response.status === 204) {
+      return null;
+    }
+
+    return data;
+  } catch (err) {
+    if (err.name === "AbortError") {
+      const timeoutErr = new Error("The request took too long. Please try again.");
+      timeoutErr.name = "AbortError";
+      throw timeoutErr;
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }

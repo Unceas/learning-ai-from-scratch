@@ -15,7 +15,10 @@ export default function App() {
       <Routes>
         <Route element={<AppShell />}>
           <Route path="/" element={<Navigate to="/chat" replace />} />
+
           <Route path="/chat" element={<Chat />} />
+          <Route path="/chat/:conversationId" element={<Chat />} />
+
           <Route path="/documents" element={<Documents />} />
         </Route>
       </Routes>
