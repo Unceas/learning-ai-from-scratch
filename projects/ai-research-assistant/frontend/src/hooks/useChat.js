@@ -12,6 +12,7 @@ import {
 
 import { sendMessage as sendChatMessage } from "../api/chat";
 import { getUserError } from "../api/client";
+import { getToken } from "../auth/storage";
 import { normalizeSource } from "../utils/sources";
 
 function generateId() {
@@ -32,6 +33,10 @@ export function useChat() {
   const [error, setError] = useState(null);
 
   const loadConversations = useCallback(async () => {
+    if (!getToken()) {
+      setConversations([]);
+      return;
+    }
     setConversationsLoading(true);
 
     try {
@@ -182,6 +187,21 @@ export function useChat() {
   useEffect(() => {
     loadConversations();
   }, [loadConversations]);
+
+  useEffect(() => {
+    function handleLogoutOrExpiry() {
+      setConversations([]);
+      setConversationId(null);
+      setMessages([]);
+    }
+
+    if (typeof window !== "undefined") {
+      window.addEventListener("auth:expired", handleLogoutOrExpiry);
+      return () => {
+        window.removeEventListener("auth:expired", handleLogoutOrExpiry);
+      };
+    }
+  }, []);
 
   return {
     messages,

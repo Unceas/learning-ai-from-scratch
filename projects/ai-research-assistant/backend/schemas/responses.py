@@ -36,3 +36,10 @@ class DocumentListResponse(BaseModel):
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
+
+
+class UserResponse(BaseModel):
+    id: str
+    username: str
+    user_id: Optional[str] = None
+

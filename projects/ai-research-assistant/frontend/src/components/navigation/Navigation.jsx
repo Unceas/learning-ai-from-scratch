@@ -1,12 +1,22 @@
 /**
  * Navigation component.
  *
- * Persistent application header with branding and route navigation links.
+ * Persistent application header with branding, route navigation links,
+ * authenticated user identity display, and sign out control.
  */
 
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
 
 export default function Navigation() {
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
+
+  function handleLogout() {
+    logout();
+    navigate("/login", { replace: true });
+  }
+
   return (
     <nav className="navigation">
       <div className="navigation-brand">
@@ -35,6 +45,18 @@ export default function Navigation() {
         >
           Documents
         </NavLink>
+
+        <span className="navigation-user">
+          {user?.username || user?.user_id}
+        </span>
+
+        <button
+          type="button"
+          className="navigation-signout-btn"
+          onClick={handleLogout}
+        >
+          Sign out
+        </button>
       </div>
     </nav>
   );

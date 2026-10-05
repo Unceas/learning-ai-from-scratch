@@ -11,6 +11,7 @@ import {
   retryDocument,
   deleteDocument,
 } from "../api/documents";
+import { getToken } from "../auth/storage";
 
 const POLL_INTERVAL = 2500;
 
@@ -21,6 +22,10 @@ export function useDocuments() {
   const [error, setError] = useState(null);
 
   const fetchDocs = useCallback(async () => {
+    if (!getToken()) {
+      setDocuments([]);
+      return;
+    }
     setLoading(true);
     setError(null);
 
@@ -145,6 +150,19 @@ export function useDocuments() {
       }
     };
   }, [documents]);
+
+  useEffect(() => {
+    function handleLogoutOrExpiry() {
+      setDocuments([]);
+    }
+
+    if (typeof window !== "undefined") {
+      window.addEventListener("auth:expired", handleLogoutOrExpiry);
+      return () => {
+        window.removeEventListener("auth:expired", handleLogoutOrExpiry);
+      };
+    }
+  }, []);
 
   return {
     documents,

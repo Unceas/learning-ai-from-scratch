@@ -1249,6 +1249,51 @@ Features:
 - **Granular Lifecycle States**: Distinguishes `sending` (answer generation), `loadingConversation` (session hydration), and `conversationsLoading` (sidebar polling), preventing premature empty screens or duplicate form submissions.
 - **Client Timeout & Normalized Errors (`client.js`)**: Enforces 60-second fetch timeouts via `AbortController` and maps HTTP statuses (401, 404, 500+) to friendly user explanations with `getUserError`.
 
+## Authentication & Session Management (Day 158)
+
+Day 158 establishes an end-to-end authentication layer with JWT session storage, reactive authorization state, route boundaries, and multi-tenant data isolation.
+
+### Architecture
+
+```text
+                  Unauthenticated Visitor
+                            │
+               ┌────────────┴────────────┐
+               ▼                         ▼
+            /login                    /register
+               │                         │
+               └────────────┬────────────┘
+                            ▼
+                    JWT Access Token
+                            │
+                     localStorage
+                     (TOKEN_KEY)
+                            │
+                      AuthProvider
+                            │
+                    GET /api/auth/me
+               (Restore user identity)
+                            │
+               ┌────────────┴────────────┐
+               ▼                         ▼
+        Valid Session             Invalid/Expired
+               │                         │
+        ProtectedRoute                window
+               │                     "auth:expired"
+        ┌──────┴──────┐                  │
+        ▼             ▼                  ▼
+     /chat       /documents        Clear Token &
+                                  Redirect to /login
+```
+
+Features:
+- **Centralized Token Storage (`frontend/src/auth/storage.js`)**: Encapsulates `access_token` persistence in `localStorage` with SSR and Node.js execution safety guards (`getToken`, `setToken`, `removeToken`).
+- **Reactive Auth Context (`frontend/src/context/AuthContext.jsx`)**: Provides `user`, `authenticated`, `initializing`, `login`, `register`, and `logout` across the React tree. Hydrates session identity on initial mount via `GET /api/auth/me`.
+- **Protected Route Boundary (`frontend/src/components/auth/ProtectedRoute.jsx`)**: Guards private application paths (`/chat`, `/chat/:conversationId`, `/documents`). Renders session checking spinner during hydration and preserves originating location for post-login redirection.
+- **Dedicated Auth Pages (`Login.jsx`, `Register.jsx`)**: Controlled forms with validation (minimum 8-character passwords, confirmation checking), inline error states, and automatic session initialization upon registration.
+- **Framework-Agnostic Expiration Broadcast**: Dispatches `auth:expired` event upon any HTTP 401 response in `apiFetch`, allowing background services and providers to reset state cleanly without coupling hooks to network utilities.
+- **Strict Multi-Tenant Security Boundary**: Verified multi-tenant isolation where User A cannot see or access User B's documents or conversations. Cross-tenant access yields 404.
+
 ## Project Structure
 
 ```text
@@ -1314,11 +1359,16 @@ ai-research-assistant/
 ├── frontend/
 │   ├── src/
 │   │   ├── api/
-│   │   │   ├── client.js
+│   │   │   ├── auth.js
 │   │   │   ├── chat.js
-│   │   │   ├── documents.js
-│   │   │   └── conversations.js
+│   │   │   ├── client.js
+│   │   │   ├── conversations.js
+│   │   │   └── documents.js
+│   │   ├── auth/
+│   │   │   └── storage.js
 │   │   ├── components/
+│   │   │   ├── auth/
+│   │   │   │   └── ProtectedRoute.jsx
 │   │   │   ├── chat/
 │   │   │   │   ├── ChatInput.jsx
 │   │   │   │   ├── ChatWindow.jsx
@@ -1342,13 +1392,16 @@ ai-research-assistant/
 │   │   │       ├── SourceCard.jsx
 │   │   │       └── SourceList.jsx
 │   │   ├── context/
+│   │   │   ├── AuthContext.jsx
 │   │   │   └── ChatContext.jsx
 │   │   ├── hooks/
 │   │   │   ├── useChat.js
 │   │   │   └── useDocuments.js
 │   │   ├── pages/
 │   │   │   ├── Chat.jsx
-│   │   │   └── Documents.jsx
+│   │   │   ├── Documents.jsx
+│   │   │   ├── Login.jsx
+│   │   │   └── Register.jsx
 │   │   ├── utils/
 │   │   │   └── sources.js
 │   │   ├── App.jsx
@@ -1447,6 +1500,7 @@ ai-research-assistant/
 ├── test_conversation_sidebar.py
 ├── test_app_shell_and_navigation.py
 ├── test_chat_ux_and_resilience.py
+├── test_frontend_auth_session.py
 ├── test_full_suite.py
 ├── llm.py
 ├── prompts.py

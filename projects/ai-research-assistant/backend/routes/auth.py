@@ -4,9 +4,10 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from backend.database import get_db
 from backend.schemas.requests import RegisterRequest, LoginRequest
-from backend.schemas.responses import TokenResponse
+from backend.schemas.responses import TokenResponse, UserResponse
 from backend.services.user_service import create_user, authenticate_user
 from backend.services.auth_service import create_access_token
+from backend.dependencies import get_current_user
 
 router = APIRouter()
 
@@ -57,3 +58,14 @@ def login(
         "access_token": token,
         "token_type": "bearer"
     }
+
+
+@router.get("/me", response_model=UserResponse)
+def get_me(user_id: str = Depends(get_current_user)):
+    """Return the currently authenticated user identity."""
+    return {
+        "id": user_id,
+        "username": user_id,
+        "user_id": user_id
+    }
+

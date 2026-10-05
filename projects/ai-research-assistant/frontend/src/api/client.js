@@ -1,7 +1,9 @@
 /**
  * Base API client with configuration, timeout handling, error normalization,
- * and development token bridge.
+ * and authenticated session management.
  */
+
+import { getToken, setToken, removeToken } from "../auth/storage";
 
 const env = (typeof import.meta !== "undefined" && import.meta.env) ? import.meta.env : {};
 const API_BASE_URL = env.VITE_API_URL || "http://localhost:8000";
@@ -9,18 +11,22 @@ const API_BASE_URL = env.VITE_API_URL || "http://localhost:8000";
 const DEFAULT_TIMEOUT_MS = 60_000;
 
 export function getAuthToken() {
-  if (typeof localStorage === "undefined") {
-    return env.VITE_DEV_TOKEN || null;
-  }
-  return localStorage.getItem("token") || env.VITE_DEV_TOKEN || null;
+  return (
+    getToken() ||
+    (typeof localStorage !== "undefined" ? localStorage.getItem("token") : null) ||
+    env.VITE_DEV_TOKEN ||
+    null
+  );
 }
 
 export function setAuthToken(token) {
-  if (typeof localStorage === "undefined") return;
-  if (token) {
-    localStorage.setItem("token", token);
-  } else {
-    localStorage.removeItem("token");
+  setToken(token);
+  if (typeof localStorage !== "undefined") {
+    if (token) {
+      localStorage.setItem("token", token);
+    } else {
+      localStorage.removeItem("token");
+    }
   }
 }
 
@@ -39,7 +45,7 @@ export function getUserError(error) {
   }
 
   if (error.status === 404) {
-    return "The requested conversation could not be found.";
+    return "The requested resource could not be found.";
   }
 
   if (error.status >= 500) {
@@ -50,9 +56,13 @@ export function getUserError(error) {
 }
 
 /**
- * Ensure an authentication token exists during development without requiring an auth UI.
+ * Dev-only authentication fallback if explicitly enabled via VITE_DEV_AUTH=true.
  */
 export async function ensureAuth() {
+  if (!(env.DEV && env.VITE_DEV_AUTH === "true")) {
+    return null;
+  }
+
   let token = getAuthToken();
   if (token) return token;
 
@@ -98,7 +108,21 @@ export async function apiFetch(endpoint, options = {}) {
     token = await ensureAuth();
   }
 
-  const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
+  const headers = {
+    ...options.headers,
+  };
+
+  if (token && !headers.Authorization) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  if (
+    options.body &&
+    !(options.body instanceof FormData) &&
+    !headers["Content-Type"]
+  ) {
+    headers["Content-Type"] = "application/json";
+  }
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => {
@@ -111,13 +135,7 @@ export async function apiFetch(endpoint, options = {}) {
       {
         ...options,
         signal: options.signal || controller.signal,
-        headers: {
-          ...(options.body instanceof FormData
-            ? {}
-            : { "Content-Type": "application/json" }),
-          ...authHeaders,
-          ...(options.headers || {}),
-        },
+        headers,
       }
     );
 
@@ -126,6 +144,12 @@ export async function apiFetch(endpoint, options = {}) {
       data = await response.json();
     } catch {
       data = null;
+    }
+
+    if (response.status === 401) {
+      if (typeof window !== "undefined" && typeof window.dispatchEvent === "function") {
+        window.dispatchEvent(new Event("auth:expired"));
+      }
     }
 
     if (!response.ok) {
