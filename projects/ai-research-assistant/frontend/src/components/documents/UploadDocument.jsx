@@ -7,68 +7,67 @@ export default function UploadDocument({
   const inputRef = useRef(null);
   const [dragging, setDragging] = useState(false);
 
-  async function handleFile(file) {
-    if (!file) {
+  function validateFile(file) {
+    if (!file) return false;
+
+    return (
+      file.type === "application/pdf" ||
+      file.name.toLowerCase().endsWith(".pdf")
+    );
+  }
+
+  function handleFile(file) {
+    if (!validateFile(file)) {
       return;
     }
 
-    if (file.type !== "application/pdf") {
-      alert("Only PDF files are supported.");
-      return;
-    }
-
-    try {
-      await onUpload(file);
-    } catch {
-      // Hook handles the error.
-    }
+    onUpload(file);
   }
 
   function handleInput(event) {
-    const file = event.target.files?.[0];
-
-    handleFile(file);
-
+    handleFile(event.target.files?.[0]);
     event.target.value = "";
-  }
-
-  function handleDrop(event) {
-    event.preventDefault();
-
-    setDragging(false);
-
-    const file = event.dataTransfer.files?.[0];
-
-    handleFile(file);
   }
 
   return (
     <div
-      className={`upload-zone ${
-        dragging ? "dragging" : ""
-      }`}
+      className={`upload-zone ${dragging ? "dragging" : ""} ${uploading ? "uploading" : ""}`}
       onDragOver={(event) => {
         event.preventDefault();
         setDragging(true);
       }}
-      onDragLeave={() => setDragging(false)}
-      onDrop={handleDrop}
-      onClick={() => inputRef.current?.click()}
+      onDragLeave={() => {
+        setDragging(false);
+      }}
+      onDrop={(event) => {
+        event.preventDefault();
+        setDragging(false);
+
+        handleFile(event.dataTransfer.files?.[0]);
+      }}
+      onClick={() => {
+        if (!uploading) {
+          inputRef.current?.click();
+        }
+      }}
     >
       <input
         ref={inputRef}
         type="file"
-        accept="application/pdf"
+        accept=".pdf,application/pdf"
         hidden
         onChange={handleInput}
       />
 
       {uploading ? (
-        <p>Uploading...</p>
+        <>
+          <strong>Uploading...</strong>
+          <span>Preparing document for processing.</span>
+        </>
       ) : (
         <>
-          <p>Drop a PDF here</p>
-          <span>or click to browse</span>
+          <strong>Upload a research document</strong>
+          <span>Drag and drop a PDF here, or click to browse.</span>
         </>
       )}
     </div>

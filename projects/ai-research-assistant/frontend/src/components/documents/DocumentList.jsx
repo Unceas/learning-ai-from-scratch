@@ -1,68 +1,75 @@
+import { groupDocuments } from "../../utils/documents";
 import DocumentCard from "./DocumentCard";
 
 export default function DocumentList({
   documents,
   onRetry,
   onDelete,
+  retryingId,
+  deletingId,
 }) {
-  const processing = documents.filter(
-    (document) =>
-      document.status === "processing"
+  const groups = groupDocuments(documents);
+
+  return (
+    <div className="document-groups">
+      <DocumentGroup
+        title="Processing"
+        documents={groups.processing}
+        onRetry={onRetry}
+        onDelete={onDelete}
+        retryingId={retryingId}
+        deletingId={deletingId}
+      />
+
+      <DocumentGroup
+        title="Indexed"
+        documents={groups.indexed}
+        onRetry={onRetry}
+        onDelete={onDelete}
+        retryingId={retryingId}
+        deletingId={deletingId}
+      />
+
+      <DocumentGroup
+        title="Failed"
+        documents={groups.failed}
+        onRetry={onRetry}
+        onDelete={onDelete}
+        retryingId={retryingId}
+        deletingId={deletingId}
+      />
+    </div>
   );
+}
 
-  const indexed = documents.filter(
-    (document) =>
-      document.status === "indexed"
-  );
-
-  const failed = documents.filter(
-    (document) =>
-      document.status === "failed"
-  );
-
-  function renderGroup(title, items) {
-    if (items.length === 0) {
-      return null;
-    }
-
-    return (
-      <section className="document-group">
-        <h2>{title}</h2>
-
-        <div>
-          {items.map((document) => (
-            <DocumentCard
-              key={document.id}
-              document={document}
-              onRetry={onRetry}
-              onDelete={onDelete}
-            />
-          ))}
-        </div>
-      </section>
-    );
+function DocumentGroup({
+  title,
+  documents,
+  onRetry,
+  onDelete,
+  retryingId,
+  deletingId,
+}) {
+  if (!documents.length) {
+    return null;
   }
 
   return (
-    <div className="document-list">
-      {renderGroup(
-        "Processing",
-        processing
-      )}
+    <section className="document-group">
+      <h2>{title} ({documents.length})</h2>
 
-      {renderGroup(
-        "Indexed",
-        indexed
-      )}
-
-      {renderGroup(
-        "Failed",
-        failed
-      )}
-
-      {documents.length === 0 && (
-        <p className="empty-documents">No documents uploaded yet.</p>
-      )}
-    </div>
+      <div className="document-list">
+        {documents.map((document) => (
+          <DocumentCard
+            key={document.id}
+            document={document}
+            onRetry={onRetry}
+            onDelete={onDelete}
+            retrying={retryingId === document.id}
+            deleting={deletingId === document.id}
+          />
+        ))}
+      </div>
+    </section>
   );
 }

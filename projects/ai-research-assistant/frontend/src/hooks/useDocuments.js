@@ -1,32 +1,43 @@
 import {
   useCallback,
   useEffect,
+  useRef,
   useState,
 } from "react";
 
 import {
   getDocuments,
-  getDocumentStatus,
   uploadDocument,
   retryDocument,
   deleteDocument,
 } from "../api/documents";
+import { getUserError } from "../api/client";
 import { getToken } from "../auth/storage";
 
 const POLL_INTERVAL = 2500;
+const MAX_PROCESSING_TIME = 5 * 60 * 1000; // 5 minutes
 
 export function useDocuments() {
   const [documents, setDocuments] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState(null);
+  const [deletingId, setDeletingId] = useState(null);
+  const [retryingId, setRetryingId] = useState(null);
+  const [pollingTimedOut, setPollingTimedOut] = useState(false);
 
-  const fetchDocs = useCallback(async () => {
+  const pollingStartedAt = useRef(null);
+
+  const fetchDocuments = useCallback(async (showLoading = true) => {
     if (!getToken()) {
       setDocuments([]);
+      setLoading(false);
       return;
     }
-    setLoading(true);
+
+    if (showLoading) {
+      setLoading(true);
+    }
     setError(null);
 
     try {
@@ -34,13 +45,11 @@ export function useDocuments() {
       const items = Array.isArray(data) ? data : (data?.documents || []);
       setDocuments(items);
     } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Failed to load documents."
-      );
+      setError(getUserError(err));
     } finally {
-      setLoading(false);
+      if (showLoading) {
+        setLoading(false);
+      }
     }
   }, []);
 
@@ -54,36 +63,37 @@ export function useDocuments() {
 
     try {
       const result = await uploadDocument(file);
-      await fetchDocs();
+      await fetchDocuments(false);
       return result;
     } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Upload failed."
-      );
+      const message = getUserError(err);
+      setError(message);
       throw err;
     } finally {
       setUploading(false);
     }
-  }, [fetchDocs]);
+  }, [fetchDocuments]);
 
   const retry = useCallback(async (id) => {
+    if (!id) return;
+
+    setRetryingId(id);
     setError(null);
 
     try {
       await retryDocument(id);
-      await fetchDocs();
+      await fetchDocuments(false);
     } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Retry failed."
-      );
+      setError(getUserError(err));
+    } finally {
+      setRetryingId(null);
     }
-  }, [fetchDocs]);
+  }, [fetchDocuments]);
 
   const remove = useCallback(async (id) => {
+    if (!id) return;
+
+    setDeletingId(id);
     setError(null);
 
     try {
@@ -92,68 +102,58 @@ export function useDocuments() {
         current.filter((document) => document.id !== id)
       );
     } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Failed to delete document."
-      );
+      setError(getUserError(err));
+    } finally {
+      setDeletingId(null);
     }
   }, []);
 
+  // Initial load
   useEffect(() => {
-    fetchDocs();
-  }, [fetchDocs]);
+    fetchDocuments(true);
+  }, [fetchDocuments]);
 
-  // Recursive polling for documents in 'processing' state
+  // Conditional polling for processing documents with timeout ceiling
   useEffect(() => {
-    let cancelled = false;
-    let timeoutId;
+    const hasProcessing = documents.some(
+      (document) => document.status === "processing"
+    );
 
-    async function poll() {
-      const processingDocuments = documents.filter(
-        (document) => document.status === "processing"
-      );
+    if (!hasProcessing) {
+      pollingStartedAt.current = null;
+      setPollingTimedOut(false);
+      return;
+    }
 
-      if (cancelled || processingDocuments.length === 0) {
+    if (!pollingStartedAt.current) {
+      pollingStartedAt.current = Date.now();
+    }
+
+    if (Date.now() - pollingStartedAt.current > MAX_PROCESSING_TIME) {
+      setPollingTimedOut(true);
+      return;
+    }
+
+    const interval = setInterval(() => {
+      if (Date.now() - pollingStartedAt.current > MAX_PROCESSING_TIME) {
+        setPollingTimedOut(true);
+        clearInterval(interval);
         return;
       }
 
-      for (const document of processingDocuments) {
-        try {
-          const updated = await getDocumentStatus(document.id);
+      fetchDocuments(false);
+    }, POLL_INTERVAL);
 
-          if (cancelled) {
-            return;
-          }
+    return () => clearInterval(interval);
+  }, [documents, fetchDocuments]);
 
-          setDocuments((current) =>
-            current.map((item) =>
-              item.id === updated.id ? updated : item
-            )
-          );
-        } catch (err) {
-          console.error(`Polling failed for document ${document.id}`, err);
-        }
-      }
-
-      if (!cancelled) {
-        timeoutId = setTimeout(poll, POLL_INTERVAL);
-      }
-    }
-
-    poll();
-
-    return () => {
-      cancelled = true;
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-      }
-    };
-  }, [documents]);
-
+  // Clean up state on session logout / token expiry
   useEffect(() => {
     function handleLogoutOrExpiry() {
       setDocuments([]);
+      setLoading(false);
+      pollingStartedAt.current = null;
+      setPollingTimedOut(false);
     }
 
     if (typeof window !== "undefined") {
@@ -169,9 +169,15 @@ export function useDocuments() {
     loading,
     uploading,
     error,
-    fetchDocs,
+    deletingId,
+    retryingId,
+    pollingTimedOut,
+    fetchDocuments,
+    fetchDocs: fetchDocuments,
     upload,
     retry,
     remove,
   };
 }
+
+export default useDocuments;

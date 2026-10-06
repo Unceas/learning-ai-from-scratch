@@ -1294,6 +1294,53 @@ Features:
 - **Framework-Agnostic Expiration Broadcast**: Dispatches `auth:expired` event upon any HTTP 401 response in `apiFetch`, allowing background services and providers to reset state cleanly without coupling hooks to network utilities.
 - **Strict Multi-Tenant Security Boundary**: Verified multi-tenant isolation where User A cannot see or access User B's documents or conversations. Cross-tenant access yields 404.
 
+## Document Workspace & Ingestion Observability (Day 159)
+
+Day 159 upgrades document management into an observable research workspace reflecting the backend asynchronous state machine (`processing` → `indexed` / `failed` → `retry`).
+
+### Architecture
+
+```text
+                    Documents Page
+                          │
+              ┌───────────┴───────────┐
+              │                       │
+         Upload Zone             Document List
+              │                       │
+              ↓               ┌───────┼────────┐
+         upload(file)         │       │        │
+              │          Processing Indexed Failed
+              ↓
+        FastAPI Upload
+              │
+              ↓
+        SQLite record
+        status=processing
+              │
+              ↓
+       Background task
+              │
+       ┌──────┴──────┐
+       │             │
+    success        failure
+       │             │
+       ↓             ↓
+    indexed        failed
+       │             │
+       └──────┬──────┘
+              ↓
+          Frontend
+          polling
+```
+
+Features:
+- **State Normalization & Grouping (`frontend/src/utils/documents.js`)**: Categorizes documents into distinct `Processing`, `Indexed` ("Ready for research"), and `Failed` collections with human-readable status labels.
+- **Explicit Lifecycle States in `useDocuments`**: Segregates `loading`, `uploading`, `retryingId`, and `deletingId` instead of overloaded booleans.
+- **Conditional Polling & Ingestion Ceiling**: Polls every 2500ms strictly while processing documents exist, halting when all are indexed/failed. Automatically terminates polling after a 5-minute timeout ceiling (`MAX_PROCESSING_TIME = 5m`) with an informative user notification while preserving backend authority.
+- **Drag-and-Drop PDF Ingestion (`UploadDocument.jsx`)**: Validates PDF file types on drop or selection and communicates immediate upload readiness without fabricating fake percentage progress.
+- **Observable Ingestion Metrics**: Displays active workspace metrics in the header (`X documents · Y ready · Z processing · W failed`).
+- **Deliberate Deletion UX**: Enforces explicit confirmation dialog before dispatching deletion requests, guaranteeing data consistency across SQLite, ChromaDB, and persistent storage.
+
 ## Project Structure
 
 ```text
@@ -1403,6 +1450,7 @@ ai-research-assistant/
 │   │   │   ├── Login.jsx
 │   │   │   └── Register.jsx
 │   │   ├── utils/
+│   │   │   ├── documents.js
 │   │   │   └── sources.js
 │   │   ├── App.jsx
 │   │   ├── index.css
@@ -1501,6 +1549,7 @@ ai-research-assistant/
 ├── test_app_shell_and_navigation.py
 ├── test_chat_ux_and_resilience.py
 ├── test_frontend_auth_session.py
+├── test_document_workspace_observability.py
 ├── test_full_suite.py
 ├── llm.py
 ├── prompts.py
