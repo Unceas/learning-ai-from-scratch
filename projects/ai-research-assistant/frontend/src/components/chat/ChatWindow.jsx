@@ -8,6 +8,8 @@ export default function ChatWindow({
   sending = false,
   loading = false,
   onRetry,
+  selectedSource,
+  onSourceClick,
 }) {
   const bottomRef = useRef(null);
   const isWaiting = sending || loading;
@@ -31,6 +33,8 @@ export default function ChatWindow({
             key={message.id}
             message={message}
             onRetry={onRetry}
+            selectedSource={selectedSource}
+            onSourceClick={onSourceClick}
           />
         ))
       )}

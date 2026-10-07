@@ -1,28 +1,21 @@
+/**
+ * MessageBubble component.
+ *
+ * Distinguishes user messages (with optimistic pending/failed states)
+ * and assistant responses (with rich Markdown rendering and interactive source attribution).
+ */
+
+import MarkdownAnswer from "./MarkdownAnswer";
 import SourceList from "../sources/SourceList";
 import FailedMessage from "./FailedMessage";
-
-function formatContent(content) {
-  if (typeof content !== "string") return content;
-  const parts = content.split(/(\[S\d+\])/g);
-  if (parts.length === 1) return content;
-  return parts.map((part, index) =>
-    /^\[S\d+\]$/.test(part) ? (
-      <span key={index} className="source-reference">
-        {part}
-      </span>
-    ) : (
-      part
-    )
-  );
-}
 
 export default function MessageBubble({
   message,
   onRetry,
+  selectedSource,
+  onSourceClick,
 }) {
-  const isUser =
-    message.role === "user";
-
+  const isUser = message.role === "user";
   const statusClass = message.status ? `message-${message.status}` : "";
 
   return (
@@ -34,7 +27,17 @@ export default function MessageBubble({
       <div className="message-content-wrapper">
         <div className={`message-bubble ${statusClass}`}>
           <div className="message-content">
-            {formatContent(message.content)}
+            {isUser ? (
+              <div className="plain-message">
+                {message.content}
+              </div>
+            ) : (
+              <MarkdownAnswer
+                content={message.content}
+                sources={message.sources || []}
+                onSourceClick={onSourceClick}
+              />
+            )}
           </div>
         </div>
 
@@ -44,12 +47,13 @@ export default function MessageBubble({
           />
         )}
 
-        {!isUser &&
-          message.sources?.length > 0 && (
-            <SourceList
-              sources={message.sources}
-            />
-          )}
+        {!isUser && message.sources?.length > 0 && (
+          <SourceList
+            sources={message.sources}
+            selectedSource={selectedSource}
+            onSourceClick={onSourceClick}
+          />
+        )}
       </div>
     </div>
   );

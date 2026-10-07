@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import ConversationSidebar from "../components/sidebar/ConversationSidebar";
 import ChatWindow from "../components/chat/ChatWindow";
@@ -9,6 +9,7 @@ import { useChatContext } from "../context/ChatContext";
 export default function Chat() {
   const navigate = useNavigate();
   const { conversationId: routeParam } = useParams();
+  const [selectedSource, setSelectedSource] = useState(null);
 
   const {
     messages,
@@ -62,6 +63,20 @@ export default function Chat() {
     }
   }
 
+  function handleSourceClick(sourceId) {
+    setSelectedSource(sourceId);
+
+    if (typeof requestAnimationFrame !== "undefined") {
+      requestAnimationFrame(() => {
+        const element = document.getElementById(`source-${sourceId}`);
+        element?.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+      });
+    }
+  }
+
   return (
     <div className="chat-page">
       <ConversationSidebar
@@ -88,6 +103,8 @@ export default function Chat() {
             messages={messages}
             sending={sending}
             onRetry={retryMessage}
+            selectedSource={selectedSource}
+            onSourceClick={handleSourceClick}
           />
         )}
 

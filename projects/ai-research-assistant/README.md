@@ -1341,6 +1341,45 @@ Features:
 - **Observable Ingestion Metrics**: Displays active workspace metrics in the header (`X documents · Y ready · Z processing · W failed`).
 - **Deliberate Deletion UX**: Enforces explicit confirmation dialog before dispatching deletion requests, guaranteeing data consistency across SQLite, ChromaDB, and persistent storage.
 
+## Research-Quality Answer Rendering (Day 160)
+
+Day 160 transforms raw LLM chat responses into structured, research-grade publications with GitHub Flavored Markdown, code block protection, interactive citation linking, and synchronized source cards.
+
+### Architecture
+
+```text
+                     ┌───────────────┐
+                     │  LLM Answer   │
+                     └───────┬───────┘
+                             │
+                    Markdown + [S1]
+                             │
+                             ▼
+                  ┌────────────────────┐
+                  │  MarkdownAnswer    │
+                  └─────────┬──────────┘
+                            │
+                    Citation detection
+                            │
+               ┌────────────┴────────────┐
+               ▼                         ▼
+          Normal Markdown          [S1] button
+                                         │
+                                         ▼
+                                   SourceCard S1
+                                         │
+                                         ▼
+                                   Highlight/scroll
+```
+
+Features:
+- **Markdown & GFM Support (`react-markdown`, `remark-gfm`)**: Renders headings, bold/italics, bulleted/numbered lists, tables, inline code, and code blocks safely without raw HTML injection (`rehype-raw` excluded).
+- **Citation Utilities (`frontend/src/utils/citations.js`)**: Encapsulates regex extraction of `[S1]` tokens, source ID normalization, map resolution, and citation validity verification.
+- **Code Block & Inline Code Protection**: Pre-splits content across code fences and inline ticks to ensure syntax examples (e.g., `print("[S1]")`) remain code and are not erroneously transformed into interactive badges.
+- **Interactive Source Attribution Badges**: Transforms valid citations into accessible buttons (`[S1]`) that trigger `onSourceClick`, highlighting and smoothly scrolling to the corresponding source card (`scrollIntoView({ behavior: 'smooth', block: 'center' })`).
+- **Unverified Citation Preservation**: Preserves ungrounded or out-of-bounds citations (e.g. `[S99]`) as plain unclickable text, giving the user transparent visibility without fake links.
+- **Interactive Source Cards (`SourceCard.jsx`, `SourceList.jsx`)**: Displays document ID, chunk index, retrieval score, and active selection state with keyboard and screen reader accessibility.
+
 ## Project Structure
 
 ```text
@@ -1420,6 +1459,7 @@ ai-research-assistant/
 │   │   │   │   ├── ChatInput.jsx
 │   │   │   │   ├── ChatWindow.jsx
 │   │   │   │   ├── FailedMessage.jsx
+│   │   │   │   ├── MarkdownAnswer.jsx
 │   │   │   │   ├── MessageBubble.jsx
 │   │   │   │   └── TypingIndicator.jsx
 │   │   │   ├── common/
@@ -1450,6 +1490,7 @@ ai-research-assistant/
 │   │   │   ├── Login.jsx
 │   │   │   └── Register.jsx
 │   │   ├── utils/
+│   │   │   ├── citations.js
 │   │   │   ├── documents.js
 │   │   │   └── sources.js
 │   │   ├── App.jsx
@@ -1550,6 +1591,7 @@ ai-research-assistant/
 ├── test_chat_ux_and_resilience.py
 ├── test_frontend_auth_session.py
 ├── test_document_workspace_observability.py
+├── test_research_answer_rendering.py
 ├── test_full_suite.py
 ├── llm.py
 ├── prompts.py

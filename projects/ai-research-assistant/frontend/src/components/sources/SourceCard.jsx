@@ -1,48 +1,47 @@
 /**
  * SourceCard component.
  *
- * Renders individual source provenance details, metadata, and retrieval score.
+ * Clickable source provenance card with DOM target ID for smooth scrolling,
+ * selected highlighting, filename, chunk metadata, and score representation.
  */
 
-export default function SourceCard({ source }) {
-  const score =
-    typeof source.score === "number"
-      ? source.score.toFixed(3)
-      : null;
+export default function SourceCard({
+  source,
+  index = 0,
+  selected = false,
+  onClick,
+}) {
+  const sourceId = source.id || `S${index + 1}`;
+  const docId = source.document_id ?? source.documentId ?? "—";
+  const chunkIdx = source.chunk_index ?? source.chunkIndex ?? 0;
 
   return (
-    <article className="source-card">
+    <button
+      type="button"
+      id={`source-${sourceId}`}
+      className={`source-card ${selected ? "source-card-selected" : ""}`}
+      onClick={() => onClick?.(sourceId)}
+    >
       <div className="source-card-header">
         <span className="source-id">
-          [{source.id}]
+          [{sourceId}]
         </span>
 
         <span className="source-filename">
           {source.filename}
         </span>
-
-        {score !== null && (
-          <span className="source-score">
-            Score {score}
-          </span>
-        )}
       </div>
 
-      <div className="source-metadata">
-        <span>
-          Document {source.documentId ?? "—"}
-        </span>
+      <div className="source-card-meta">
+        <span>Document {docId}</span>
+        <span>Chunk {chunkIdx}</span>
 
-        <span>
-          Chunk {source.chunkIndex ?? 0}
-        </span>
-
-        {source.page !== null && source.page !== undefined && (
+        {source.score !== undefined && source.score !== null && (
           <span>
-            Page {source.page}
+            Score: {typeof source.score === "number" ? source.score.toFixed(3) : source.score}
           </span>
         )}
       </div>
-    </article>
+    </button>
   );
 }
