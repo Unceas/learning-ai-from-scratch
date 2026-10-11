@@ -1380,6 +1380,42 @@ Features:
 - **Unverified Citation Preservation**: Preserves ungrounded or out-of-bounds citations (e.g. `[S99]`) as plain unclickable text, giving the user transparent visibility without fake links.
 - **Interactive Source Cards (`SourceCard.jsx`, `SourceList.jsx`)**: Displays document ID, chunk index, retrieval score, and active selection state with keyboard and screen reader accessibility.
 
+## Source Inspection & Document Context (Day 161)
+
+Day 161 bridges the gap between concise citations and verifiable research, enabling researchers to inspect the exact retrieved document passages, evaluate retrieval scores, and securely navigate back to primary sources.
+
+### Architecture
+
+```text
+  Assistant Answer [S1]
+           │
+     Click citation
+           │
+           ▼
+┌─────────────────────────────────┐
+│     SourcePreview (Aside)       │
+├─────────────────────────────────┤
+│ attention.pdf                   │
+│ Document 12 · Chunk 4 · 0.913   │
+│                                 │
+│ "The attention mechanism..."    │
+└─────────────────────────────────┘
+           │
+    (Optional drill-down)
+           ▼
+GET /api/documents/{id}/chunks/{idx}
+  ├── User ownership guard
+  ├── Document status guard (indexed)
+  └── VectorStore chunk extraction
+```
+
+Features:
+- **Traceable Source Model**: Extended `Source` and `RetrievedChunk` to preserve raw passage text (`text`), chunk indices, retrieval scores, and document metadata across RAG pipelines without regenerating summaries.
+- **Secure Source Inspection API (`GET /api/documents/{document_id}/chunks/{chunk_index}`)**: User-isolated endpoint verifying document ownership (`Document.user_id == user_id`) and indexed status before serving chunk passages from ChromaDB. Non-indexed documents, foreign tenants, or out-of-bounds chunks receive safe 404 denials.
+- **Per-Message Citation Isolation**: Resolves inline citation badges (`[S1]`, `[S2]`) deterministically against the specific assistant message's sources, preventing cross-answer collision when multiple answers contain `[S1]`.
+- **Source Inspection Drawer (`SourcePreview.jsx`)**: Responsive inspector rendering document filename, ID, chunk index, formatted retrieval score, and raw quoted excerpt with clean empty-state fallback.
+- **Document Deletion Invalidation**: Purging an indexed document immediately cascades deletions to stored files, SQLite metadata records, and ChromaDB vector embeddings.
+
 ## Project Structure
 
 ```text
@@ -1449,7 +1485,8 @@ ai-research-assistant/
 │   │   │   ├── chat.js
 │   │   │   ├── client.js
 │   │   │   ├── conversations.js
-│   │   │   └── documents.js
+│   │   │   ├── documents.js
+│   │   │   └── sources.js
 │   │   ├── auth/
 │   │   │   └── storage.js
 │   │   ├── components/
@@ -1477,7 +1514,8 @@ ai-research-assistant/
 │   │   │   │   └── ConversationSidebar.jsx
 │   │   │   └── sources/
 │   │   │       ├── SourceCard.jsx
-│   │   │       └── SourceList.jsx
+│   │   │       ├── SourceList.jsx
+│   │   │       └── SourcePreview.jsx
 │   │   ├── context/
 │   │   │   ├── AuthContext.jsx
 │   │   │   └── ChatContext.jsx
@@ -1592,6 +1630,7 @@ ai-research-assistant/
 ├── test_frontend_auth_session.py
 ├── test_document_workspace_observability.py
 ├── test_research_answer_rendering.py
+├── test_source_inspection_and_context.py
 ├── test_full_suite.py
 ├── llm.py
 ├── prompts.py

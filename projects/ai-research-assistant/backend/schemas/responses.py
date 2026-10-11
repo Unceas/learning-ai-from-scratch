@@ -43,3 +43,13 @@ class UserResponse(BaseModel):
     username: str
     user_id: Optional[str] = None
 
+
+class ChunkPreviewResponse(BaseModel):
+    id: Optional[str] = None
+    document_id: int
+    filename: str
+    chunk_index: int
+    text: str
+    page: Optional[int] = None
+    score: Optional[float] = None
+

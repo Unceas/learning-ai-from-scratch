@@ -166,6 +166,7 @@ def build_rag_context(
             "filename": chunk.filename,
             "chunk_index": chunk.chunk_index,
             "score": chunk.score,
+            "text": chunk.text,
             "vector_score": chunk.vector_score,
             "reranker_score": chunk.reranker_score,
             "page": chunk.page,
@@ -178,8 +179,10 @@ def build_rag_context(
             "filename": chunk.filename,
             "chunk_index": chunk.chunk_index,
             "score": chunk.score,
+            "text": chunk.text,
             "vector_score": chunk.vector_score,
             "reranker_score": chunk.reranker_score,
+            "page": chunk.page,
             "matched_queries": chunk.matched_queries
         }
 

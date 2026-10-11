@@ -51,12 +51,13 @@ export default function MarkdownAnswer({
           a({ href, children, ...props }) {
             if (href?.startsWith("#source-")) {
               const sourceId = href.replace("#source-", "");
+              const resolvedSource = sourceMap[sourceId] || { id: sourceId };
 
               return (
                 <button
                   type="button"
                   className="citation-badge"
-                  onClick={() => onSourceClick?.(sourceId)}
+                  onClick={() => onSourceClick?.(resolvedSource)}
                   aria-label={`Open source ${sourceId}`}
                 >
                   {children}

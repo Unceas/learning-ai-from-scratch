@@ -16,6 +16,7 @@ export function normalizeSource(source, index = 0) {
       chunk_index: 0,
       page: null,
       score: null,
+      text: "",
     };
   }
 
@@ -40,5 +41,6 @@ export function normalizeSource(source, index = 0) {
     chunk_index: chunkIdx,
     page: source.page ?? null,
     score: rawScore,
+    text: source.text || "",
   };
 }

@@ -31,7 +31,11 @@ export default function SourceList({
               key={sourceId}
               source={source}
               index={index}
-              selected={selectedSource === sourceId}
+              selected={
+                selectedSource === source ||
+                selectedSource === sourceId ||
+                selectedSource?.id === sourceId
+              }
               onClick={onSourceClick}
             />
           );

@@ -4,6 +4,7 @@ import ConversationSidebar from "../components/sidebar/ConversationSidebar";
 import ChatWindow from "../components/chat/ChatWindow";
 import ChatInput from "../components/chat/ChatInput";
 import LoadingState from "../components/common/LoadingState";
+import SourcePreview from "../components/sources/SourcePreview";
 import { useChatContext } from "../context/ChatContext";
 
 export default function Chat() {
@@ -63,10 +64,12 @@ export default function Chat() {
     }
   }
 
-  function handleSourceClick(sourceId) {
-    setSelectedSource(sourceId);
+  function handleSourceClick(source) {
+    const sourceObj = typeof source === "object" && source !== null ? source : { id: source };
+    setSelectedSource(sourceObj);
 
-    if (typeof requestAnimationFrame !== "undefined") {
+    const sourceId = sourceObj?.id || source;
+    if (sourceId && typeof requestAnimationFrame !== "undefined") {
       requestAnimationFrame(() => {
         const element = document.getElementById(`source-${sourceId}`);
         element?.scrollIntoView({
@@ -92,32 +95,43 @@ export default function Chat() {
         <header className="chat-header">
           <div>
             <h1>AI Research Assistant</h1>
-            <p>Ask questions across your research documents.</p>
+            <p>Compare findings, ask follow-up questions, and inspect supporting evidence.</p>
           </div>
         </header>
 
-        {loadingConversation ? (
-          <LoadingState message="Loading conversation..." />
-        ) : (
-          <ChatWindow
-            messages={messages}
-            sending={sending}
-            onRetry={retryMessage}
-            selectedSource={selectedSource}
-            onSourceClick={handleSourceClick}
-          />
-        )}
+        <div className="chat-layout-wrapper">
+          <div className="chat-content-pane">
+            {loadingConversation ? (
+              <LoadingState message="Loading conversation..." />
+            ) : (
+              <ChatWindow
+                messages={messages}
+                sending={sending}
+                onRetry={retryMessage}
+                selectedSource={selectedSource}
+                onSourceClick={handleSourceClick}
+              />
+            )}
 
-        {error && (
-          <div className="error-message">
-            {error}
+            {error && (
+              <div className="error-message">
+                {error}
+              </div>
+            )}
+
+            <ChatInput
+              onSend={handleSend}
+              disabled={sending || loadingConversation}
+            />
           </div>
-        )}
 
-        <ChatInput
-          onSend={handleSend}
-          disabled={sending || loadingConversation}
-        />
+          {selectedSource && (
+            <SourcePreview
+              source={selectedSource}
+              onClose={() => setSelectedSource(null)}
+            />
+          )}
+        </div>
       </section>
     </div>
   );

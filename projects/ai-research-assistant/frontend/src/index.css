@@ -1007,3 +1007,139 @@ input {
   border-color: #fca5a5;
 }
 
+/* Source Inspection & Layout (Day 161) */
+.chat-layout-wrapper {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  gap: 20px;
+  position: relative;
+}
+
+.chat-content-pane {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.source-preview {
+  width: 360px;
+  max-width: 100%;
+  flex-shrink: 0;
+  background: #ffffff;
+  border: 1px solid #e4e4e7;
+  border-radius: 10px;
+  padding: 18px;
+  margin: 16px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  overflow-y: auto;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.source-preview-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f4f4f5;
+  gap: 10px;
+}
+
+.source-preview-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #2563eb;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.source-preview-header h2 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0;
+  color: #18181b;
+  word-break: break-word;
+}
+
+.source-preview-header button {
+  background: #f4f4f5;
+  border: 1px solid #e4e4e7;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  color: #52525b;
+  transition: all 0.15s ease;
+}
+
+.source-preview-header button:hover {
+  background: #e4e4e7;
+  color: #18181b;
+}
+
+.source-preview-metadata {
+  background: #fafafa;
+  border: 1px solid #f4f4f5;
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-size: 12px;
+  color: #52525b;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.source-preview-metadata p {
+  margin: 0;
+}
+
+.source-preview-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  min-height: 0;
+}
+
+.source-preview-content h3 {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #71717a;
+  margin: 0;
+}
+
+.source-preview-content blockquote {
+  margin: 0;
+  padding: 12px 14px;
+  background: #f8fafc;
+  border-left: 3px solid #2563eb;
+  border-radius: 0 6px 6px 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #334155;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-y: auto;
+  max-height: 400px;
+}
+
+@media (max-width: 900px) {
+  .chat-layout-wrapper {
+    flex-direction: column;
+  }
+
+  .source-preview {
+    width: 100%;
+    max-height: 320px;
+  }
+}
+

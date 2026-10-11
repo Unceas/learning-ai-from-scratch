@@ -62,6 +62,71 @@ class VectorStore:
             where={"document_id": document_id}
         )
 
+    def get_chunk(
+        self,
+        document_id: int,
+        chunk_index: int,
+        user_id: Optional[str] = None,
+        file_hash: Optional[str] = None
+    ) -> Optional[Dict[str, Any]]:
+        """Retrieve a specific chunk for a document by document_id and chunk_index."""
+        ids_to_try = [f"{document_id}:{chunk_index}"]
+        if user_id and file_hash:
+            ids_to_try.append(f"{user_id}_{file_hash}_{chunk_index}")
+
+        res = self.collection.get(
+            ids=ids_to_try,
+            include=["documents", "metadatas"]
+        )
+        if not res or not res.get("ids") or len(res["ids"]) == 0:
+            where_clause = {
+                "$and": [
+                    {"document_id": document_id},
+                    {"chunk_index": chunk_index}
+                ]
+            }
+            if user_id:
+                where_clause = {
+                    "$and": [
+                        {"user_id": user_id},
+                        {"document_id": document_id},
+                        {"chunk_index": chunk_index}
+                    ]
+                }
+            try:
+                res = self.collection.get(
+                    where=where_clause,
+                    include=["documents", "metadatas"]
+                )
+            except Exception:
+                res = None
+
+        if not res or not res.get("ids") or len(res["ids"]) == 0:
+            return None
+
+        doc_text = res["documents"][0] if res.get("documents") else ""
+        metadata = res["metadatas"][0] if res.get("metadatas") else {}
+
+        if user_id and metadata.get("user_id") and metadata.get("user_id") != user_id:
+            return None
+
+        meta_doc_id = metadata.get("document_id")
+        meta_chunk_idx = metadata.get("chunk_index", metadata.get("chunk_id"))
+        if meta_doc_id is not None and meta_doc_id != document_id:
+            return None
+        if meta_chunk_idx is not None and meta_chunk_idx != chunk_index:
+            return None
+
+        return {
+            "id": res["ids"][0],
+            "document_id": meta_doc_id if meta_doc_id is not None else document_id,
+            "filename": metadata.get("filename", metadata.get("document", "Unknown")),
+            "chunk_index": meta_chunk_idx if meta_chunk_idx is not None else chunk_index,
+            "page": metadata.get("page"),
+            "text": doc_text,
+            "user_id": metadata.get("user_id")
+        }
+
     def get_user_chunks(
         self,
         user_id: str,

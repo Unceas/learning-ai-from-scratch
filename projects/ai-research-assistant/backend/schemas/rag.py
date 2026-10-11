@@ -11,6 +11,8 @@ class Source(BaseModel):
     filename: str
     chunk_index: int
     score: float = 0.0
+    text: str = ""
+    page: Optional[int] = None
     vector_score: Optional[float] = None
     reranker_score: Optional[float] = None
     matched_queries: Optional[List[str]] = Field(default_factory=list)

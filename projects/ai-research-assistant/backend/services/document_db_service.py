@@ -107,3 +107,21 @@ def get_indexed_document_ids(
         .all()
     )
     return [document.id for document in documents]
+
+
+def get_owned_document(
+    db: Session,
+    user_id: str,
+    document_id: int
+) -> Optional[Document]:
+    """Retrieve an indexed document owned by user_id ensuring status is 'indexed'."""
+    return (
+        db.query(Document)
+        .filter(
+            Document.id == document_id,
+            Document.user_id == user_id,
+            Document.status == "indexed",
+        )
+        .first()
+    )
+

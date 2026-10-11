@@ -20,7 +20,7 @@ export default function SourceCard({
       type="button"
       id={`source-${sourceId}`}
       className={`source-card ${selected ? "source-card-selected" : ""}`}
-      onClick={() => onClick?.(sourceId)}
+      onClick={() => onClick?.(source)}
     >
       <div className="source-card-header">
         <span className="source-id">

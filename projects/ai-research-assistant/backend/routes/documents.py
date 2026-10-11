@@ -7,6 +7,7 @@ from backend.services.vector_store import VectorStore
 from backend.services.document_db_service import (
     get_document,
     get_document_by_id,
+    get_owned_document,
     list_documents,
     create_document,
     delete_document as delete_document_record
@@ -17,7 +18,8 @@ from backend.database import get_db
 from backend.schemas.responses import (
     DocumentResponse,
     DocumentListResponse,
-    DocumentStatusResponse
+    DocumentStatusResponse,
+    ChunkPreviewResponse
 )
 from backend.exceptions import DocumentNotFoundError
 from backend.dependencies import get_current_user
@@ -155,6 +157,57 @@ def get_document_status(
         "status": document.status,
         "error_message": document.error_message,
         "processing_attempts": document.processing_attempts
+    }
+
+
+@router.get(
+    "/{document_id}/chunks/{chunk_index}",
+    response_model=ChunkPreviewResponse
+)
+def get_document_chunk(
+    document_id: int,
+    chunk_index: int,
+    db: Session = Depends(get_db),
+    user_id: str = Depends(get_current_user)
+):
+    """Retrieve an authorized source chunk excerpt and metadata for inspection.
+    
+    Verifies authenticated user document ownership and 'indexed' status before
+    retrieving the chunk from the vector store.
+    """
+    document = get_owned_document(db, user_id=user_id, document_id=document_id)
+    if not document:
+        raise HTTPException(
+            status_code=404,
+            detail="Document not found or not indexed."
+        )
+
+    chunk = vector_store.get_chunk(
+        document_id=document.id,
+        chunk_index=chunk_index,
+        user_id=user_id,
+        file_hash=document.file_hash
+    )
+    if not chunk:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Chunk {chunk_index} not found for document {document_id}."
+        )
+
+    if chunk.get("document_id") != document_id or chunk.get("chunk_index") != chunk_index:
+        raise HTTPException(
+            status_code=404,
+            detail="Chunk does not match requested document or index."
+        )
+
+    return {
+        "id": f"S{chunk_index + 1}",
+        "document_id": document.id,
+        "filename": document.filename,
+        "chunk_index": chunk_index,
+        "text": chunk.get("text", ""),
+        "page": chunk.get("page"),
+        "score": chunk.get("score")
     }
 
 
