@@ -109,7 +109,7 @@ export function useChat() {
               : msg
           ),
           {
-            id: `assistant-${Date.now()}`,
+            id: response?.message_id ?? `assistant-${Date.now()}`,
             role: "assistant",
             content: response?.answer || "",
             status: "sent",

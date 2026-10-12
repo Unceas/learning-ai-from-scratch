@@ -1416,6 +1416,33 @@ Features:
 - **Source Inspection Drawer (`SourcePreview.jsx`)**: Responsive inspector rendering document filename, ID, chunk index, formatted retrieval score, and raw quoted excerpt with clean empty-state fallback.
 - **Document Deletion Invalidation**: Purging an indexed document immediately cascades deletions to stored files, SQLite metadata records, and ChromaDB vector embeddings.
 
+## RAG Evaluation, User Feedback & Answer Quality (Day 162)
+
+Day 162 establishes a closed-loop quality framework for research answers by combining interactive user feedback, rigorous evaluation metrics, and multi-configuration retrieval benchmarks.
+
+### Architecture
+
+```text
+User asks question ──► RAG Pipeline ──► Answer + Citations
+                            │                    │
+                            ▼                    ▼
+                   Offline Evaluation    User Feedback
+                   ├── Recall@K          ├── Helpful
+                   ├── Citation validity ├── Not helpful
+                   └── Latency           │   ├── Reason
+                                         │   └── Comment
+                                         ▼
+                                  AnswerFeedback DB
+                                 (per assistant msg)
+```
+
+Features:
+- **Persistent Answer Feedback Model (`AnswerFeedback`)**: Distinct database entity linked to `users`, `conversations`, and `conversation_messages` with a `unique=True` constraint on `message_id`, preventing rating pollution inside answer content.
+- **Authenticated Feedback API (`POST /api/feedback`, `GET /api/feedback/summary`)**: Securely accepts `helpful` or `not_helpful` ratings with structured failure categories (`incorrect`, `missing_evidence`, `poor_retrieval`, `incomplete`, `other`) and optional freeform comments. Enforces tenant boundaries, rejects non-assistant messages (400), and upserts ratings cleanly.
+- **Frontend Feedback Controls (`AnswerFeedback.jsx`)**: Renders inline rating buttons beneath persisted assistant responses in `MessageBubble`, expanding into detailed reason selection on negative feedback.
+- **Citation Validity & Coverage Metrics (`metrics.py`)**: Quantifies whether generated `[S#]` tags reference valid source provenance without confounding citation syntax with factual truth.
+- **Comparative Retrieval Benchmarks (`run_evaluation.py`)**: Evaluates and compares Dense retrieval, Dense + reranker, Hybrid retrieval, Hybrid + reranker, and Advanced query pipelines against standard test corpora.
+
 ## Project Structure
 
 ```text
@@ -1426,7 +1453,8 @@ ai-research-assistant/
 │   ├── database.py
 │   ├── models/
 │   │   ├── __init__.py
-│   │   └── conversation.py
+│   │   ├── conversation.py
+│   │   └── feedback.py
 │   ├── exceptions.py
 │   ├── dependencies.py
 │   ├── routes/
@@ -1434,12 +1462,14 @@ ai-research-assistant/
 │   │   ├── chat.py
 │   │   ├── conversations.py
 │   │   ├── documents.py
+│   │   ├── feedback.py
 │   │   └── memory.py
 │   ├── services/
 │   │   ├── auth_service.py
 │   │   ├── user_service.py
 │   │   ├── conversation_service.py
 │   │   ├── chat_service.py
+│   │   ├── feedback_service.py
 │   │   ├── query_rewriter.py
 │   │   ├── document_db_service.py
 │   │   ├── document_processor.py
@@ -1463,8 +1493,10 @@ ai-research-assistant/
 │   ├── evaluation/
 │   │   ├── __init__.py
 │   │   ├── dataset.py
+│   │   ├── metrics.py
 │   │   ├── retrieval_metrics.py
 │   │   ├── generation_metrics.py
+│   │   ├── run_evaluation.py
 │   │   ├── run.py
 │   │   └── baseline_report.json
 │   ├── storage/
@@ -1477,7 +1509,8 @@ ai-research-assistant/
 │       ├── responses.py
 │       ├── rag.py
 │       ├── chat.py
-│       └── conversation.py
+│       ├── conversation.py
+│       └── feedback.py
 ├── frontend/
 │   ├── src/
 │   │   ├── api/
@@ -1486,6 +1519,7 @@ ai-research-assistant/
 │   │   │   ├── client.js
 │   │   │   ├── conversations.js
 │   │   │   ├── documents.js
+│   │   │   ├── feedback.js
 │   │   │   └── sources.js
 │   │   ├── auth/
 │   │   │   └── storage.js
@@ -1493,6 +1527,7 @@ ai-research-assistant/
 │   │   │   ├── auth/
 │   │   │   │   └── ProtectedRoute.jsx
 │   │   │   ├── chat/
+│   │   │   │   ├── AnswerFeedback.jsx
 │   │   │   │   ├── ChatInput.jsx
 │   │   │   │   ├── ChatWindow.jsx
 │   │   │   │   ├── FailedMessage.jsx
@@ -1544,7 +1579,8 @@ ai-research-assistant/
 │   │   ├── 16c517d8c41d_add_document_processing_status.py
 │   │   ├── 87f4679eca77_add_document_storage_path.py
 │   │   ├── de557f7c80c5_add_document_processing_attempts.py
-│   │   └── e83052ca03a5_add_conversation_memory.py
+│   │   ├── e83052ca03a5_add_conversation_memory.py
+│   │   └── 584961923ee2_add_answer_feedback.py
 │   ├── env.py
 │   ├── script.py.mako
 │   └── README
@@ -1631,6 +1667,7 @@ ai-research-assistant/
 ├── test_document_workspace_observability.py
 ├── test_research_answer_rendering.py
 ├── test_source_inspection_and_context.py
+├── test_rag_feedback_and_evaluation.py
 ├── test_full_suite.py
 ├── llm.py
 ├── prompts.py

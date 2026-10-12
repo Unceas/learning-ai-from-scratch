@@ -30,6 +30,7 @@ class ChatRequest(BaseModel):
 
 class ChatResponse(BaseModel):
     conversation_id: int
+    message_id: Optional[int] = None
     answer: str
     sources: List[Any] = Field(default_factory=list)
     rewritten_query: str = ""

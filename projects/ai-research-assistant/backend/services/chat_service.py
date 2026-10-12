@@ -131,7 +131,7 @@ class ChatService:
             role="user",
             content=clean_msg
         )
-        self.conversation_service.add_message(
+        assistant_msg = self.conversation_service.add_message(
             db,
             conversation_id=conversation_id,
             role="assistant",
@@ -141,6 +141,7 @@ class ChatService:
         # 6. Build structured response
         return {
             "conversation_id": conversation_id,
+            "message_id": assistant_msg.id if assistant_msg else None,
             "answer": answer,
             "sources": sources,
             "rewritten_query": final_rewritten,

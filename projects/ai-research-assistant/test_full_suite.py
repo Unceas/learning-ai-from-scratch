@@ -44,7 +44,8 @@ TEST_SCRIPTS = [
     "test_frontend_auth_session.py",
     "test_document_workspace_observability.py",
     "test_research_answer_rendering.py",
-    "test_source_inspection_and_context.py"
+    "test_source_inspection_and_context.py",
+    "test_rag_feedback_and_evaluation.py"
 ]
 
 

@@ -137,6 +137,7 @@ def send_conversation_message(
 
         return ConversationChatResponse(
             answer=result["answer"],
+            message_id=result.get("message_id"),
             sources=result.get("sources", []),
             query=result.get("query", {
                 "original": payload.message,

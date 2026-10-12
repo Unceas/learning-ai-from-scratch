@@ -9,6 +9,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import relationship
 from backend.database import Base
 from backend.models.conversation import Conversation, ConversationMessage
+from backend.models.feedback import AnswerFeedback
 
 
 class User(Base):
@@ -98,4 +99,4 @@ class Document(Base):
     )
 
 
-__all__ = ["Base", "User", "Document", "Conversation", "ConversationMessage"]
+__all__ = ["Base", "User", "Document", "Conversation", "ConversationMessage", "AnswerFeedback"]

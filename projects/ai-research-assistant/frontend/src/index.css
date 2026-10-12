@@ -1143,3 +1143,106 @@ input {
   }
 }
 
+/* Answer Feedback (Day 162) */
+.answer-feedback {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #f4f4f5;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 12px;
+  color: #71717a;
+}
+
+.feedback-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.feedback-btn {
+  background: #f4f4f5;
+  border: 1px solid #e4e4e7;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 12px;
+  color: #52525b;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.feedback-btn:hover {
+  background: #e4e4e7;
+  color: #18181b;
+}
+
+.feedback-btn.active,
+.feedback-btn[aria-pressed="true"] {
+  background: #18181b;
+  color: #ffffff;
+  border-color: #18181b;
+}
+
+.feedback-details {
+  margin-top: 6px;
+  padding: 10px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.feedback-details label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #475569;
+}
+
+.feedback-details select,
+.feedback-details textarea {
+  padding: 6px 8px;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #1e293b;
+  background: #ffffff;
+}
+
+.feedback-details textarea {
+  resize: vertical;
+}
+
+.feedback-submit-btn {
+  align-self: flex-start;
+  background: #2563eb;
+  color: #ffffff;
+  border: none;
+  border-radius: 4px;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.feedback-submit-btn:hover {
+  background: #1d4ed8;
+}
+
+.feedback-thanks {
+  margin: 0;
+  color: #16a34a;
+  font-weight: 500;
+}
+
+.feedback-error {
+  margin: 0;
+  color: #dc2626;
+}
+

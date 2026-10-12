@@ -8,6 +8,7 @@
 import MarkdownAnswer from "./MarkdownAnswer";
 import SourceList from "../sources/SourceList";
 import FailedMessage from "./FailedMessage";
+import AnswerFeedback from "./AnswerFeedback";
 
 export default function MessageBubble({
   message,
@@ -53,6 +54,10 @@ export default function MessageBubble({
             selectedSource={selectedSource}
             onSourceClick={onSourceClick}
           />
+        )}
+
+        {!isUser && Number.isInteger(Number(message.id)) && Number(message.id) > 0 && (
+          <AnswerFeedback messageId={Number(message.id)} />
         )}
       </div>
     </div>

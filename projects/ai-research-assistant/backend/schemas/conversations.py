@@ -49,6 +49,7 @@ class ConversationMessagesPageResponse(BaseModel):
 class ConversationChatResponse(BaseModel):
     """Schema representing response from sending a message to a conversation."""
     answer: str
+    message_id: Optional[int] = None
     sources: List[Source] = Field(default_factory=list)
     query: Dict[str, str] = Field(
         ...,

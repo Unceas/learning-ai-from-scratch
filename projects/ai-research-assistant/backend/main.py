@@ -10,6 +10,7 @@ from backend.routes.chat import router as chat_router
 from backend.routes.documents import router as documents_router
 from backend.routes.memory import router as memory_router
 from backend.routes.conversations import router as conversations_router
+from backend.routes.feedback import router as feedback_router
 
 app = FastAPI(
     title=settings.app_name,
@@ -71,6 +72,12 @@ app.include_router(
     conversations_router,
     prefix="/api/conversations",
     tags=["Conversations"]
+)
+
+app.include_router(
+    feedback_router,
+    prefix="/api/feedback",
+    tags=["Feedback"]
 )
 
 
