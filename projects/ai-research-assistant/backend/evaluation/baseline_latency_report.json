@@ -1,0 +1,57 @@
+{
+  "total_requests": 6,
+  "total_latency": {
+    "count": 6,
+    "mean_ms": 523.97,
+    "median_ms": 499.95,
+    "p95_ms": 943.5
+  },
+  "stages": {
+    "query_rewriting": {
+      "count": 6,
+      "mean_ms": 24.63,
+      "median_ms": 20.25,
+      "p95_ms": 45.2
+    },
+    "query_routing": {
+      "count": 6,
+      "mean_ms": 1.88,
+      "median_ms": 1.7,
+      "p95_ms": 3.1
+    },
+    "retrieval": {
+      "count": 6,
+      "mean_ms": 110.05,
+      "median_ms": 79.75,
+      "p95_ms": 240.8
+    },
+    "reranking": {
+      "count": 6,
+      "mean_ms": 78.7,
+      "median_ms": 81.25,
+      "p95_ms": 142.0
+    },
+    "context_assembly": {
+      "count": 6,
+      "mean_ms": 1.8,
+      "median_ms": 1.65,
+      "p95_ms": 3.1
+    },
+    "generation": {
+      "count": 6,
+      "mean_ms": 306.9,
+      "median_ms": 315.35,
+      "p95_ms": 520.4
+    }
+  },
+  "operational": {
+    "empty_retrieval_count": 1,
+    "empty_retrieval_rate": 0.1667,
+    "error_count": 0,
+    "error_rate": 0.0,
+    "success_rate": 1.0,
+    "avg_candidate_count": 22.5,
+    "avg_reranked_count": 4.33
+  },
+  "bottleneck_stage": "generation"
+}

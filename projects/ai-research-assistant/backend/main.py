@@ -1,4 +1,6 @@
-"""FastAPI application entry point for AI Research Assistant backend."""
+import logging
+import time
+import uuid
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -11,6 +13,8 @@ from backend.routes.documents import router as documents_router
 from backend.routes.memory import router as memory_router
 from backend.routes.conversations import router as conversations_router
 from backend.routes.feedback import router as feedback_router
+
+logger = logging.getLogger("research_assistant")
 
 app = FastAPI(
     title=settings.app_name,
@@ -28,6 +32,38 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def observe_request(request: Request, call_next):
+    """Middleware for request-level telemetry, correlation IDs, and latency logging."""
+    req_id_header = request.headers.get("X-Request-ID")
+    if req_id_header and len(req_id_header) <= 64 and req_id_header.replace("-", "").isalnum():
+        request_id = req_id_header
+    else:
+        request_id = str(uuid.uuid4())
+    request.state.request_id = request_id
+    start = time.perf_counter()
+    status_code = 500
+
+    try:
+        response = await call_next(request)
+        status_code = response.status_code
+        response.headers["X-Request-ID"] = request_id
+        return response
+    finally:
+        elapsed_ms = (time.perf_counter() - start) * 1000
+
+        logger.info(
+            "http_request",
+            extra={
+                "request_id": request_id,
+                "method": request.method,
+                "path": request.url.path,
+                "status_code": status_code,
+                "duration_ms": round(elapsed_ms, 2),
+            },
+        )
 
 
 @app.exception_handler(AppException)

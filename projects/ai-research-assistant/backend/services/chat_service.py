@@ -13,6 +13,7 @@ from backend.services.conversation_service import (
 from backend.services.query_rewriter import QueryRewriter
 from backend.services.query_router import classify_query, QueryType
 from backend.services.rag_service import run_rag_pipeline
+from backend.services.observability import measure_stage
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +27,8 @@ class ChatService:
         query_rewriter: Optional[QueryRewriter] = None,
         query_router: Optional[Any] = None,
         retriever: Optional[Any] = None,
+        reranker: Optional[Any] = None,
+        generator: Optional[Any] = None,
         rag_service: Optional[Any] = None,
         llm: Optional[Any] = None,
     ):
@@ -33,6 +36,8 @@ class ChatService:
         self.query_rewriter = query_rewriter or QueryRewriter(llm=llm)
         self.query_router = query_router or classify_query
         self.retriever = retriever
+        self.reranker = reranker
+        self.generator = generator
         self.rag_service = rag_service
         self.llm = llm
 
@@ -85,40 +90,71 @@ class ChatService:
         )
 
         # 3. Rewrite query into standalone research query
-        rewritten_query = self.query_rewriter.rewrite(clean_msg, history)
+        metrics: Dict[str, Any] = {}
+        with measure_stage("query_rewriting", metrics):
+            rewritten_query = self.query_rewriter.rewrite(clean_msg, history)
         logger.info("Original: '%s' -> Standalone: '%s'", clean_msg, rewritten_query)
 
         # 4. Execute retrieval and answer generation
-        if self.rag_service is not None and hasattr(self.rag_service, "run_rag_pipeline"):
-            rag_res = self.rag_service.run_rag_pipeline(
-                query=clean_msg,
-                filename=filename,
-                user_id=user_id,
-                db=db,
-                conversation_id=conversation_id,
-                conversation_history=history,
-                persist_messages=False
-            )
-        elif callable(self.rag_service):
-            rag_res = self.rag_service(
-                query=clean_msg,
-                filename=filename,
-                user_id=user_id,
-                db=db,
-                conversation_id=conversation_id,
-                conversation_history=history,
-                persist_messages=False
-            )
-        else:
-            rag_res = run_rag_pipeline(
-                query=clean_msg,
-                filename=filename,
-                user_id=user_id,
-                db=db,
-                conversation_id=conversation_id,
-                conversation_history=history,
-                persist_messages=False
-            )
+        try:
+            if self.rag_service is not None and hasattr(self.rag_service, "run_rag_pipeline"):
+                rag_res = self.rag_service.run_rag_pipeline(
+                    query=clean_msg,
+                    filename=filename,
+                    user_id=user_id,
+                    db=db,
+                    conversation_id=conversation_id,
+                    conversation_history=history,
+                    persist_messages=False,
+                    metrics=metrics
+                )
+            elif callable(self.rag_service):
+                rag_res = self.rag_service(
+                    query=clean_msg,
+                    filename=filename,
+                    user_id=user_id,
+                    db=db,
+                    conversation_id=conversation_id,
+                    conversation_history=history,
+                    persist_messages=False,
+                    metrics=metrics
+                )
+            else:
+                rag_res = run_rag_pipeline(
+                    query=clean_msg,
+                    filename=filename,
+                    user_id=user_id,
+                    db=db,
+                    conversation_id=conversation_id,
+                    conversation_history=history,
+                    persist_messages=False,
+                    metrics=metrics
+                )
+        except TypeError:
+            # Fallback if custom rag_service doesn't accept metrics keyword argument
+            if self.rag_service is not None and hasattr(self.rag_service, "run_rag_pipeline"):
+                rag_res = self.rag_service.run_rag_pipeline(
+                    query=clean_msg,
+                    filename=filename,
+                    user_id=user_id,
+                    db=db,
+                    conversation_id=conversation_id,
+                    conversation_history=history,
+                    persist_messages=False
+                )
+            else:
+                rag_res = run_rag_pipeline(
+                    query=clean_msg,
+                    filename=filename,
+                    user_id=user_id,
+                    db=db,
+                    conversation_id=conversation_id,
+                    conversation_history=history,
+                    persist_messages=False
+                )
+
+        if isinstance(rag_res, dict) and "metrics" in rag_res:
+            metrics.update(rag_res["metrics"])
 
         answer = rag_res.get("answer", "No answer generated.")
         sources = rag_res.get("sources", [])
@@ -157,7 +193,65 @@ class ChatService:
             "used_hyde": rag_res.get("used_hyde", False),
             "query_type": rag_res.get("query_type"),
             "user_id": user_id,
-            "latency_ms": rag_res.get("latency_ms", 0.0)
+            "latency_ms": rag_res.get("latency_ms", 0.0),
+            "metrics": metrics
+        }
+
+    def process_chat(
+        self,
+        query: str,
+        history: Optional[List[Any]] = None,
+    ) -> Dict[str, Any]:
+        """Process chat through pipeline stages with stage-level timing metrics."""
+        metrics: Dict[str, Any] = {}
+
+        with measure_stage("query_rewriting", metrics):
+            rewritten_query = self.query_rewriter.rewrite(
+                query,
+                history or [],
+            )
+
+        with measure_stage("retrieval", metrics):
+            if self.retriever and hasattr(self.retriever, "retrieve"):
+                chunks = self.retriever.retrieve(rewritten_query)
+            elif callable(self.retriever):
+                chunks = self.retriever(rewritten_query)
+            else:
+                chunks = []
+        metrics["candidate_count"] = len(chunks)
+        metrics["empty_retrieval"] = len(chunks) == 0
+
+        with measure_stage("reranking", metrics):
+            if self.reranker and hasattr(self.reranker, "rerank"):
+                ranked_chunks = self.reranker.rerank(
+                    rewritten_query,
+                    chunks,
+                    top_k=5,
+                )
+            elif callable(self.reranker):
+                ranked_chunks = self.reranker(
+                    rewritten_query,
+                    chunks,
+                    top_k=5,
+                )
+            else:
+                ranked_chunks = chunks[:5]
+        metrics["reranked_count"] = len(ranked_chunks)
+
+        with measure_stage("generation", metrics):
+            if self.generator and hasattr(self.generator, "generate"):
+                answer = self.generator.generate(ranked_chunks)
+            elif callable(self.generator):
+                answer = self.generator(ranked_chunks)
+            elif self.llm:
+                answer = str(self.llm(ranked_chunks))
+            else:
+                answer = "Answer based on context."
+        metrics["generation_outcome"] = "success"
+
+        return {
+            "answer": answer,
+            "metrics": metrics,
         }
 
 

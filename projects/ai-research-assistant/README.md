@@ -1443,6 +1443,45 @@ Features:
 - **Citation Validity & Coverage Metrics (`metrics.py`)**: Quantifies whether generated `[S#]` tags reference valid source provenance without confounding citation syntax with factual truth.
 - **Comparative Retrieval Benchmarks (`run_evaluation.py`)**: Evaluates and compares Dense retrieval, Dense + reranker, Hybrid retrieval, Hybrid + reranker, and Advanced query pipelines against standard test corpora.
 
+## Research Observability & Performance Engineering (Day 163)
+
+Day 163 establishes comprehensive telemetry and performance engineering across the AI Research Assistant's RAG request lifecycle. By isolating each pipeline stage, tracking correlation IDs, logging request-level latencies, and generating statistical distributions, developers can pinpoint bottlenecks before optimizing.
+
+### Architecture
+
+```text
+HTTP Request (X-Request-ID)
+      │
+      ▼
+FastAPI Middleware (observe_request)
+      ├── Correlation ID propagation
+      ├── Method, path, status logging
+      └── Request latency timer
+      │
+      ▼
+ChatService & RAG Pipeline (measure_stage)
+      ├── query_rewriting (latency, outcome)
+      ├── query_routing (archetype classification)
+      ├── retrieval (dense/BM25/hybrid, candidate_count)
+      ├── reranking (latency, reranked_count)
+      ├── context_assembly (context_size)
+      └── generation (LLM latency, generation_outcome)
+      │
+      ▼
+Latency Report & Benchmarks (latency_report.py)
+      ├── Nearest-rank p95 percentile
+      ├── Per-stage latency distributions
+      ├── Operational metrics (empty retrieval, error rate)
+      └── Bottleneck identification
+```
+
+Features:
+- **Reusable Stage Timing Context Manager (`observability.py`)**: Synchronous (`measure_stage`) and asynchronous (`async_measure_stage`) context managers that record stage latency in milliseconds, guarantee exception propagation without swallowing, and emit structured JSON logs (`extra={"stage", "duration_ms", "outcome"}`).
+- **Request-Level Observability Middleware (`main.py`)**: HTTP middleware that generates or validates incoming `X-Request-ID` correlation headers, measures overall request latency, and emits structured audit logs without exposing credentials, JWT tokens, or raw document content.
+- **Granular Pipeline Instrumentation (`chat_service.py`, `rag_service.py`)**: Deconstructs end-to-end execution into independent stages: tracks candidate count before reranking, final reranked count, routing archetype, retrieval strategy (`dense`, `bm25`, `hybrid`), zero-retrieval flags, and generation outcomes.
+- **Statistical Latency Distribution Reports (`latency_report.py`)**: Computes sample size, mean, median, and nearest-rank 95th percentile (`p95_ms`) latencies across overall requests and individual pipeline stages, exposing empty-retrieval rates and pinpointing the primary bottleneck stage (`generation`).
+- **Standardized Baseline Benchmark (`baseline_latency_report.json`)**: Pre-calibrated baseline benchmark simulating cold/warm starts, short/long queries, and multiple retrieval configurations.
+
 ## Project Structure
 
 ```text
@@ -1489,7 +1528,8 @@ ai-research-assistant/
 │   │   ├── embedding_service.py
 │   │   ├── vector_store.py
 │   │   ├── chunker.py
-│   │   └── memory_service.py
+│   │   ├── memory_service.py
+│   │   └── observability.py
 │   ├── evaluation/
 │   │   ├── __init__.py
 │   │   ├── dataset.py
@@ -1497,6 +1537,8 @@ ai-research-assistant/
 │   │   ├── retrieval_metrics.py
 │   │   ├── generation_metrics.py
 │   │   ├── run_evaluation.py
+│   │   ├── latency_report.py
+│   │   ├── baseline_latency_report.json
 │   │   ├── run.py
 │   │   └── baseline_report.json
 │   ├── storage/
@@ -1668,6 +1710,7 @@ ai-research-assistant/
 ├── test_research_answer_rendering.py
 ├── test_source_inspection_and_context.py
 ├── test_rag_feedback_and_evaluation.py
+├── test_rag_observability_and_performance.py
 ├── test_full_suite.py
 ├── llm.py
 ├── prompts.py

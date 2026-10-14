@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from tool_router import execute_tool
 from llm import generate_answer
 from observability import RAGTrace, timed_call, save_trace
+from backend.services.observability import measure_stage
 from backend.services.rag_context import build_rag_context, validate_citations
 from backend.database import SessionLocal
 from backend.config import settings
@@ -37,9 +38,13 @@ def run_rag_pipeline(
     db: Optional[Session] = None,
     conversation_id: Optional[int] = None,
     conversation_history: Optional[list] = None,
-    persist_messages: bool = True
+    persist_messages: bool = True,
+    metrics: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """Execute the full RAG pipeline with candidate retrieval, reranking, context building, and citations."""
+    if metrics is None:
+        metrics = {}
+
     # Initialize database session
     session = db
     close_db = False
@@ -65,20 +70,23 @@ def run_rag_pipeline(
                 history_messages = get_recent_messages(session, conversation_id=conversation_id, limit=max_hist)
 
         if history_messages and getattr(settings, "query_rewriting_enabled", True):
-            rewriter = QueryRewriter()
-            active_query = rewriter.rewrite(original_query, history_messages)
+            with measure_stage("query_rewriting", metrics):
+                rewriter = QueryRewriter()
+                active_query = rewriter.rewrite(original_query, history_messages)
             logger.info("Rewrote conversational query: '%s' -> '%s'", original_query, active_query)
 
         # 0. Query Routing: Classify query archetype and resolve retrieval configuration on active_query
-        if getattr(settings, "query_routing_enabled", True):
-            query_type = classify_query(active_query)
-            routing_cfg = get_retrieval_config(query_type)
-            candidate_k = routing_cfg["candidate_k"]
-            final_k = routing_cfg["final_k"]
-        else:
-            query_type = QueryType.SEMANTIC
-            candidate_k = getattr(settings, "rag_candidate_k", 20)
-            final_k = getattr(settings, "rag_final_k", 5)
+        with measure_stage("query_routing", metrics):
+            if getattr(settings, "query_routing_enabled", True):
+                query_type = classify_query(active_query)
+                routing_cfg = get_retrieval_config(query_type)
+                candidate_k = routing_cfg["candidate_k"]
+                final_k = routing_cfg["final_k"]
+            else:
+                query_type = QueryType.SEMANTIC
+                candidate_k = getattr(settings, "rag_candidate_k", 20)
+                final_k = getattr(settings, "rag_final_k", 5)
+        metrics["query_type"] = query_type.value
 
         # 1. Multi-Query Decomposition:
         # Decompose complex comparison queries into focused search subqueries
@@ -113,151 +121,160 @@ def run_rag_pipeline(
         start_time = time.time()
 
         # 2. First stage: Retrieve candidate chunks across subqueries strictly scoped to user's indexed docs
-
-        # Initialize BM25 KeywordRetriever and VectorStore once across eligible indexed documents
-        keyword_retriever = None
-        vector_store = None
-        indexed_doc_ids = []
-        if session is not None:
-            try:
-                indexed_doc_ids = get_indexed_document_ids(session, user_id)
-                if indexed_doc_ids:
-                    vector_store = VectorStore()
-                    if getattr(settings, "hybrid_retrieval_enabled", True) and getattr(settings, "bm25_enabled", True):
-                        user_chunks = vector_store.get_user_chunks(user_id=user_id, document_ids=indexed_doc_ids)
-                        if user_chunks:
-                            keyword_retriever = KeywordRetriever(user_chunks)
-            except Exception as e:
-                logger.debug("Failed initializing retrieval resources: %s", e)
-                keyword_retriever = None
-
-        deduped_candidates: Dict[Any, Dict[str, Any]] = {}
-        all_expanded_queries: List[str] = []
-        used_hyde_flag = False
-
-        for sq in subqueries:
-            # Query Expansion: generate alternative query formulations preserving original intent
-            if getattr(settings, "query_expansion_enabled", True):
-                search_queries = expand_query(sq)
-                for eq in search_queries[1:]:
-                    if eq not in all_expanded_queries:
-                        all_expanded_queries.append(eq)
-            else:
-                search_queries = [sq]
-
-            query_result_lists: List[List[Dict[str, Any]]] = []
-
-            for q_var in search_queries:
-                dense_results = []
-                if session is not None:
-                    try:
-                        dense_results = db_retrieve(db=session, user_id=user_id, query=q_var, top_k=candidate_k)
-                    except Exception:
-                        dense_results = []
-
-                # Retrieve BM25 keyword candidates if hybrid retrieval is active
-                keyword_results = []
-                if keyword_retriever is not None:
-                    try:
-                        keyword_results = keyword_retriever.retrieve(query=q_var, top_k=candidate_k)
-                    except Exception:
-                        keyword_results = []
-
-                # Fuse dense and keyword results with Reciprocal Rank Fusion
-                if keyword_results and dense_results:
-                    rrf_k = getattr(settings, "rrf_k", 60)
-                    fused = reciprocal_rank_fusion([dense_results, keyword_results], k=rrf_k)
-                    var_results = [item["chunk"] for item in fused[:candidate_k]]
-                elif keyword_results:
-                    var_results = [item["chunk"] for item in keyword_results[:candidate_k]]
-                else:
-                    var_results = dense_results
-
-                for c in var_results:
-                    if isinstance(c, dict):
-                        c["matched_queries"] = [q_var]
-                if var_results:
-                    query_result_lists.append(var_results)
-
-            # HyDE: Hypothetical Document Embeddings for semantic exploration
-            if (
-                getattr(settings, "hyde_enabled", True)
-                and query_type == QueryType.SEMANTIC
-                and session is not None
-                and indexed_doc_ids
-            ):
+        with measure_stage("retrieval", metrics):
+            # Initialize BM25 KeywordRetriever and VectorStore once across eligible indexed documents
+            keyword_retriever = None
+            vector_store = None
+            indexed_doc_ids = []
+            if session is not None:
                 try:
-                    hyde = HyDE()
-                    hyde_results = hyde.retrieve(
-                        query=sq,
-                        user_id=user_id,
-                        document_ids=indexed_doc_ids,
-                        vector_store=vector_store,
-                        top_k=candidate_k
-                    )
-                    if hyde_results:
-                        used_hyde_flag = True
-                        query_result_lists.append(hyde_results)
+                    indexed_doc_ids = get_indexed_document_ids(session, user_id)
+                    if indexed_doc_ids:
+                        vector_store = VectorStore()
+                        if getattr(settings, "hybrid_retrieval_enabled", True) and getattr(settings, "bm25_enabled", True):
+                            user_chunks = vector_store.get_user_chunks(user_id=user_id, document_ids=indexed_doc_ids)
+                            if user_chunks:
+                                keyword_retriever = KeywordRetriever(user_chunks)
                 except Exception as e:
-                    logger.debug("HyDE retrieval error: %s", e)
+                    logger.debug("Failed initializing retrieval resources: %s", e)
+                    keyword_retriever = None
 
-            # Fuse across all search queries and HyDE candidates for this subquery
-            if len(query_result_lists) > 1:
-                rrf_k = getattr(settings, "rrf_k", 60)
-                sq_fused = reciprocal_rank_fusion(query_result_lists, k=rrf_k)
-                sq_results = [item["chunk"] for item in sq_fused[:candidate_k]]
-            elif len(query_result_lists) == 1:
-                sq_results = query_result_lists[0][:candidate_k]
-            else:
-                sq_results = []
+            deduped_candidates: Dict[Any, Dict[str, Any]] = {}
+            all_expanded_queries: List[str] = []
+            used_hyde_flag = False
 
-            # Fallback to tool router document search for unindexed or legacy mocks
-            if not sq_results:
-                try:
-                    trace.tool_calls.append({
-                        "tool": "document_search",
-                        "arguments": {"query": sq, "filename": filename, "user_id": user_id}
-                    })
-                    tool_results = execute_tool(
-                        "document_search",
-                        {"query": sq, "filename": filename, "user_id": user_id}
-                    )
-                    if isinstance(tool_results, list) and len(tool_results) > 0:
-                        if not (isinstance(tool_results[0], dict) and "error" in tool_results[0]):
-                            sq_results = tool_results
-                except Exception:
-                    pass
-
-            for chunk in sq_results:
-                # Key chunk by (document_id, chunk_index) or fallback identifiers
-                doc_id = chunk.get("document_id")
-                c_idx = chunk.get("chunk_index", chunk.get("chunk_id", chunk.get("chunk", 0)))
-                if doc_id is not None:
-                    chunk_key = (doc_id, c_idx)
-                elif chunk.get("filename"):
-                    chunk_key = (chunk.get("filename"), c_idx)
+            for sq in subqueries:
+                # Query Expansion: generate alternative query formulations preserving original intent
+                if getattr(settings, "query_expansion_enabled", True):
+                    search_queries = expand_query(sq)
+                    for eq in search_queries[1:]:
+                        if eq not in all_expanded_queries:
+                            all_expanded_queries.append(eq)
                 else:
-                    chunk_key = chunk.get("id") or chunk.get("text", "")[:100]
+                    search_queries = [sq]
 
-                chunk_matched = chunk.get("matched_queries", [sq])
-                if chunk_key not in deduped_candidates:
-                    chunk_copy = dict(chunk)
-                    chunk_copy["matched_queries"] = list(chunk_matched)
-                    deduped_candidates[chunk_key] = chunk_copy
+                query_result_lists: List[List[Dict[str, Any]]] = []
+
+                for q_var in search_queries:
+                    dense_results = []
+                    if session is not None:
+                        try:
+                            dense_results = db_retrieve(db=session, user_id=user_id, query=q_var, top_k=candidate_k)
+                        except Exception:
+                            dense_results = []
+
+                    # Retrieve BM25 keyword candidates if hybrid retrieval is active
+                    keyword_results = []
+                    if keyword_retriever is not None:
+                        try:
+                            keyword_results = keyword_retriever.retrieve(query=q_var, top_k=candidate_k)
+                        except Exception:
+                            keyword_results = []
+
+                    # Fuse dense and keyword results with Reciprocal Rank Fusion
+                    if keyword_results and dense_results:
+                        rrf_k = getattr(settings, "rrf_k", 60)
+                        fused = reciprocal_rank_fusion([dense_results, keyword_results], k=rrf_k)
+                        var_results = [item["chunk"] for item in fused[:candidate_k]]
+                    elif keyword_results:
+                        var_results = [item["chunk"] for item in keyword_results[:candidate_k]]
+                    else:
+                        var_results = dense_results
+
+                    for c in var_results:
+                        if isinstance(c, dict):
+                            c["matched_queries"] = [q_var]
+                    if var_results:
+                        query_result_lists.append(var_results)
+
+                # HyDE: Hypothetical Document Embeddings for semantic exploration
+                if (
+                    getattr(settings, "hyde_enabled", True)
+                    and query_type == QueryType.SEMANTIC
+                    and session is not None
+                    and indexed_doc_ids
+                ):
+                    try:
+                        hyde = HyDE()
+                        hyde_results = hyde.retrieve(
+                            query=sq,
+                            user_id=user_id,
+                            document_ids=indexed_doc_ids,
+                            vector_store=vector_store,
+                            top_k=candidate_k
+                        )
+                        if hyde_results:
+                            used_hyde_flag = True
+                            query_result_lists.append(hyde_results)
+                    except Exception as e:
+                        logger.debug("HyDE retrieval error: %s", e)
+
+                # Fuse across all search queries and HyDE candidates for this subquery
+                if len(query_result_lists) > 1:
+                    rrf_k = getattr(settings, "rrf_k", 60)
+                    sq_fused = reciprocal_rank_fusion(query_result_lists, k=rrf_k)
+                    sq_results = [item["chunk"] for item in sq_fused[:candidate_k]]
+                elif len(query_result_lists) == 1:
+                    sq_results = query_result_lists[0][:candidate_k]
                 else:
-                    existing = deduped_candidates[chunk_key]
-                    if "matched_queries" not in existing:
-                        existing["matched_queries"] = []
-                    for mq in chunk_matched:
-                        if mq not in existing["matched_queries"]:
-                            existing["matched_queries"].append(mq)
-                    current_score = float(chunk.get("score", 0.0))
-                    existing_score = float(existing.get("score", 0.0))
-                    if current_score > existing_score:
-                        existing["score"] = current_score
-                        existing["vector_score"] = float(chunk.get("vector_score", current_score))
+                    sq_results = []
 
-        results = list(deduped_candidates.values())
+                # Fallback to tool router document search for unindexed or legacy mocks
+                if not sq_results:
+                    try:
+                        trace.tool_calls.append({
+                            "tool": "document_search",
+                            "arguments": {"query": sq, "filename": filename, "user_id": user_id}
+                        })
+                        tool_results = execute_tool(
+                            "document_search",
+                            {"query": sq, "filename": filename, "user_id": user_id}
+                        )
+                        if isinstance(tool_results, list) and len(tool_results) > 0:
+                            if not (isinstance(tool_results[0], dict) and "error" in tool_results[0]):
+                                sq_results = tool_results
+                    except Exception:
+                        pass
+
+                for chunk in sq_results:
+                    # Key chunk by (document_id, chunk_index) or fallback identifiers
+                    doc_id = chunk.get("document_id")
+                    c_idx = chunk.get("chunk_index", chunk.get("chunk_id", chunk.get("chunk", 0)))
+                    if doc_id is not None:
+                        chunk_key = (doc_id, c_idx)
+                    elif chunk.get("filename"):
+                        chunk_key = (chunk.get("filename"), c_idx)
+                    else:
+                        chunk_key = chunk.get("id") or chunk.get("text", "")[:100]
+
+                    chunk_matched = chunk.get("matched_queries", [sq])
+                    if chunk_key not in deduped_candidates:
+                        chunk_copy = dict(chunk)
+                        chunk_copy["matched_queries"] = list(chunk_matched)
+                        deduped_candidates[chunk_key] = chunk_copy
+                    else:
+                        existing = deduped_candidates[chunk_key]
+                        if "matched_queries" not in existing:
+                            existing["matched_queries"] = []
+                        for mq in chunk_matched:
+                            if mq not in existing["matched_queries"]:
+                                existing["matched_queries"].append(mq)
+                        current_score = float(chunk.get("score", 0.0))
+                        existing_score = float(existing.get("score", 0.0))
+                        if current_score > existing_score:
+                            existing["score"] = current_score
+                            existing["vector_score"] = float(chunk.get("vector_score", current_score))
+
+            results = list(deduped_candidates.values())
+
+        metrics["candidate_count"] = len(results)
+        metrics["empty_retrieval"] = (len(results) == 0)
+        if keyword_retriever is not None and getattr(settings, "hybrid_retrieval_enabled", True):
+            metrics["retrieval_strategy"] = "hybrid"
+        elif keyword_retriever is not None:
+            metrics["retrieval_strategy"] = "bm25"
+        else:
+            metrics["retrieval_strategy"] = "dense"
 
         trace.expanded_queries = all_expanded_queries
         trace.used_hyde = used_hyde_flag
@@ -268,15 +285,19 @@ def run_rag_pipeline(
 
         # 3. Second stage: Cross-encoder reranking against active_query (prioritize precision)
         rerank_start = time.time()
-        if results and getattr(settings, "reranker_enabled", True):
-            reranker = get_reranker()
-            results = reranker.rerank(query=active_query, chunks=results, top_k=final_k)
-        else:
-            results = results[:final_k]
+        with measure_stage("reranking", metrics):
+            if results and getattr(settings, "reranker_enabled", True):
+                reranker = get_reranker()
+                results = reranker.rerank(query=active_query, chunks=results, top_k=final_k)
+            else:
+                results = results[:final_k]
+        metrics["reranked_count"] = len(results)
         trace.reranking_ms = round((time.time() - rerank_start) * 1000, 2)
 
         # 4. Build structured RAG context, citation map, and independent source attribution
-        rag_payload = build_rag_context(results)
+        with measure_stage("context_assembly", metrics):
+            rag_payload = build_rag_context(results)
+        metrics["context_size"] = len(rag_payload.get("context", ""))
         trace.final_context_count = len(rag_payload["sources"])
 
         query_payload = {
@@ -286,6 +307,7 @@ def run_rag_pipeline(
 
         # 5. Clean early exit for zero-chunk retrieval (prevents LLM hallucination and saves tokens)
         if not rag_payload["has_context"]:
+            metrics["generation_outcome"] = "skipped_empty_context"
             save_trace(trace)
             if persist_messages and conversation_id is not None and session is not None:
                 try:
@@ -316,16 +338,19 @@ def run_rag_pipeline(
                 "invalid_citations": [],
                 "document_sources": [],
                 "has_context": False,
-                "latency_ms": search_time + trace.reranking_ms
+                "latency_ms": search_time + trace.reranking_ms,
+                "metrics": metrics
             }
 
         # 6. Stream response using Gemini LLM with grounded evidence context
-        stream = generate_answer(query=active_query, context=rag_payload["context"], user_id=user_id)
-        answer_chunks = []
-        for chunk in stream:
-            answer_chunks.append(chunk)
+        with measure_stage("generation", metrics):
+            stream = generate_answer(query=active_query, context=rag_payload["context"], user_id=user_id)
+            answer_chunks = []
+            for chunk in stream:
+                answer_chunks.append(chunk)
+            full_answer = "".join(answer_chunks)
+        metrics["generation_outcome"] = "success"
 
-        full_answer = "".join(answer_chunks)
         validation = validate_citations(full_answer, rag_payload["citation_map"])
         trace.sources = rag_payload["sources"]
         save_trace(trace)
@@ -361,7 +386,8 @@ def run_rag_pipeline(
             "invalid_citations": validation["invalid_citations"],
             "document_sources": rag_payload["document_sources"],
             "has_context": True,
-            "latency_ms": search_time + trace.reranking_ms
+            "latency_ms": search_time + trace.reranking_ms,
+            "metrics": metrics
         }
     finally:
         if close_db and session is not None:

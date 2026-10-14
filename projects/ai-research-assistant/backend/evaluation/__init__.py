@@ -4,6 +4,11 @@ from backend.evaluation.dataset import EVAL_DATASET
 from backend.evaluation.retrieval_metrics import recall_at_k, mean_recall
 from backend.evaluation.generation_metrics import citation_precision, evaluate_grounding
 from backend.evaluation.metrics import citation_validity, citation_coverage
+from backend.evaluation.latency_report import (
+    summarize_latency,
+    generate_latency_report,
+    run_baseline_benchmark,
+)
 
 __all__ = [
     "EVAL_DATASET",
@@ -13,4 +18,7 @@ __all__ = [
     "citation_validity",
     "citation_coverage",
     "evaluate_grounding",
+    "summarize_latency",
+    "generate_latency_report",
+    "run_baseline_benchmark",
 ]

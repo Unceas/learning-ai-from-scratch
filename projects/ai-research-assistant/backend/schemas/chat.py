@@ -45,3 +45,4 @@ class ChatResponse(BaseModel):
     expanded_queries: Optional[List[str]] = None
     used_hyde: Optional[bool] = None
     query_type: Optional[str] = None
+    metrics: Optional[Dict[str, Any]] = None
