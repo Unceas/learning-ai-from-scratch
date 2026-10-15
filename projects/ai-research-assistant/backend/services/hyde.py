@@ -111,11 +111,12 @@ Question:
 
         return self._heuristic_hypothesis(query)
 
-    def embed_hypothesis(self, hypothesis: str) -> List[float]:
+    def embed_hypothesis(self, hypothesis: str, user_id: Optional[str] = None) -> List[float]:
         """Generate dense vector embedding for the hypothetical research passage.
 
         Args:
             hypothesis: Hypothetical passage text.
+            user_id: Optional authenticated user identifier for cache namespacing.
 
         Returns:
             List of floats representing the dense embedding vector.
@@ -124,7 +125,10 @@ Question:
             return []
 
         if hasattr(self.embedding_model, "embed_query"):
-            return self.embedding_model.embed_query(hypothesis)
+            try:
+                return self.embedding_model.embed_query(hypothesis, user_id=user_id)
+            except TypeError:
+                return self.embedding_model.embed_query(hypothesis)
         if hasattr(self.embedding_model, "encode"):
             res = self.embedding_model.encode(hypothesis)
             return res.tolist() if hasattr(res, "tolist") else list(res)
@@ -154,7 +158,7 @@ Question:
         if not hypothesis:
             return []
 
-        hypo_embedding = self.embed_hypothesis(hypothesis)
+        hypo_embedding = self.embed_hypothesis(hypothesis, user_id=user_id)
         if not hypo_embedding:
             return []
 

@@ -1482,6 +1482,41 @@ Features:
 - **Statistical Latency Distribution Reports (`latency_report.py`)**: Computes sample size, mean, median, and nearest-rank 95th percentile (`p95_ms`) latencies across overall requests and individual pipeline stages, exposing empty-retrieval rates and pinpointing the primary bottleneck stage (`generation`).
 - **Standardized Baseline Benchmark (`baseline_latency_report.json`)**: Pre-calibrated baseline benchmark simulating cold/warm starts, short/long queries, and multiple retrieval configurations.
 
+## Caching & Redundant-Work Reduction (Day 164)
+
+Day 164 introduces bounded, in-memory caching to eliminate redundant vector computations across query execution and document chunk indexing while maintaining strict multi-tenant authorization boundaries.
+
+### Architecture
+
+```text
+Query / Document Chunk
+         │
+         ▼
+EmbeddingService.embed_query() / embed_documents()
+         │
+         ▼
+EmbeddingCache (LRU, max_entries=512)
+   ├── SHA-256 Digest Key: f"{namespace}:{model_version}:{sha256(text)}"
+   ├── Thread-safe lookup under Lock
+   ├── Cache Hit ──► Return independent copy()
+   └── Cache Miss:
+         ├── Compute outside lock (SentenceTransformer)
+         ├── Store copy() & evict oldest if full (popitem)
+         └── Return vector copy()
+         │
+         ▼
+VectorStore / Retrieval Layer
+   └── Strictly applies user_id ownership & indexed_document filters
+```
+
+Features:
+- **Thread-Safe Bounded LRU Cache (`embedding_cache.py`)**: Implements `EmbeddingCache` with an `OrderedDict` LRU eviction policy, configurable entry limits (`max_entries=512`), mutex synchronization, and comprehensive operational metrics (`hits`, `misses`, `evictions`, `hit_ratio`).
+- **Cryptographic & Namespaced Cache Keys**: Keys hash raw text using SHA-256 combined with the active model version and user namespace (`user:{user_id}`). This prevents raw prompt retention in keys, prevents vector collisions across different embedding models, and guarantees tenant isolation.
+- **Defensive Immutability**: All returned vectors are deep copies (`copy()`), preventing callers from modifying cached representations.
+- **Batch-Aware Resolution (`get_or_compute_batch`)**: Partitions bulk chunk ingestion into cached hits and uncached subsets, computing only missing embeddings in a single optimized model batch while maintaining original chunk ordering.
+- **Uncompromised Retrieval Authorization**: The embedding cache accelerates mathematical vector generation without bypassing security. All vector searches in `retrieval.py` strictly enforce `get_indexed_document_ids` tenant filters.
+- **Empirical Performance Benchmarks (`benchmark_cache.py`, `baseline_cache_benchmark.json`)**: Benchmarks demonstrate a **23.29x speedup** on repeated research queries, reducing model computation by **96.0%** and dropping median embedding latency to **0.04 ms**.
+
 ## Project Structure
 
 ```text
@@ -1526,6 +1561,7 @@ ai-research-assistant/
 │   │   ├── document_service.py
 │   │   ├── document_hash.py
 │   │   ├── embedding_service.py
+│   │   ├── embedding_cache.py
 │   │   ├── vector_store.py
 │   │   ├── chunker.py
 │   │   ├── memory_service.py
@@ -1539,6 +1575,8 @@ ai-research-assistant/
 │   │   ├── run_evaluation.py
 │   │   ├── latency_report.py
 │   │   ├── baseline_latency_report.json
+│   │   ├── benchmark_cache.py
+│   │   ├── baseline_cache_benchmark.json
 │   │   ├── run.py
 │   │   └── baseline_report.json
 │   ├── storage/
@@ -1627,6 +1665,10 @@ ai-research-assistant/
 │   ├── script.py.mako
 │   └── README
 ├── alembic.ini
+├── tests/
+│   ├── conftest.py
+│   └── services/
+│       └── test_embedding_cache.py
 ├── agents/
 │   ├── base_agent.py
 │   ├── research_agent.py
@@ -1711,6 +1753,7 @@ ai-research-assistant/
 ├── test_source_inspection_and_context.py
 ├── test_rag_feedback_and_evaluation.py
 ├── test_rag_observability_and_performance.py
+├── test_caching_and_redundant_work.py
 ├── test_full_suite.py
 ├── llm.py
 ├── prompts.py

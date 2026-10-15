@@ -46,7 +46,8 @@ TEST_SCRIPTS = [
     "test_research_answer_rendering.py",
     "test_source_inspection_and_context.py",
     "test_rag_feedback_and_evaluation.py",
-    "test_rag_observability_and_performance.py"
+    "test_rag_observability_and_performance.py",
+    "test_caching_and_redundant_work.py"
 ]
 
 

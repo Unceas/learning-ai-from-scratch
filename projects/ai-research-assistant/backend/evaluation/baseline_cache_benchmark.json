@@ -1,0 +1,40 @@
+{
+  "workload": {
+    "total_requests_per_trial": 25,
+    "unique_queries": 5,
+    "repetition_ratio": 0.8,
+    "trials": 5,
+    "cache_max_entries": 128
+  },
+  "cache_disabled": {
+    "total_computations": 125,
+    "latency": {
+      "count": 5,
+      "mean_ms": 60.31,
+      "median_ms": 60.79,
+      "p95_ms": 61.44
+    }
+  },
+  "cache_enabled": {
+    "total_computations": 5,
+    "latency": {
+      "count": 5,
+      "mean_ms": 2.59,
+      "median_ms": 0.04,
+      "p95_ms": 12.77
+    },
+    "cache_stats": {
+      "entries": 5,
+      "max_entries": 128,
+      "hits": 120,
+      "misses": 5,
+      "evictions": 0,
+      "hit_ratio": 0.96
+    }
+  },
+  "performance": {
+    "speedup_factor": "23.29x",
+    "latency_reduction_percent": "95.7%",
+    "computation_reduction_percent": "96.0%"
+  }
+}

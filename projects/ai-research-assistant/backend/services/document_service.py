@@ -79,7 +79,7 @@ def process_document(
 
     embedding_service = EmbeddingService()
     texts = [chunk["text"] for chunk in chunks]
-    embeddings = embedding_service.embed_documents(texts)
+    embeddings = embedding_service.embed_documents(texts, user_id=user_id)
 
     metadatas = []
     ids = []

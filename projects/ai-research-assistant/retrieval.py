@@ -93,7 +93,7 @@ def db_retrieve(
         return []
 
     embedding_service = EmbeddingService()
-    query_embedding = embedding_service.embed_query(query)
+    query_embedding = embedding_service.embed_query(query, user_id=user_id)
 
     vector_store = VectorStore()
     results = vector_store.search(
