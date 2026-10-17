@@ -40,6 +40,7 @@ def process_document_background(
 
         document.chunks = len(chunks)
         document.status = "indexed"
+        document.index_version = (document.index_version or 0) + 1
         document.error_message = None
         db.commit()
     except Exception as exc:

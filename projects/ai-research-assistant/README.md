@@ -1517,6 +1517,41 @@ Features:
 - **Uncompromised Retrieval Authorization**: The embedding cache accelerates mathematical vector generation without bypassing security. All vector searches in `retrieval.py` strictly enforce `get_indexed_document_ids` tenant filters.
 - **Empirical Performance Benchmarks (`benchmark_cache.py`, `baseline_cache_benchmark.json`)**: Benchmarks demonstrate a **23.29x speedup** on repeated research queries, reducing model computation by **96.0%** and dropping median embedding latency to **0.04 ms**.
 
+## Retrieval Caching & Safe Invalidation (Day 165)
+
+Day 165 introduces candidate retrieval caching with authoritative authorization and cryptographic invalidation. It eliminates redundant ChromaDB and BM25 candidate lookups for repeated queries while strictly preserving multi-tenant isolation and reflecting corpus state transitions.
+
+### Architecture
+
+```text
+User Request (query, user_id, config)
+         │
+         ▼
+Authoritative Database Check (SQLite)
+   └── get_eligible_indexed_documents(user_id) ──► [{"id": 1, "index_version": 1}, ...]
+         │
+         ├── [Empty or Unauthorized] ────────────► Return [] immediately (Never consults cache)
+         │
+         ▼
+Deterministic Key Generation (SHA-256)
+   └── make_key(user_id, sorted(eligible_documents), query, retrieval_config)
+         │
+         ├── Cache Hit ─────────────────────────► Return deepcopy(candidates)
+         │
+         └── Cache Miss:
+               ├── Execute Dense / BM25 / Hybrid retrieval
+               ├── Store deepcopy(candidates) in LRU RetrievalCache (max_entries=256)
+               └── Return candidates
+```
+
+Key Architectural Principles:
+- **Authorization Before Retrieval**: A cache hit is never treated as proof of authorization. The user's eligible documents (`status == 'indexed'`) are resolved from SQLite before the cache is consulted. If the user owns no indexed documents, an empty candidate list is returned immediately.
+- **Cryptographic Cache Keys (`RetrievalCache.make_key`)**: Computes a SHA-256 digest over the authenticated `user_id`, sorted eligible documents (`id` + `index_version`), exact `query`, and `retrieval_config`.
+- **Logical Invalidation via `index_version`**: The `Document` model includes an `index_version` counter incremented upon successful indexing or reindexing. When reindexing occurs, the database ID remains unchanged but `index_version` increments, altering the SHA-256 key and logically invalidating old candidates without requiring cross-process key purges.
+- **Corpus-State Sensitivity**: Document deletion removes the document ID from SQLite, immediately altering the eligible document list and generating a fresh cache key.
+- **Candidate-Level Caching**: Only raw retrieved candidates are cached, not final generated answers or query-rewritten forms. Downstream reranking and LLM synthesis remain dynamic and context-aware.
+- **Performance Benchmarking (`benchmark_retrieval_cache.py`, `baseline_retrieval_cache_benchmark.json`)**: Benchmarks demonstrate a **20.89x speedup** on repeated research queries, reducing retrieval calls by **96.0%** and dropping candidate retrieval latency from **135.16 ms** to **6.47 ms**.
+
 ## Project Structure
 
 ```text
@@ -1562,6 +1597,7 @@ ai-research-assistant/
 │   │   ├── document_hash.py
 │   │   ├── embedding_service.py
 │   │   ├── embedding_cache.py
+│   │   ├── retrieval_cache.py
 │   │   ├── vector_store.py
 │   │   ├── chunker.py
 │   │   ├── memory_service.py
@@ -1577,6 +1613,8 @@ ai-research-assistant/
 │   │   ├── baseline_latency_report.json
 │   │   ├── benchmark_cache.py
 │   │   ├── baseline_cache_benchmark.json
+│   │   ├── benchmark_retrieval_cache.py
+│   │   ├── baseline_retrieval_cache_benchmark.json
 │   │   ├── run.py
 │   │   └── baseline_report.json
 │   ├── storage/
@@ -1754,6 +1792,7 @@ ai-research-assistant/
 ├── test_rag_feedback_and_evaluation.py
 ├── test_rag_observability_and_performance.py
 ├── test_caching_and_redundant_work.py
+├── test_retrieval_caching_and_safe_invalidation.py
 ├── test_full_suite.py
 ├── llm.py
 ├── prompts.py

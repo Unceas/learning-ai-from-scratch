@@ -1,0 +1,41 @@
+{
+  "workload": {
+    "total_requests_per_trial": 25,
+    "unique_queries": 5,
+    "repetition_ratio": 0.8,
+    "trials": 5,
+    "cache_max_entries": 128,
+    "eligible_documents_count": 2
+  },
+  "cache_disabled": {
+    "total_retrievals": 125,
+    "latency": {
+      "count": 5,
+      "mean_ms": 135.16,
+      "median_ms": 135.24,
+      "p95_ms": 135.32
+    }
+  },
+  "cache_enabled": {
+    "total_retrievals": 5,
+    "latency": {
+      "count": 5,
+      "mean_ms": 6.47,
+      "median_ms": 0.96,
+      "p95_ms": 28.67
+    },
+    "cache_stats": {
+      "entries": 5,
+      "max_entries": 128,
+      "hits": 120,
+      "misses": 5,
+      "evictions": 0,
+      "hit_ratio": 0.96
+    }
+  },
+  "performance": {
+    "speedup_factor": "20.89x",
+    "latency_reduction_percent": "95.2%",
+    "retrieval_call_reduction_percent": "96.0%"
+  }
+}

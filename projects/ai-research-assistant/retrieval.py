@@ -5,9 +5,13 @@ from sqlalchemy.orm import Session
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
-from backend.services.document_db_service import get_indexed_document_ids
+from backend.services.document_db_service import (
+    get_indexed_document_ids,
+    get_eligible_indexed_documents,
+)
 from backend.services.embedding_service import EmbeddingService
 from backend.services.vector_store import VectorStore
+from backend.services.retrieval_cache import retrieval_cache, RetrievalCache
 
 
 def chunk_pages(pages: List[Dict[str, Any]], chunk_size: int = 500) -> List[Dict[str, Union[int, str]]]:
@@ -68,62 +72,126 @@ def tfidf_retrieve(query: str, chunks: List[str], top_k: int = 3) -> List[Tuple[
     return ranked[:top_k]
 
 
-def db_retrieve(
+def retrieve_candidates(
     db: Session,
     user_id: str,
     query: str,
-    top_k: int = 5
+    retrieval_config: Optional[Dict[str, Any]] = None,
+    top_k: int = 5,
+    use_cache: bool = True,
 ) -> List[Dict[str, Any]]:
-    """Retrieve top-K relevant chunks strictly scoped to indexed documents belonging to authenticated user.
-    
-    Returns structured results including document metadata for citation attribution:
-    {
-        "text": "...",
-        "score": 0.82,
-        "document_id": 12,
-        "filename": "...",
-        "chunk_index": 7
-    }
+    """Retrieve candidate chunks with bounded caching and strict authorization enforcement.
+
+    Security & correctness guarantees:
+      1. Authoritative resolution: Query DB for user's indexed documents first.
+      2. If user has no eligible indexed documents, return [] immediately without consulting cache.
+      3. Compute deterministic cache key using user_id, eligible_documents (id + index_version),
+         exact query, and retrieval_config.
+      4. Return deep-copied candidates on cache hit.
+      5. On cache miss, execute candidate retrieval and save deep-copied candidates to cache.
     """
     if not query or not query.strip():
         return []
 
+    # 1. Authoritative resolution: resolve eligible indexed documents for the user
     indexed_document_ids = get_indexed_document_ids(db, user_id)
     if not indexed_document_ids:
         return []
 
-    embedding_service = EmbeddingService()
-    query_embedding = embedding_service.embed_query(query, user_id=user_id)
+    try:
+        eligible_docs = get_eligible_indexed_documents(db, user_id)
+        if not eligible_docs or not isinstance(eligible_docs, list) or not isinstance(eligible_docs[0], dict):
+            eligible_docs = [{"id": doc_id, "index_version": 0} for doc_id in indexed_document_ids]
+    except Exception:
+        eligible_docs = [{"id": doc_id, "index_version": 0} for doc_id in indexed_document_ids]
 
-    vector_store = VectorStore()
-    results = vector_store.search(
-        query_embedding=query_embedding,
-        user_id=user_id,
-        document_ids=indexed_document_ids,
-        top_k=top_k
-    )
+    config = dict(retrieval_config or {})
+    config.setdefault("strategy", "dense")
+    config.setdefault("top_k", top_k)
 
-    documents = results.get("documents", [[]])[0]
-    metadatas = results.get("metadatas", [[]])[0]
-    distances = results.get("distances", [[]])[0]
+    key = None
+    if use_cache:
+        key = retrieval_cache.make_key(
+            user_id=user_id,
+            eligible_documents=eligible_docs,
+            query=query.strip(),
+            retrieval_config=config,
+        )
+        cached = retrieval_cache.get(key)
+        if cached is not None:
+            return cached
 
-    retrieved = []
-    for doc_text, metadata, distance in zip(documents, metadatas, distances):
-        metadata = metadata or {}
-        # Convert cosine distance to a similarity score (0.0 to 1.0)
-        score = round(max(0.0, 1.0 - float(distance)), 4)
-        retrieved.append({
-            "text": doc_text,
-            "score": score,
-            "vector_score": score,
-            "document_id": metadata.get("document_id"),
-            "filename": metadata.get("filename", metadata.get("document", "Unknown")),
-            "chunk_index": metadata.get("chunk_index", metadata.get("chunk_id", 0)),
-            "page": metadata.get("page", 1),
-            "file_hash": metadata.get("file_hash")
-        })
+    # Cache miss: execute underlying retrieval based on strategy
+    strategy = config.get("strategy", "dense")
+    retrieved: List[Dict[str, Any]] = []
+
+    if strategy == "dense":
+        embedding_service = EmbeddingService()
+        query_embedding = embedding_service.embed_query(query, user_id=user_id)
+
+        vector_store = VectorStore()
+        results = vector_store.search(
+            query_embedding=query_embedding,
+            user_id=user_id,
+            document_ids=indexed_document_ids,
+            top_k=config.get("top_k", top_k),
+        )
+
+        documents = results.get("documents", [[]])[0]
+        metadatas = results.get("metadatas", [[]])[0]
+        distances = results.get("distances", [[]])[0]
+
+        for doc_text, metadata, distance in zip(documents, metadatas, distances):
+            metadata = metadata or {}
+            score = round(max(0.0, 1.0 - float(distance)), 4)
+            retrieved.append({
+                "text": doc_text,
+                "score": score,
+                "vector_score": score,
+                "document_id": metadata.get("document_id"),
+                "filename": metadata.get("filename", metadata.get("document", "Unknown")),
+                "chunk_index": metadata.get("chunk_index", metadata.get("chunk_id", 0)),
+                "page": metadata.get("page", 1),
+                "file_hash": metadata.get("file_hash"),
+            })
+    elif strategy == "keyword":
+        retrieved = db_keyword_retrieve(db=db, user_id=user_id, query=query, top_k=config.get("top_k", top_k))
+    elif strategy == "hybrid":
+        retrieved = db_hybrid_retrieve(
+            db=db,
+            user_id=user_id,
+            query=query,
+            dense_k=config.get("dense_k", 10),
+            keyword_k=config.get("keyword_k", 10),
+            top_k=config.get("top_k", top_k),
+            rrf_k=config.get("rrf_k", 60),
+        )
+
+    if use_cache and key is not None:
+        retrieval_cache.set(key, retrieved)
 
     return retrieved
+
+
+def db_retrieve(
+    db: Session,
+    user_id: str,
+    query: str,
+    top_k: int = 5,
+    use_cache: bool = True,
+) -> List[Dict[str, Any]]:
+    """Retrieve top-K relevant chunks strictly scoped to indexed documents belonging to authenticated user.
+    
+    Utilizes candidate retrieval caching while strictly enforcing document eligibility.
+    """
+    return retrieve_candidates(
+        db=db,
+        user_id=user_id,
+        query=query,
+        retrieval_config={"strategy": "dense", "top_k": top_k},
+        top_k=top_k,
+        use_cache=use_cache,
+    )
 
 
 def db_keyword_retrieve(

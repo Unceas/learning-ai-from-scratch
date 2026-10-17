@@ -93,6 +93,13 @@ class Document(Base):
         server_default="0"
     )
 
+    index_version = Column(
+        Integer,
+        nullable=False,
+        default=0,
+        server_default="0"
+    )
+
     user = relationship(
         "User",
         back_populates="documents"

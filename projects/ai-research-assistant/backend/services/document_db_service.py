@@ -1,6 +1,6 @@
 """Database service for managing document metadata and user ownership in SQLite."""
 
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 from sqlalchemy.orm import Session
 from backend.models import Document
 
@@ -44,9 +44,11 @@ def create_document(
     filename: str,
     storage_path: str = "",
     chunks: int = 0,
-    status: str = "processing"
+    status: str = "processing",
+    index_version: int = 0
 ) -> Document:
     """Create and persist a new document metadata record."""
+    effective_version = 1 if status == "indexed" and index_version == 0 else index_version
     document = Document(
         user_id=user_id,
         file_hash=file_hash,
@@ -54,6 +56,7 @@ def create_document(
         storage_path=storage_path,
         chunks=chunks,
         status=status,
+        index_version=effective_version,
         error_message=None
     )
     db.add(document)
@@ -124,4 +127,40 @@ def get_owned_document(
         )
         .first()
     )
+
+
+def get_indexed_documents(
+    db: Session,
+    user_id: str
+) -> List[Document]:
+    """Retrieve full Document records that belong to the user and have status == 'indexed'."""
+    return (
+        db.query(Document)
+        .filter(
+            Document.user_id == user_id,
+            Document.status == "indexed",
+        )
+        .order_by(Document.id.asc())
+        .all()
+    )
+
+
+def get_eligible_indexed_documents(
+    db: Session,
+    user_id: str
+) -> List[Dict[str, Any]]:
+    """Retrieve id and index_version for documents eligible for retrieval cache key generation."""
+    documents = (
+        db.query(Document.id, Document.index_version)
+        .filter(
+            Document.user_id == user_id,
+            Document.status == "indexed",
+        )
+        .order_by(Document.id.asc())
+        .all()
+    )
+    return [
+        {"id": doc.id, "index_version": doc.index_version or 0}
+        for doc in documents
+    ]
 

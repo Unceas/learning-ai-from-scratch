@@ -182,12 +182,14 @@ class DocumentService:
                     file_hash=file_hash,
                     filename=filename,
                     chunks=len(chunks),
-                    status="indexed"
+                    status="indexed",
+                    index_version=1
                 )
                 document_id = doc_record.id
             else:
                 existing.status = "indexed"
                 existing.chunks = len(chunks)
+                existing.index_version = (existing.index_version or 0) + 1
                 existing.error_message = None
                 db.commit()
                 document_id = existing.id
