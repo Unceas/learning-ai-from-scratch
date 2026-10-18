@@ -254,5 +254,24 @@ class ChatService:
             "metrics": metrics,
         }
 
+    async def async_chat(
+        self,
+        db: Session,
+        user_id: str,
+        message: str,
+        conversation_id: Optional[int] = None,
+        filename: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Execute chat request asynchronously via worker thread without blocking the event loop."""
+        import asyncio
+        return await asyncio.to_thread(
+            self.chat,
+            db=db,
+            user_id=user_id,
+            message=message,
+            conversation_id=conversation_id,
+            filename=filename,
+        )
+
 
 default_chat_service = ChatService()

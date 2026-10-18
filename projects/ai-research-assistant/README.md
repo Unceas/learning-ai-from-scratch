@@ -1552,6 +1552,52 @@ Key Architectural Principles:
 - **Candidate-Level Caching**: Only raw retrieved candidates are cached, not final generated answers or query-rewritten forms. Downstream reranking and LLM synthesis remain dynamic and context-aware.
 - **Performance Benchmarking (`benchmark_retrieval_cache.py`, `baseline_retrieval_cache_benchmark.json`)**: Benchmarks demonstrate a **20.89x speedup** on repeated research queries, reducing retrieval calls by **96.0%** and dropping candidate retrieval latency from **135.16 ms** to **6.47 ms**.
 
+## Async Execution & Concurrent Requests (Day 166)
+
+Day 166 introduces structured asynchronous execution and bounded concurrency across the AI Research Assistant stack. It prevents slow operations from blocking the FastAPI event loop, parallelizes independent retrieval subqueries, limits concurrent remote LLM calls, and isolates background ingestion from interactive chat workloads.
+
+### Concurrency Architecture
+
+```text
+Interactive Chat Request (POST /api/chat)
+                 │
+                 ▼
+FastAPI Sync Worker Thread (AnyIO Threadpool)
+   ├── Thread-local SQLAlchemy Session (No cross-thread session leakage)
+   │
+   ├── Multi-Query Parallel Retrieval (retrieve_queries_concurrent)
+   │     ├── Worker Thread 1: Subquery A ──► Hybrid / BM25 / ChromaDB (under session_lock)
+   │     ├── Worker Thread 2: Subquery B ──► Hybrid / BM25 / ChromaDB (under session_lock)
+   │     └── Worker Thread N: Subquery N ──► Hybrid / BM25 / ChromaDB (under session_lock)
+   │           │
+   │           ▼
+   │     Reciprocal Rank Fusion (RRF) & Context Assembly
+   │
+   └── Bounded LLM Generation (AsyncGenerator / llm_semaphore)
+         ├── Semaphore Limit: max_concurrent_llm_requests = 8
+         ├── Request Timeout: llm_request_timeout_seconds = 60s
+         └── Remote Gemini 2.5 Flash Generation
+                 │
+                 ▼
+Document Ingestion Worker (Background Tasks)
+   └── ingestion_semaphore = BoundedSemaphore(max_concurrent_ingestions = 2)
+         └── PDF Extraction, Chunking, Embedding & ChromaDB Upsert
+               (Prevents CPU/RAM starvation of interactive chat)
+```
+
+Key Architectural Principles:
+- **Workload Classification & Event Loop Protection**: CPU-heavy and synchronous library calls (ChromaDB, SQLAlchemy sessions, cross-encoder reranking) remain in synchronous worker threads, while remote network calls (Gemini LLM API) leverage async dispatch with bounded concurrency.
+- **Async LLM Generator (`AsyncGenerator`)**: Implements an `asyncio.Semaphore` boundary (`max_concurrency = 8`) and `asyncio.wait_for` timeout (`timeout = 60s`), preventing unbounded client requests from exhausting API quotas or degrading service health.
+- **Concurrent Subquery Retrieval (`retrieve_queries_concurrent`)**: Executes independent decomposed and expanded queries in parallel across a bounded worker pool (`max_concurrent_retrieval_workers = 4`), preserving input ordering and gracefully handling individual query timeouts without dropping sibling results.
+- **Ingestion Concurrency Bounding (`ingestion_semaphore`)**: Caps simultaneous PDF parsing, chunking, and embedding to 2 concurrent workers, protecting chat retrieval latency from CPU and memory pressure.
+- **Thread-Safe Session Integrity**: SQLAlchemy sessions are never passed across async tasks or threads without explicit thread-local isolation or synchronization locks.
+- **Empirical Scaling Benchmarks (`benchmark_concurrency.py`, `baseline_concurrency_benchmark.json`)**: Benchmarks demonstrate near-linear throughput scaling up to 10 concurrent requests:
+  - **Concurrency 1**: 10.71 req/s (baseline, mean: 93.36 ms)
+  - **Concurrency 2**: 21.78 req/s (**2.03x** scaling)
+  - **Concurrency 5**: 58.31 req/s (**5.44x** scaling)
+  - **Concurrency 10**: 141.75 req/s (**13.24x** scaling, mean: 70.28 ms)
+  - **Error Rate**: 0.0% across all concurrency levels
+
 ## Project Structure
 
 ```text
@@ -1598,6 +1644,8 @@ ai-research-assistant/
 │   │   ├── embedding_service.py
 │   │   ├── embedding_cache.py
 │   │   ├── retrieval_cache.py
+│   │   ├── concurrent_retrieval.py
+│   │   ├── async_generator.py
 │   │   ├── vector_store.py
 │   │   ├── chunker.py
 │   │   ├── memory_service.py
@@ -1615,6 +1663,8 @@ ai-research-assistant/
 │   │   ├── baseline_cache_benchmark.json
 │   │   ├── benchmark_retrieval_cache.py
 │   │   ├── baseline_retrieval_cache_benchmark.json
+│   │   ├── benchmark_concurrency.py
+│   │   ├── baseline_concurrency_benchmark.json
 │   │   ├── run.py
 │   │   └── baseline_report.json
 │   ├── storage/
@@ -1793,6 +1843,7 @@ ai-research-assistant/
 ├── test_rag_observability_and_performance.py
 ├── test_caching_and_redundant_work.py
 ├── test_retrieval_caching_and_safe_invalidation.py
+├── test_async_execution_and_concurrency.py
 ├── test_full_suite.py
 ├── llm.py
 ├── prompts.py

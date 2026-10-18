@@ -1,0 +1,81 @@
+{
+  "benchmark": "concurrency_scaling_evaluation",
+  "requests_per_level": 20,
+  "concurrency_levels": [
+    1,
+    2,
+    5,
+    10
+  ],
+  "results": {
+    "concurrency_1": {
+      "concurrency_limit": 1,
+      "total_requests": 20,
+      "completed_requests": 20,
+      "failed_requests": 0,
+      "error_rate_percent": 0.0,
+      "total_time_seconds": 1.868,
+      "throughput_requests_per_second": 10.71,
+      "latency": {
+        "count": 20,
+        "mean_ms": 93.36,
+        "median_ms": 93.55,
+        "p95_ms": 94.21
+      },
+      "scaling_factor": "1.0x"
+    },
+    "concurrency_2": {
+      "concurrency_limit": 2,
+      "total_requests": 20,
+      "completed_requests": 20,
+      "failed_requests": 0,
+      "error_rate_percent": 0.0,
+      "total_time_seconds": 0.918,
+      "throughput_requests_per_second": 21.78,
+      "latency": {
+        "count": 20,
+        "mean_ms": 91.72,
+        "median_ms": 93.25,
+        "p95_ms": 94.1
+      },
+      "scaling_factor": "2.03x"
+    },
+    "concurrency_5": {
+      "concurrency_limit": 5,
+      "total_requests": 20,
+      "completed_requests": 20,
+      "failed_requests": 0,
+      "error_rate_percent": 0.0,
+      "total_time_seconds": 0.343,
+      "throughput_requests_per_second": 58.31,
+      "latency": {
+        "count": 20,
+        "mean_ms": 85.61,
+        "median_ms": 92.63,
+        "p95_ms": 93.64
+      },
+      "scaling_factor": "5.44x"
+    },
+    "concurrency_10": {
+      "concurrency_limit": 10,
+      "total_requests": 20,
+      "completed_requests": 20,
+      "failed_requests": 0,
+      "error_rate_percent": 0.0,
+      "total_time_seconds": 0.141,
+      "throughput_requests_per_second": 141.75,
+      "latency": {
+        "count": 20,
+        "mean_ms": 70.28,
+        "median_ms": 70.3,
+        "p95_ms": 78.15
+      },
+      "scaling_factor": "13.24x"
+    }
+  },
+  "summary": {
+    "baseline_throughput_rps": 10.71,
+    "peak_throughput_rps": 141.75,
+    "max_scaling_factor": "13.24x"
+  }
+}

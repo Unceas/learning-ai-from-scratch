@@ -41,6 +41,13 @@ class Settings(BaseSettings):
     query_rewriting_enabled: bool = True
     max_history_messages: int = 10
 
+    # Concurrency & Async Execution Configuration (Day 166)
+    max_concurrent_llm_requests: int = 8
+    llm_request_timeout_seconds: float = 60.0
+    max_concurrent_ingestions: int = 2
+    max_concurrent_retrieval_workers: int = 4
+    retrieval_timeout_seconds: float = 15.0
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

@@ -1,6 +1,7 @@
 """RAG Service encapsulating retrieval, ranking, context construction, and answer generation logic."""
 
 import logging
+import threading
 import time
 from typing import Dict, Any, Optional
 from sqlalchemy.orm import Session
@@ -8,6 +9,7 @@ from tool_router import execute_tool
 from llm import generate_answer
 from observability import RAGTrace, timed_call, save_trace
 from backend.services.observability import measure_stage
+from backend.services.concurrent_retrieval import retrieve_queries_concurrent
 from backend.services.rag_context import build_rag_context, validate_citations
 from backend.database import SessionLocal
 from backend.config import settings
@@ -154,12 +156,14 @@ def run_rag_pipeline(
                     search_queries = [sq]
 
                 query_result_lists: List[List[Dict[str, Any]]] = []
+                session_lock = threading.Lock()
 
-                for q_var in search_queries:
+                def _retrieve_one_variant(q_var: str) -> List[Dict[str, Any]]:
                     dense_results = []
                     if session is not None:
                         try:
-                            dense_results = db_retrieve(db=session, user_id=user_id, query=q_var, top_k=candidate_k)
+                            with session_lock:
+                                dense_results = db_retrieve(db=session, user_id=user_id, query=q_var, top_k=candidate_k)
                         except Exception:
                             dense_results = []
 
@@ -184,6 +188,19 @@ def run_rag_pipeline(
                     for c in var_results:
                         if isinstance(c, dict):
                             c["matched_queries"] = [q_var]
+                    return var_results
+
+                if len(search_queries) > 1:
+                    raw_variant_lists = retrieve_queries_concurrent(
+                        search_queries,
+                        _retrieve_one_variant,
+                        max_workers=getattr(settings, "max_concurrent_retrieval_workers", 4),
+                        timeout=getattr(settings, "retrieval_timeout_seconds", 15.0),
+                    )
+                else:
+                    raw_variant_lists = [_retrieve_one_variant(search_queries[0])]
+
+                for var_results in raw_variant_lists:
                     if var_results:
                         query_result_lists.append(var_results)
 
