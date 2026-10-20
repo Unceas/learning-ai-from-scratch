@@ -33,7 +33,7 @@ def create_access_token(user_id: str) -> str:
 
     return jwt.encode(
         payload,
-        settings.jwt_secret_key,
+        settings.raw_jwt_secret,
         algorithm=settings.jwt_algorithm
     )
 
@@ -42,6 +42,6 @@ def decode_access_token(token: str) -> dict:
     """Decode and validate signed JWT token."""
     return jwt.decode(
         token,
-        settings.jwt_secret_key,
+        settings.raw_jwt_secret,
         algorithms=[settings.jwt_algorithm]
     )

@@ -15,15 +15,21 @@ from backend.config import settings
 
 load_dotenv()
 
-_llm_concurrency = getattr(settings, "max_concurrent_llm_requests", 8)
+_llm_concurrency = getattr(settings, "max_llm_concurrency", 8)
 llm_semaphore = threading.BoundedSemaphore(max(1, _llm_concurrency))
 _async_llm_semaphore = asyncio.Semaphore(max(1, _llm_concurrency))
 
 
 def get_client(override_api_key: Optional[str] = None) -> Optional[genai.Client]:
     """Retrieve Gemini client using provided or environment API key."""
-    api_key = override_api_key or os.getenv("GEMINI_API_KEY")
-    if api_key and api_key != "YOUR_API_KEY":
+    api_key = override_api_key
+    if not api_key:
+        if settings.llm_api_key:
+            api_key = settings.llm_api_key.get_secret_value()
+        else:
+            api_key = os.getenv("LLM_API_KEY") or os.getenv("GEMINI_API_KEY")
+
+    if api_key and api_key not in ("YOUR_API_KEY", "your-local-development-key"):
         return genai.Client(api_key=api_key)
     return None
 
@@ -111,7 +117,7 @@ Rules:
         )
         with llm_semaphore:
             response = client.models.generate_content_stream(
-                model="gemini-2.5-flash",
+                model=getattr(settings, "llm_model", "gemini-2.5-flash"),
                 contents=prompt,
                 config=config
             )
@@ -198,9 +204,10 @@ Rules:
             )
 
             async def _call_api() -> str:
+                effective_model = getattr(settings, "llm_model", "gemini-2.5-flash")
                 if hasattr(client, "aio") and hasattr(client.aio, "models"):
                     resp = await client.aio.models.generate_content(
-                        model="gemini-2.5-flash",
+                        model=effective_model,
                         contents=prompt,
                         config=config
                     )
@@ -209,7 +216,7 @@ Rules:
                     # Fallback to offloaded sync call
                     def _sync_call():
                         resp = client.models.generate_content(
-                            model="gemini-2.5-flash",
+                            model=effective_model,
                             contents=prompt,
                             config=config
                         )

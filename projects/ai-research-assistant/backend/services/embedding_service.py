@@ -1,9 +1,11 @@
 from typing import List, Optional
-from backend.config import settings
+from backend.config import get_settings
 from backend.services.embedding_cache import EmbeddingCache
 
+settings = get_settings()
+
 # Global bounded embedding cache instance (512 entries default)
-embedding_cache = EmbeddingCache(max_entries=getattr(settings, "embedding_cache_size", 512))
+embedding_cache = EmbeddingCache(max_entries=settings.embedding_cache_entries)
 
 
 class EmbeddingService:

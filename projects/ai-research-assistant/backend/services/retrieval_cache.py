@@ -108,4 +108,7 @@ class RetrievalCache:
             }
 
 
-retrieval_cache = RetrievalCache(max_entries=256)
+from backend.config import get_settings
+
+_settings = get_settings()
+retrieval_cache = RetrievalCache(max_entries=_settings.retrieval_cache_entries)

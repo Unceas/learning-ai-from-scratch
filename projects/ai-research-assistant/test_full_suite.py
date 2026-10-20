@@ -49,7 +49,8 @@ TEST_SCRIPTS = [
     "test_rag_observability_and_performance.py",
     "test_caching_and_redundant_work.py",
     "test_retrieval_caching_and_safe_invalidation.py",
-    "test_async_execution_and_concurrency.py"
+    "test_async_execution_and_concurrency.py",
+    "test_production_configuration_and_secrets.py"
 ]
 
 

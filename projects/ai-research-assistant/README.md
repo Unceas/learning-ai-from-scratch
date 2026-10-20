@@ -1598,6 +1598,48 @@ Key Architectural Principles:
   - **Concurrency 10**: 141.75 req/s (**13.24x** scaling, mean: 70.28 ms)
   - **Error Rate**: 0.0% across all concurrency levels
 
+## Production Configuration & Secrets Management (Day 167)
+
+Day 167 centralizes application settings, enforces startup validation, protects sensitive credentials, and eliminates hardcoded operational values across development, testing, and production environments.
+
+### Architecture
+
+```text
+Environment Variables (.env / Deployment Secrets)
+                  │
+                  ▼
+Centralized Settings (backend/config.py)
+   ├── Pydantic Settings (BaseSettings)
+   ├── Strongly Typed Fields & Strict Constraints
+   │     ├── Operational bounds (llm_timeout_seconds: 0 < t <= 300, max_llm_concurrency: 1-100)
+   │     └── Cache capacities (embedding_cache_entries >= 1, retrieval_cache_entries >= 1)
+   ├── Secret Protection (Pydantic SecretStr)
+   │     ├── SecretStr masking in str(), repr(), and JSON dumps
+   │     └── Explicit .get_secret_value() accessor
+   └── Production Invariant Validation (@model_validator)
+         ├── Rejects debug=True in production
+         ├── Requires JWT_SECRET_KEY in production
+         ├── Requires LLM_API_KEY in production
+         └── Rejects storage_type="local" (requires managed cloud storage)
+                  │
+                  ▼
+Cached Singleton (get_settings() / lru_cache)
+   ├── backend/database.py (database_url)
+   ├── backend/storage/factory.py (storage_type, storage_path)
+   ├── backend/services/auth_service.py (raw_jwt_secret, jwt_algorithm, jwt_expire_minutes)
+   ├── backend/main.py (cors_origins)
+   ├── llm.py (llm_api_key, llm_model, llm_timeout_seconds)
+   └── embedding_service.py & retrieval_cache.py (cache capacities)
+```
+
+Key Architectural Principles:
+- **Centralized `pydantic-settings`**: All configuration variables originate from environment variables or `.env` files with well-defined defaults and type validations.
+- **Strict Production Invariants**: Startup validation rejects debug mode, missing authentication or LLM secrets, and local disk storage when `ENVIRONMENT=production`.
+- **Sensitive Credential Protection (`SecretStr`)**: `jwt_secret_key` and `llm_api_key` are wrapped in `SecretStr`, preventing inadvertent leakage to server logs, tracebacks, or API error payloads (`repr()` outputs `**********`).
+- **Secret Bridge for Cryptographic Libraries**: `raw_jwt_secret` safely retrieves the underlying string credential for `python-jose` without compromising representation security.
+- **Operational Decoupling**: AI model identifiers, timeouts, concurrency limits, and cache sizes are now fully configurable without modifying source code.
+- **Safe Environment Template**: Clean `.env.example` provides documentation and default templates without exposing production credentials.
+
 ## Project Structure
 
 ```text
@@ -1844,7 +1886,10 @@ ai-research-assistant/
 ├── test_caching_and_redundant_work.py
 ├── test_retrieval_caching_and_safe_invalidation.py
 ├── test_async_execution_and_concurrency.py
+├── test_production_configuration_and_secrets.py
 ├── test_full_suite.py
+├── tests/
+│   └── test_config.py
 ├── llm.py
 ├── prompts.py
 ├── requirements.txt

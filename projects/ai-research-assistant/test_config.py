@@ -25,6 +25,10 @@ async def main():
     print("\n--- 2. Testing Custom Environment Overrides ---")
     prod_settings = Settings(
         environment="production",
+        debug=False,
+        jwt_secret_key="prod-secret-key-test",
+        llm_api_key="prod-llm-key-test",
+        storage_type="s3",
         chroma_path="/data/chroma",
         memory_path="/data/memory",
         embedding_model="all-MiniLM-L6-v2",
