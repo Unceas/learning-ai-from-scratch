@@ -220,3 +220,36 @@ class VectorStore:
                 ]
             }
         )
+
+    def health_check(self) -> bool:
+        """Verify vector database responsiveness via lightweight collection listing."""
+        self.client.list_collections()
+        return True
+
+    def close(self) -> None:
+        """Close vector store client connection if supported."""
+        if hasattr(self.client, "close"):
+            try:
+                self.client.close()
+            except Exception:
+                pass
+
+
+_vector_store_instance: Optional[VectorStore] = None
+
+
+def get_vector_store() -> VectorStore:
+    """Retrieve or create singleton VectorStore instance."""
+    global _vector_store_instance
+    if _vector_store_instance is None:
+        _vector_store_instance = VectorStore()
+    return _vector_store_instance
+
+
+def reset_vector_store() -> None:
+    """Reset singleton instance (useful for test isolation and clean shutdown)."""
+    global _vector_store_instance
+    if _vector_store_instance is not None:
+        _vector_store_instance.close()
+        _vector_store_instance = None
+

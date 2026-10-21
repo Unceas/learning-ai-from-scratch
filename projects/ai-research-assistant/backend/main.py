@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 import logging
 import time
 import uuid
@@ -13,12 +14,28 @@ from backend.routes.documents import router as documents_router
 from backend.routes.memory import router as memory_router
 from backend.routes.conversations import router as conversations_router
 from backend.routes.feedback import router as feedback_router
+from backend.routes.health import router as health_router
+from backend.services.health_service import validate_startup
+from backend.services.vector_store import reset_vector_store
 
 logger = logging.getLogger("research_assistant")
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Lifecycle manager executing startup invariant validation and clean shutdown."""
+    validate_startup()
+    yield
+    try:
+        reset_vector_store()
+    except Exception as e:
+        logger.warning(f"Shutdown cleanup warning: {e}")
+
+
 app = FastAPI(
     title=settings.app_name,
-    version=settings.app_version
+    version=settings.app_version,
+    lifespan=lifespan,
 )
 
 app.add_middleware(
@@ -113,9 +130,6 @@ app.include_router(
 )
 
 
-@app.get("/health")
-def health_check():
-    return {
-        "status": "healthy",
-        "environment": settings.environment
-    }
+app.include_router(
+    health_router
+)

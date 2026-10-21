@@ -1640,6 +1640,35 @@ Key Architectural Principles:
 - **Operational Decoupling**: AI model identifiers, timeouts, concurrency limits, and cache sizes are now fully configurable without modifying source code.
 - **Safe Environment Template**: Clean `.env.example` provides documentation and default templates without exposing production credentials.
 
+## Deployment Readiness & Health Checks (Day 168)
+
+Day 168 introduces robust liveness probes, readiness checks with bounded timeouts, fail-fast lifespan configuration validation, and explicit deployment procedures across development and production environments.
+
+### Health Check Architecture
+
+```text
+Orchestrator / Load Balancer / Health Monitor
+                   │
+    ┌──────────────┴──────────────┐
+    ▼                             ▼
+GET /health/live              GET /health/ready
+ (Process Health)             (Dependency Health)
+    │                             │
+    ├── Process responsive?       ├── Database reachable? (SELECT 1)
+    └── Returns 200 {"alive"}     ├── ChromaDB responsive? (list_collections)
+                                  │    └── Bounded Timeout (<= 3.0s)
+                                  ├── All healthy? ──► HTTP 200 {"ready", checks}
+                                  └── Any failure? ──► HTTP 503 {"not_ready", checks}
+```
+
+Key Architectural Principles:
+- **Liveness vs. Readiness Separation**: Liveness (`GET /health/live`) strictly probes process responsiveness without touching external databases, vector stores, or LLM providers. Readiness (`GET /health/ready`) verifies all mandatory dependencies before routing user traffic.
+- **Bounded-Timeout Dependency Probing**: Vector store checks are executed with strict timeout boundaries (`timeout=3.0s`), ensuring an unresponsive or locked ChromaDB cannot hang the orchestrator probe indefinitely.
+- **Structured Diagnostic Reporting Without Information Leaks**: The readiness probe returns component-level health status (`checks: {database: "ok", vector_store: "ok"}`) without exposing database credentials, internal connection strings, or stack traces on failure (HTTP 503).
+- **Fail-Fast Lifespan Initialization (`validate_startup`)**: The FastAPI lifespan context validates configuration invariants, database connectivity, required migration schemas, local storage write permissions, and vector store availability at boot before accepting traffic.
+- **Decoupled Migration Procedures**: Database migrations are strictly managed as an explicit pre-deployment task (`alembic upgrade head`) rather than run concurrently by every application worker at startup.
+- **Storage Durability Safety**: Documents, chunks, and metadata rely on persistent disks or object storage, preventing state loss during container recycling.
+
 ## Project Structure
 
 ```text
@@ -1660,9 +1689,11 @@ ai-research-assistant/
 │   │   ├── conversations.py
 │   │   ├── documents.py
 │   │   ├── feedback.py
+│   │   ├── health.py
 │   │   └── memory.py
 │   ├── services/
 │   │   ├── auth_service.py
+│   │   ├── health_service.py
 │   │   ├── user_service.py
 │   │   ├── conversation_service.py
 │   │   ├── chat_service.py
@@ -1887,8 +1918,11 @@ ai-research-assistant/
 ├── test_retrieval_caching_and_safe_invalidation.py
 ├── test_async_execution_and_concurrency.py
 ├── test_production_configuration_and_secrets.py
+├── test_deployment_readiness_and_health.py
 ├── test_full_suite.py
 ├── tests/
+│   ├── routes/
+│   │   └── test_health.py
 │   └── test_config.py
 ├── llm.py
 ├── prompts.py
