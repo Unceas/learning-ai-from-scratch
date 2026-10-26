@@ -9,7 +9,7 @@ import os
 import sys
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 # Ensure project root is in sys.path
 project_root = str(Path(__file__).resolve().parent.parent.parent)
@@ -18,15 +18,15 @@ if project_root not in sys.path:
 
 from backend.config import settings
 from backend.database import SessionLocal
-from backend.models import User, Document
-from backend.services.user_service import create_user
-from backend.services.document_hash import calculate_file_hash
+from backend.evaluation.dataset import EVAL_DATASET
+from backend.evaluation.generation_metrics import citation_precision, evaluate_grounding
+from backend.evaluation.retrieval_metrics import mean_recall, recall_at_k
+from backend.models import Document, User
 from backend.services.document_db_service import create_document
+from backend.services.document_hash import calculate_file_hash
 from backend.services.document_processor import process_document_background
 from backend.services.rag_service import run_rag_pipeline
-from backend.evaluation.dataset import EVAL_DATASET
-from backend.evaluation.retrieval_metrics import recall_at_k, mean_recall
-from backend.evaluation.generation_metrics import citation_precision, evaluate_grounding
+from backend.services.user_service import create_user
 
 
 def seed_eval_corpus_if_needed(user_id: str = "eval_benchmark_user") -> None:
@@ -119,11 +119,11 @@ def seed_eval_corpus_if_needed(user_id: str = "eval_benchmark_user") -> None:
 
 
 def run_evaluation(
-    dataset: Optional[List[Dict[str, Any]]] = None,
+    dataset: list[dict[str, Any]] | None = None,
     user_id: str = "eval_benchmark_user",
     baseline_output_path: str = "backend/evaluation/baseline_report.json",
-    reranker_enabled: Optional[bool] = None
-) -> Dict[str, Any]:
+    reranker_enabled: bool | None = None
+) -> dict[str, Any]:
     """Execute complete RAG evaluation benchmark and output report."""
     if dataset is None:
         dataset = EVAL_DATASET
@@ -165,8 +165,8 @@ def run_evaluation(
             # When running in offline dev/testing mode without active API key, synthesize grounded answer from evidence
             if answer.startswith("⚠️ GEMINI_API_KEY") and context_str:
                 lines = [
-                    l.strip() for l in context_str.split("\n")
-                    if l.strip() and not l.startswith("[S") and not l.startswith("File:") and not l.startswith("Chunk:")
+                    line.strip() for line in context_str.split("\n")
+                    if line.strip() and not line.startswith("[S") and not line.startswith("File:") and not line.startswith("Chunk:")
                 ]
                 if lines:
                     clean_excerpt = lines[0].split(".")[0] if "." in lines[0] else lines[0][:100]
@@ -266,10 +266,10 @@ def run_evaluation(
 
 
 def run_comparison(
-    dataset: Optional[List[Dict[str, Any]]] = None,
+    dataset: list[dict[str, Any]] | None = None,
     user_id: str = "eval_benchmark_user",
     output_path: str = "backend/evaluation/comparison_report.json"
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Execute evaluation with and without reranker, printing side-by-side comparison."""
     if dataset is None:
         dataset = EVAL_DATASET

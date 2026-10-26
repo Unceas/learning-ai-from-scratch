@@ -1,8 +1,10 @@
 """Authentication service providing password hashing, JWT generation, and token verification."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
+
 import bcrypt
 from jose import jwt
+
 from backend.config import settings
 
 
@@ -22,7 +24,7 @@ def verify_password(password: str, password_hash: str) -> bool:
 def create_access_token(user_id: str) -> str:
     """Create signed JWT bearer token containing user_id and expiration."""
     expire = (
-        datetime.now(timezone.utc)
+        datetime.now(UTC)
         + timedelta(minutes=settings.jwt_expire_minutes)
     )
 

@@ -5,7 +5,8 @@ import json
 import os
 import sys
 import time
-from typing import Any, Callable, Dict, List, Optional
+from collections.abc import Callable
+from typing import Any
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
@@ -15,11 +16,11 @@ from backend.services.concurrent_retrieval import retrieve_queries_async
 
 
 def run_concurrency_benchmark(
-    concurrency_levels: Optional[List[int]] = None,
+    concurrency_levels: list[int] | None = None,
     requests_per_level: int = 20,
-    simulated_pipeline_fn: Optional[Callable[[str], Any]] = None,
-    output_path: Optional[str] = None,
-) -> Dict[str, Any]:
+    simulated_pipeline_fn: Callable[[str], Any] | None = None,
+    output_path: str | None = None,
+) -> dict[str, Any]:
     """Execute comparative concurrency benchmark measuring throughput, latency, and error rates.
 
     Args:
@@ -34,12 +35,12 @@ def run_concurrency_benchmark(
     if concurrency_levels is None:
         concurrency_levels = [1, 2, 5, 10]
 
-    async def default_pipeline(query: str) -> Dict[str, Any]:
+    async def default_pipeline(query: str) -> dict[str, Any]:
         # Stage 1: Async query rewriting simulation (network I/O, ~10ms)
         await asyncio.sleep(0.01)
 
         # Stage 2: Parallel candidate retrieval across 2 subqueries (~15ms)
-        async def mock_subquery_retrieve(sub_q: str) -> List[Dict[str, Any]]:
+        async def mock_subquery_retrieve(sub_q: str) -> list[dict[str, Any]]:
             await asyncio.sleep(0.015)
             return [{"text": f"Passage for {sub_q}", "score": 0.88}]
 
@@ -73,12 +74,12 @@ def run_concurrency_benchmark(
         "How does parameter-efficient fine-tuning work?",
     ]
 
-    results_by_level: Dict[str, Any] = {}
+    results_by_level: dict[str, Any] = {}
     baseline_throughput = 0.0
 
-    async def run_level(concurrency: int) -> Dict[str, Any]:
+    async def run_level(concurrency: int) -> dict[str, Any]:
         sem = asyncio.Semaphore(concurrency)
-        latencies: List[float] = []
+        latencies: list[float] = []
         errors = 0
 
         async def worker(req_idx: int):

@@ -1,12 +1,13 @@
 """Pydantic schemas for API request and response validation."""
 
-from typing import Optional, List, Dict, Any
+from typing import Any
+
 from pydantic import BaseModel, Field, model_validator
 
 
 class RegisterRequest(BaseModel):
-    user_id: Optional[str] = None
-    username: Optional[str] = None
+    user_id: str | None = None
+    username: str | None = None
     password: str = Field(min_length=8, max_length=128)
 
     @model_validator(mode="before")
@@ -23,8 +24,8 @@ class RegisterRequest(BaseModel):
 
 
 class LoginRequest(BaseModel):
-    user_id: Optional[str] = None
-    username: Optional[str] = None
+    user_id: str | None = None
+    username: str | None = None
     password: str
 
     @model_validator(mode="before")
@@ -42,28 +43,28 @@ class LoginRequest(BaseModel):
 
 class ChatRequest(BaseModel):
     query: str = Field(min_length=1, max_length=5000)
-    filename: Optional[str] = None
-    user_id: Optional[str] = None
-    conversation_id: Optional[int] = None
+    filename: str | None = None
+    user_id: str | None = None
+    conversation_id: int | None = None
 
 
 class ChatResponse(BaseModel):
     answer: str
-    sources: List[Any] = []
-    citation_map: Optional[Dict[str, Any]] = None
-    invalid_citations: Optional[List[str]] = []
-    document_sources: Optional[List[Dict[str, Any]]] = None
-    user_id: Optional[str] = None
-    latency_ms: Optional[float] = None
-    subqueries: Optional[List[str]] = None
-    expanded_queries: Optional[List[str]] = None
-    used_hyde: Optional[bool] = None
-    query_type: Optional[str] = None
-    query: Optional[Any] = None
-    conversation_id: Optional[int] = None
+    sources: list[Any] = []
+    citation_map: dict[str, Any] | None = None
+    invalid_citations: list[str] | None = []
+    document_sources: list[dict[str, Any]] | None = None
+    user_id: str | None = None
+    latency_ms: float | None = None
+    subqueries: list[str] | None = None
+    expanded_queries: list[str] | None = None
+    used_hyde: bool | None = None
+    query_type: str | None = None
+    query: Any | None = None
+    conversation_id: int | None = None
 
 
 class MemoryRequest(BaseModel):
     text: str = Field(min_length=1)
-    memory_type: Optional[str] = "general"
-    user_id: Optional[str] = None
+    memory_type: str | None = "general"
+    user_id: str | None = None

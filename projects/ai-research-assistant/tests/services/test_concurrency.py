@@ -5,15 +5,16 @@ import os
 import sys
 import threading
 import time
-from typing import Any, Dict, List
-from unittest.mock import MagicMock, patch
+from typing import Any
 
 import pytest
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 from backend.services.async_generator import AsyncGenerator
-from backend.services.concurrent_retrieval import retrieve_queries_concurrent, retrieve_queries_async
+from backend.services.concurrent_retrieval import (
+    retrieve_queries_concurrent,
+)
 from backend.services.document_processor import ingestion_semaphore
 from backend.services.retrieval_cache import RetrievalCache, retrieval_cache
 
@@ -26,14 +27,14 @@ async def simulated_request() -> str:
     return "ok"
 
 
-async def run_sequential(count: int) -> List[str]:
+async def run_sequential(count: int) -> list[str]:
     results = []
     for _ in range(count):
         results.append(await simulated_request())
     return results
 
 
-async def run_concurrent(count: int) -> List[str]:
+async def run_concurrent(count: int) -> list[str]:
     return await asyncio.gather(*(simulated_request() for _ in range(count)))
 
 
@@ -63,8 +64,7 @@ def test_async_generator_bounds_concurrency():
         nonlocal max_active, current_active
         async with lock:
             current_active += 1
-            if current_active > max_active:
-                max_active = current_active
+            max_active = max(max_active, current_active)
         await asyncio.sleep(0.05)
         async with lock:
             current_active -= 1
@@ -111,7 +111,7 @@ def test_async_generator_enforces_timeout():
 # ---------------------------------------------------------------------------
 def test_concurrent_retrieval_handles_partial_failures():
     """Verify concurrent retrieval completes, preserves order, and tolerates individual errors."""
-    def retrieve_one(query: str) -> List[Dict[str, Any]]:
+    def retrieve_one(query: str) -> list[dict[str, Any]]:
         if "fail" in query:
             raise RuntimeError("Database connection reset")
         if "slow" in query:
@@ -143,9 +143,9 @@ def test_concurrent_retrieval_handles_partial_failures():
 # ---------------------------------------------------------------------------
 def test_concurrent_multi_user_isolation():
     """Verify concurrent requests for different users do not leak documents or cache keys."""
-    user_results: Dict[str, List[Dict[str, Any]]] = {}
+    user_results: dict[str, list[dict[str, Any]]] = {}
 
-    def run_user_request(user_id: str, doc_ids: List[int]):
+    def run_user_request(user_id: str, doc_ids: list[int]):
         docs = [{"id": d, "index_version": 1} for d in doc_ids]
         cfg = {"strategy": "dense", "top_k": 5}
         key = RetrievalCache.make_key(

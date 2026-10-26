@@ -5,9 +5,8 @@ and determines dynamic retrieval configurations (candidate_k and final_k) withou
 introducing LLM latency, cost, or hallucination risks.
 """
 
-from enum import Enum
 import re
-from typing import Any, Dict, Union
+from enum import Enum
 
 
 class QueryType(str, Enum):
@@ -68,7 +67,7 @@ def classify_query(query: str) -> QueryType:
     return QueryType.SEMANTIC
 
 
-def get_retrieval_config(query_type: Union[QueryType, str]) -> Dict[str, int]:
+def get_retrieval_config(query_type: QueryType | str) -> dict[str, int]:
     """Retrieve candidate_k and final_k parameters tailored to query archetype.
 
     Args:

@@ -17,3 +17,5 @@ passlib[bcrypt]
 sqlalchemy
 alembic
 rank-bm25
+ruff
+pytest

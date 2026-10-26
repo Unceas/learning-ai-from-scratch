@@ -1,15 +1,16 @@
 """Pydantic schemas for Chat Service and /api/chat endpoints."""
 
-from typing import Any, Dict, List, Optional
+from typing import Any
+
 from pydantic import BaseModel, Field, model_validator
 
 
 class ChatRequest(BaseModel):
-    message: Optional[str] = None
-    query: Optional[str] = None
-    conversation_id: Optional[int] = None
-    filename: Optional[str] = None
-    user_id: Optional[str] = None
+    message: str | None = None
+    query: str | None = None
+    conversation_id: int | None = None
+    filename: str | None = None
+    user_id: str | None = None
 
     @model_validator(mode="after")
     def validate_content(self) -> "ChatRequest":
@@ -30,19 +31,19 @@ class ChatRequest(BaseModel):
 
 class ChatResponse(BaseModel):
     conversation_id: int
-    message_id: Optional[int] = None
+    message_id: int | None = None
     answer: str
-    sources: List[Any] = Field(default_factory=list)
+    sources: list[Any] = Field(default_factory=list)
     rewritten_query: str = ""
     # Backwards compatibility fields for earlier test suites
-    query: Optional[Any] = None
-    citation_map: Optional[Dict[str, Any]] = None
-    invalid_citations: Optional[List[str]] = Field(default_factory=list)
-    document_sources: Optional[List[Dict[str, Any]]] = None
-    user_id: Optional[str] = None
-    latency_ms: Optional[float] = None
-    subqueries: Optional[List[str]] = None
-    expanded_queries: Optional[List[str]] = None
-    used_hyde: Optional[bool] = None
-    query_type: Optional[str] = None
-    metrics: Optional[Dict[str, Any]] = None
+    query: Any | None = None
+    citation_map: dict[str, Any] | None = None
+    invalid_citations: list[str] | None = Field(default_factory=list)
+    document_sources: list[dict[str, Any]] | None = None
+    user_id: str | None = None
+    latency_ms: float | None = None
+    subqueries: list[str] | None = None
+    expanded_queries: list[str] | None = None
+    used_hyde: bool | None = None
+    query_type: str | None = None
+    metrics: dict[str, Any] | None = None

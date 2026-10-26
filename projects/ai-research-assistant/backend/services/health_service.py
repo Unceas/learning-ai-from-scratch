@@ -3,13 +3,14 @@
 import concurrent.futures
 import logging
 import os
-from typing import Any, Dict, Optional
+from typing import Any
+
 from sqlalchemy import inspect, text
 from sqlalchemy.orm import Session
 
 from backend.config import get_settings
 from backend.database import engine
-from backend.services.vector_store import get_vector_store, VectorStore
+from backend.services.vector_store import get_vector_store
 
 logger = logging.getLogger("research_assistant")
 
@@ -20,7 +21,7 @@ def check_database(db: Session, timeout: float = 2.0) -> bool:
     return True
 
 
-def check_vector_store(client: Optional[Any] = None, timeout: float = 3.0) -> bool:
+def check_vector_store(client: Any | None = None, timeout: float = 3.0) -> bool:
     """Verify ChromaDB vector store is responsive within a bounded timeout window.
 
     Guarantees that an unresponsive or locked vector store does not hang
@@ -49,7 +50,7 @@ def check_vector_store(client: Optional[Any] = None, timeout: float = 3.0) -> bo
             raise TimeoutError(f"Vector store health check timed out after {timeout}s")
 
 
-def perform_readiness_checks(db: Session) -> Dict[str, Any]:
+def perform_readiness_checks(db: Session) -> dict[str, Any]:
     """Execute all mandatory readiness probes and assemble the diagnostic report."""
     checks = {}
     errors = []

@@ -1,8 +1,9 @@
 """Agent Service encapsulating multi-agent and tool-calling execution."""
 
-from typing import Dict, Any, List, Optional
-from backend.services.rag_service import run_rag_pipeline
+from typing import Any
+
 from agents.orchestrator import OrchestratorAgent
+from backend.services.rag_service import run_rag_pipeline
 
 
 class AgentService:
@@ -14,10 +15,10 @@ class AgentService:
         self,
         query: str,
         user_id: str = "development-user",
-        filename: Optional[str] = None,
-        conversation_id: Optional[int] = None,
-        conversation_history: Optional[List[Any]] = None
-    ) -> Dict[str, Any]:
+        filename: str | None = None,
+        conversation_id: int | None = None,
+        conversation_history: list[Any] | None = None
+    ) -> dict[str, Any]:
         """Execute agent runtime / RAG pipeline and return structured dict payload."""
         try:
             rag_res = run_rag_pipeline(
@@ -65,7 +66,7 @@ class AgentService:
             }
 
 
-def run_agent(query: str, user_id: str = "development-user") -> Dict[str, Any]:
+def run_agent(query: str, user_id: str = "development-user") -> dict[str, Any]:
     """Helper function wrapping AgentService execution."""
     service = AgentService()
     return service.run(query, user_id=user_id)

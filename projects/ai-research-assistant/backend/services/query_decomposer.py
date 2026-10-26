@@ -8,7 +8,7 @@ Provides LLM-assisted decomposition with a robust offline heuristic fallback.
 import json
 import logging
 import re
-from typing import Any, List, Optional
+from typing import Any
 
 from backend.config import settings
 
@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 MAX_SUBQUERIES = 4
 
 
-def heuristic_decompose_query(query: str) -> List[str]:
+def heuristic_decompose_query(query: str) -> list[str]:
     """Deterministically decompose a query into 1 to 4 subqueries based on syntax and keywords.
 
     Handles comparison queries with explicit dimensions (e.g. 'in terms of X, Y, and Z')
@@ -72,7 +72,7 @@ def heuristic_decompose_query(query: str) -> List[str]:
     return [clean_q]
 
 
-def decompose_query_with_llm(query: str, client: Any) -> List[str]:
+def decompose_query_with_llm(query: str, client: Any) -> list[str]:
     """Decompose a query into 1 to MAX_SUBQUERIES focused search queries using a Gemini LLM client.
 
     Args:
@@ -123,7 +123,7 @@ Return ONLY valid JSON matching this exact structure:
     return heuristic_decompose_query(query)
 
 
-def decompose_query(query: str, client: Optional[Any] = None) -> List[str]:
+def decompose_query(query: str, client: Any | None = None) -> list[str]:
     """Decompose a user query into 1 to MAX_SUBQUERIES search subqueries.
 
     Uses LLM decomposition if an active client is provided or available, falling back

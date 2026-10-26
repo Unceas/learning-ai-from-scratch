@@ -1,7 +1,9 @@
 """Vector Store service encapsulating ChromaDB document vector database operations."""
 
-from typing import Any, Dict, List, Optional
+from typing import Any
+
 import chromadb
+
 from backend.config import settings
 
 
@@ -13,10 +15,10 @@ class VectorStore:
 
     def upsert_documents(
         self,
-        texts: List[str],
-        embeddings: List[List[float]],
-        metadatas: List[Dict[str, Any]],
-        ids: List[str]
+        texts: list[str],
+        embeddings: list[list[float]],
+        metadatas: list[dict[str, Any]],
+        ids: list[str]
     ) -> None:
         """Upsert indexed document chunks, embeddings, and metadata into ChromaDB idempotently."""
         if not ids:
@@ -30,10 +32,10 @@ class VectorStore:
 
     def add_documents(
         self,
-        texts: List[str],
-        embeddings: List[List[float]],
-        metadatas: List[Dict[str, Any]],
-        ids: List[str]
+        texts: list[str],
+        embeddings: list[list[float]],
+        metadatas: list[dict[str, Any]],
+        ids: list[str]
     ) -> None:
         """Add documents using upsert to guarantee idempotency across indexing attempts."""
         self.upsert_documents(
@@ -56,7 +58,7 @@ class VectorStore:
         )
         return len(results["ids"]) if results and "ids" in results else 0
 
-    def get_by_document_id(self, document_id: int) -> Dict[str, Any]:
+    def get_by_document_id(self, document_id: int) -> dict[str, Any]:
         """Retrieve all vector records for a specific document_id."""
         return self.collection.get(
             where={"document_id": document_id}
@@ -66,9 +68,9 @@ class VectorStore:
         self,
         document_id: int,
         chunk_index: int,
-        user_id: Optional[str] = None,
-        file_hash: Optional[str] = None
-    ) -> Optional[Dict[str, Any]]:
+        user_id: str | None = None,
+        file_hash: str | None = None
+    ) -> dict[str, Any] | None:
         """Retrieve a specific chunk for a document by document_id and chunk_index."""
         ids_to_try = [f"{document_id}:{chunk_index}"]
         if user_id and file_hash:
@@ -130,8 +132,8 @@ class VectorStore:
     def get_user_chunks(
         self,
         user_id: str,
-        document_ids: Optional[List[int]] = None
-    ) -> List[Dict[str, Any]]:
+        document_ids: list[int] | None = None
+    ) -> list[dict[str, Any]]:
         """Retrieve all indexed chunks belonging to authenticated user and eligible document IDs."""
         if document_ids is not None:
             if not document_ids:
@@ -175,11 +177,11 @@ class VectorStore:
 
     def search(
         self,
-        query_embedding: List[float],
+        query_embedding: list[float],
         user_id: str,
-        document_ids: Optional[List[int]] = None,
+        document_ids: list[int] | None = None,
         top_k: int = 5
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Search vector database enforced strictly by user_id and optional document_id filter."""
         if document_ids is not None:
             if not document_ids:
@@ -235,7 +237,7 @@ class VectorStore:
                 pass
 
 
-_vector_store_instance: Optional[VectorStore] = None
+_vector_store_instance: VectorStore | None = None
 
 
 def get_vector_store() -> VectorStore:

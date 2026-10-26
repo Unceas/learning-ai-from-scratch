@@ -1,12 +1,8 @@
 """SQLAlchemy database models for persistence."""
 
-from sqlalchemy import (
-    Column,
-    String,
-    Integer,
-    ForeignKey
-)
+from sqlalchemy import Column, ForeignKey, Integer, String
 from sqlalchemy.orm import relationship
+
 from backend.database import Base
 from backend.models.conversation import Conversation, ConversationMessage
 from backend.models.feedback import AnswerFeedback
@@ -106,4 +102,4 @@ class Document(Base):
     )
 
 
-__all__ = ["Base", "User", "Document", "Conversation", "ConversationMessage", "AnswerFeedback"]
+__all__ = ["AnswerFeedback", "Base", "Conversation", "ConversationMessage", "Document", "User"]

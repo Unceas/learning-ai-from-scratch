@@ -1,13 +1,14 @@
 """Background document processor service for asynchronous PDF ingestion."""
 
 import threading
-from typing import Optional
+
 from sqlalchemy.orm import Session
+
+from backend.config import settings
 from backend.database import SessionLocal
+from backend.models import Document
 from backend.services.document_service import process_document
 from backend.services.vector_store import VectorStore
-from backend.models import Document
-from backend.config import settings
 
 _max_ingestions = getattr(settings, "max_concurrent_ingestions", 2)
 ingestion_semaphore = threading.BoundedSemaphore(max(1, _max_ingestions))
@@ -15,7 +16,7 @@ ingestion_semaphore = threading.BoundedSemaphore(max(1, _max_ingestions))
 
 def process_document_background(
     document_id: int,
-    file_path: Optional[str] = None
+    file_path: str | None = None
 ):
     """Execute PDF parsing, chunking, embedding generation, and ChromaDB indexing in background worker."""
     db: Session = SessionLocal()

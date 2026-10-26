@@ -3,46 +3,52 @@
 import logging
 import threading
 import time
-from typing import Dict, Any, Optional
+from typing import Any
+
 from sqlalchemy.orm import Session
-from tool_router import execute_tool
-from llm import generate_answer
-from observability import RAGTrace, timed_call, save_trace
-from backend.services.observability import measure_stage
-from backend.services.concurrent_retrieval import retrieve_queries_concurrent
-from backend.services.rag_context import build_rag_context, validate_citations
-from backend.database import SessionLocal
+
 from backend.config import settings
-from backend.services.reranker import get_reranker
-from backend.services.query_router import classify_query, get_retrieval_config, QueryType
-from backend.services.query_decomposer import decompose_query
-from backend.services.query_expander import expand_query, deduplicate_queries
-from backend.services.hyde import HyDE
-from backend.services.keyword_retriever import KeywordRetriever
-from backend.services.rank_fusion import reciprocal_rank_fusion
-from backend.services.document_db_service import get_indexed_document_ids
-from backend.services.vector_store import VectorStore
-from backend.services.query_rewriter import QueryRewriter
+from backend.database import SessionLocal
+from backend.services.concurrent_retrieval import retrieve_queries_concurrent
 from backend.services.conversation_service import (
+    add_message,
     get_conversation,
     get_recent_messages,
-    add_message
 )
+from backend.services.document_db_service import get_indexed_document_ids
+from backend.services.hyde import HyDE
+from backend.services.keyword_retriever import KeywordRetriever
+from backend.services.observability import measure_stage
+from backend.services.query_decomposer import decompose_query
+from backend.services.query_expander import expand_query
+from backend.services.query_rewriter import QueryRewriter
+from backend.services.query_router import (
+    QueryType,
+    classify_query,
+    get_retrieval_config,
+)
+from backend.services.rag_context import build_rag_context, validate_citations
+from backend.services.rank_fusion import reciprocal_rank_fusion
+from backend.services.reranker import get_reranker
+from backend.services.vector_store import VectorStore
+from llm import generate_answer
+from observability import RAGTrace, save_trace
 from retrieval import db_retrieve
+from tool_router import execute_tool
 
 logger = logging.getLogger(__name__)
 
 
 def run_rag_pipeline(
     query: str,
-    filename: Optional[str] = None,
+    filename: str | None = None,
     user_id: str = "default_user",
-    db: Optional[Session] = None,
-    conversation_id: Optional[int] = None,
-    conversation_history: Optional[list] = None,
+    db: Session | None = None,
+    conversation_id: int | None = None,
+    conversation_history: list | None = None,
     persist_messages: bool = True,
-    metrics: Optional[Dict[str, Any]] = None,
-) -> Dict[str, Any]:
+    metrics: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     """Execute the full RAG pipeline with candidate retrieval, reranking, context building, and citations."""
     if metrics is None:
         metrics = {}
@@ -141,8 +147,8 @@ def run_rag_pipeline(
                     logger.debug("Failed initializing retrieval resources: %s", e)
                     keyword_retriever = None
 
-            deduped_candidates: Dict[Any, Dict[str, Any]] = {}
-            all_expanded_queries: List[str] = []
+            deduped_candidates: dict[Any, dict[str, Any]] = {}
+            all_expanded_queries: list[str] = []
             used_hyde_flag = False
 
             for sq in subqueries:
@@ -155,10 +161,10 @@ def run_rag_pipeline(
                 else:
                     search_queries = [sq]
 
-                query_result_lists: List[List[Dict[str, Any]]] = []
+                query_result_lists: list[list[dict[str, Any]]] = []
                 session_lock = threading.Lock()
 
-                def _retrieve_one_variant(q_var: str) -> List[Dict[str, Any]]:
+                def _retrieve_one_variant(q_var: str) -> list[dict[str, Any]]:
                     dense_results = []
                     if session is not None:
                         try:

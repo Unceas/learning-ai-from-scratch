@@ -1669,6 +1669,41 @@ Key Architectural Principles:
 - **Decoupled Migration Procedures**: Database migrations are strictly managed as an explicit pre-deployment task (`alembic upgrade head`) rather than run concurrently by every application worker at startup.
 - **Storage Durability Safety**: Documents, chunks, and metadata rely on persistent disks or object storage, preventing state loss during container recycling.
 
+## CI/CD Pipeline & Automated Deployment (Day 169)
+
+Day 169 establishes an automated delivery and quality gate pipeline using GitHub Actions, Ruff linting, disposable Alembic database migration validation, decoupled frontend builds, and post-deployment smoke tests.
+
+### Delivery Pipeline Architecture
+
+```text
+Push / Pull Request (main)
+           │
+     ┌─────┴─────────────────────────────────────────┐
+     ▼                                               ▼
+Backend CI (Ubuntu / Python 3.12)             Frontend CI (Ubuntu / Node 22)
+  ├── Install dependencies (pip cache)          ├── Install dependencies (npm ci)
+  ├── Ruff Linting (ruff check backend tests)   └── Production Build (npm run build)
+  ├── Disposable Migration Check
+  │     └── alembic upgrade head (ci_test.db)
+  └── Pytest Suite (pytest -q)
+           │                                         │
+           └─────────────────┬───────────────────────┘
+                             ▼
+                    Release Gate Pass
+                             │
+                             ▼
+                 Post-Deployment Smoke Test
+           ├── GET /health/live ──► HTTP 200 {"alive"}
+           └── GET /health/ready ──► HTTP 200 {"ready"}
+```
+
+Key Architectural Principles:
+- **Decoupled CI Workflows**: Independent backend and frontend verification jobs isolate failures, accelerate debugging, and optimize dependency caching (`pip` and `npm`).
+- **Disposable Database Migrations**: CI validates that all 7 schema revisions migrate cleanly from base to head against a temporary database (`DATABASE_URL=sqlite:///./ci_test.db`) without mutating production data.
+- **Fail-Fast Code Quality Gate**: Ruff enforces strict style, import, and syntax validation with zero warnings, complemented by `pytest.ini` test path scoping.
+- **Secrets Hygiene & Least Privilege**: The CI workflow runs with `permissions: contents: read` and uses test-only placeholder credentials without exposing production API keys.
+- **Automated Smoke Testing**: `smoke_test.py` and `scripts/smoke_test.sh` provide standardized post-deployment verification for automated rollout pipelines.
+
 ## Project Structure
 
 ```text
@@ -1919,11 +1954,22 @@ ai-research-assistant/
 ├── test_async_execution_and_concurrency.py
 ├── test_production_configuration_and_secrets.py
 ├── test_deployment_readiness_and_health.py
+├── test_ci_cd_pipeline_and_automation.py
 ├── test_full_suite.py
 ├── tests/
 │   ├── routes/
 │   │   └── test_health.py
-│   └── test_config.py
+│   ├── test_config.py
+│   ├── test_schema_migrations.py
+│   └── test_smoke_test.py
+├── scripts/
+│   └── smoke_test.sh
+├── smoke_test.py
+├── pyproject.toml
+├── pytest.ini
+├── .github/
+│   └── workflows/
+│       └── ci.yml
 ├── llm.py
 ├── prompts.py
 ├── requirements.txt

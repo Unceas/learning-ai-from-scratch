@@ -1,6 +1,7 @@
 """Lexical Keyword Retriever module using BM25Okapi."""
 
-from typing import Any, Dict, List
+from typing import Any
+
 from rank_bm25 import BM25Okapi
 
 
@@ -16,7 +17,7 @@ def _extract_chunk_text(chunk: Any) -> str:
 class KeywordRetriever:
     """Lexical keyword retriever powered by BM25Okapi over restricted document chunks."""
 
-    def __init__(self, chunks: List[Any]):
+    def __init__(self, chunks: list[Any]):
         """Initialize BM25 index over provided chunk corpus.
 
         Args:
@@ -38,7 +39,7 @@ class KeywordRetriever:
         query: str,
         top_k: int = 10,
         filter_zero: bool = True
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Retrieve top_k matching chunks for query using BM25 scoring.
 
         Args:

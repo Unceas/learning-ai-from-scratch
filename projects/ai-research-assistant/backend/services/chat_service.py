@@ -1,19 +1,20 @@
 """Chat Service coordinating conversation state, query rewriting, retrieval, and generation."""
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any
+
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from backend.services.conversation_service import (
-    default_conversation_service,
+    MAX_HISTORY_MESSAGES,
     ConversationService,
-    MAX_HISTORY_MESSAGES
+    default_conversation_service,
 )
-from backend.services.query_rewriter import QueryRewriter
-from backend.services.query_router import classify_query, QueryType
-from backend.services.rag_service import run_rag_pipeline
 from backend.services.observability import measure_stage
+from backend.services.query_rewriter import QueryRewriter
+from backend.services.query_router import classify_query
+from backend.services.rag_service import run_rag_pipeline
 
 logger = logging.getLogger(__name__)
 
@@ -23,14 +24,14 @@ class ChatService:
 
     def __init__(
         self,
-        conversation_service: Optional[ConversationService] = None,
-        query_rewriter: Optional[QueryRewriter] = None,
-        query_router: Optional[Any] = None,
-        retriever: Optional[Any] = None,
-        reranker: Optional[Any] = None,
-        generator: Optional[Any] = None,
-        rag_service: Optional[Any] = None,
-        llm: Optional[Any] = None,
+        conversation_service: ConversationService | None = None,
+        query_rewriter: QueryRewriter | None = None,
+        query_router: Any | None = None,
+        retriever: Any | None = None,
+        reranker: Any | None = None,
+        generator: Any | None = None,
+        rag_service: Any | None = None,
+        llm: Any | None = None,
     ):
         self.conversation_service = conversation_service or default_conversation_service
         self.query_rewriter = query_rewriter or QueryRewriter(llm=llm)
@@ -46,9 +47,9 @@ class ChatService:
         db: Session,
         user_id: str,
         message: str,
-        conversation_id: Optional[int] = None,
-        filename: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        conversation_id: int | None = None,
+        filename: str | None = None,
+    ) -> dict[str, Any]:
         """Execute chat request for an authenticated user.
         
         1. If conversation_id is None, automatically create a new conversation.
@@ -90,7 +91,7 @@ class ChatService:
         )
 
         # 3. Rewrite query into standalone research query
-        metrics: Dict[str, Any] = {}
+        metrics: dict[str, Any] = {}
         with measure_stage("query_rewriting", metrics):
             rewritten_query = self.query_rewriter.rewrite(clean_msg, history)
         logger.info("Original: '%s' -> Standalone: '%s'", clean_msg, rewritten_query)
@@ -200,10 +201,10 @@ class ChatService:
     def process_chat(
         self,
         query: str,
-        history: Optional[List[Any]] = None,
-    ) -> Dict[str, Any]:
+        history: list[Any] | None = None,
+    ) -> dict[str, Any]:
         """Process chat through pipeline stages with stage-level timing metrics."""
-        metrics: Dict[str, Any] = {}
+        metrics: dict[str, Any] = {}
 
         with measure_stage("query_rewriting", metrics):
             rewritten_query = self.query_rewriter.rewrite(
@@ -259,9 +260,9 @@ class ChatService:
         db: Session,
         user_id: str,
         message: str,
-        conversation_id: Optional[int] = None,
-        filename: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        conversation_id: int | None = None,
+        filename: str | None = None,
+    ) -> dict[str, Any]:
         """Execute chat request asynchronously via worker thread without blocking the event loop."""
         import asyncio
         return await asyncio.to_thread(

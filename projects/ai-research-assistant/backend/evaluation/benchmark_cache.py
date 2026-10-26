@@ -3,19 +3,20 @@
 import json
 import os
 import time
-from typing import Any, Callable, Dict, List, Optional
+from collections.abc import Callable
+from typing import Any
 
 from backend.evaluation.latency_report import summarize_latency
 from backend.services.embedding_cache import EmbeddingCache
 
 
 def run_embedding_benchmark(
-    embed_compute: Optional[Callable[[str], List[float]]] = None,
-    queries: Optional[List[str]] = None,
+    embed_compute: Callable[[str], list[float]] | None = None,
+    queries: list[str] | None = None,
     trials: int = 5,
     max_entries: int = 128,
-    output_path: Optional[str] = None,
-) -> Dict[str, Any]:
+    output_path: str | None = None,
+) -> dict[str, Any]:
     """Execute comparative benchmark between cache-disabled and cache-enabled workloads.
 
     Args:
@@ -30,7 +31,7 @@ def run_embedding_benchmark(
         Structured benchmark report with latencies, speedups, and cache statistics.
     """
     if embed_compute is None:
-        def simulated_compute(text: str) -> List[float]:
+        def simulated_compute(text: str) -> list[float]:
             # Simulate embedding vector computation (e.g. matrix ops/tokenization)
             time.sleep(0.002)  # 2ms per compute
             return [float(ord(c) % 10) for c in text[:16]]
@@ -54,7 +55,6 @@ def run_embedding_benchmark(
 
     # 2. Run Cache Disabled Workload
     disabled_call_count = 0
-    disabled_durations: List[float] = []
 
     def run_disabled_trial():
         nonlocal disabled_call_count
@@ -70,7 +70,7 @@ def run_embedding_benchmark(
     cache = EmbeddingCache(max_entries=max_entries)
     enabled_compute_count = 0
 
-    def compute_with_counter(text: str) -> List[float]:
+    def compute_with_counter(text: str) -> list[float]:
         nonlocal enabled_compute_count
         enabled_compute_count += 1
         return embed_compute(text)

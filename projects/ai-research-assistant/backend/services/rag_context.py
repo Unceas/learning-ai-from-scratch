@@ -8,7 +8,8 @@ generated citations against retrieved sources.
 
 import logging
 import re
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
+
 from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
@@ -20,17 +21,17 @@ class RetrievedChunk(BaseModel):
     """Normalized representation of a single retrieved document chunk."""
     text: str
     score: float = 0.0
-    vector_score: Optional[float] = None
-    reranker_score: Optional[float] = None
-    document_id: Optional[int] = None
+    vector_score: float | None = None
+    reranker_score: float | None = None
+    document_id: int | None = None
     filename: str = "Unknown"
     chunk_index: int = 0
-    page: Optional[int] = 1
-    file_hash: Optional[str] = None
-    matched_queries: List[str] = []
+    page: int | None = 1
+    file_hash: str | None = None
+    matched_queries: list[str] = []
 
 
-def normalize_chunk(chunk: Union[RetrievedChunk, Dict[str, Any]]) -> RetrievedChunk:
+def normalize_chunk(chunk: RetrievedChunk | dict[str, Any]) -> RetrievedChunk:
     """Normalize a chunk dictionary or model instance into a standard RetrievedChunk."""
     if isinstance(chunk, dict) and "chunk" in chunk:
         wrapper_score = float(chunk.get("score", 0.0))
@@ -56,7 +57,7 @@ def normalize_chunk(chunk: Union[RetrievedChunk, Dict[str, Any]]) -> RetrievedCh
     return RetrievedChunk(text=str(chunk))
 
 
-def build_context(chunks: List[RetrievedChunk]) -> str:
+def build_context(chunks: list[RetrievedChunk]) -> str:
     """Format structured evidence sections for LLM ingestion with explicit [S1], [S2] source markers."""
     sections = []
     for i, chunk in enumerate(chunks, start=1):
@@ -72,8 +73,8 @@ Chunk: {chunk.chunk_index}
 
 def validate_citations(
     answer: str,
-    sources_or_map: Union[List[Any], Dict[str, Any], int]
-) -> Dict[str, Any]:
+    sources_or_map: list[Any] | dict[str, Any] | int
+) -> dict[str, Any]:
     """Extract and validate citation identifiers [S#] from an LLM response against actual retrieved sources.
 
     Args:
@@ -127,9 +128,9 @@ def validate_citations(
 
 
 def build_rag_context(
-    chunks: List[Union[RetrievedChunk, Dict[str, Any]]],
+    chunks: list[RetrievedChunk | dict[str, Any]],
     max_chunks: int = MAX_CONTEXT_CHUNKS
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Transform retrieved chunks into structured context, citation map, and grouped document sources.
 
     Returns:

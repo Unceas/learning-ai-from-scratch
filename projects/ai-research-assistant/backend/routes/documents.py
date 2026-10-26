@@ -1,29 +1,32 @@
 """Document API route handling document upload, listing, status, retry, and deletion lifecycle endpoints."""
 
-from fastapi import APIRouter, UploadFile, File, HTTPException, Depends, BackgroundTasks
+from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile
 from sqlalchemy.orm import Session
-from backend.services.document_service import DocumentService
-from backend.services.vector_store import VectorStore
+
+from backend.config import settings
+from backend.database import get_db
+from backend.dependencies import get_current_user
+from backend.exceptions import DocumentNotFoundError
+from backend.schemas.responses import (
+    ChunkPreviewResponse,
+    DocumentListResponse,
+    DocumentResponse,
+    DocumentStatusResponse,
+)
 from backend.services.document_db_service import (
+    create_document,
     get_document,
     get_document_by_id,
     get_owned_document,
     list_documents,
-    create_document,
-    delete_document as delete_document_record
 )
-from backend.services.document_processor import process_document_background
+from backend.services.document_db_service import (
+    delete_document as delete_document_record,
+)
 from backend.services.document_hash import calculate_file_hash
-from backend.database import get_db
-from backend.schemas.responses import (
-    DocumentResponse,
-    DocumentListResponse,
-    DocumentStatusResponse,
-    ChunkPreviewResponse
-)
-from backend.exceptions import DocumentNotFoundError
-from backend.dependencies import get_current_user
-from backend.config import settings
+from backend.services.document_processor import process_document_background
+from backend.services.document_service import DocumentService
+from backend.services.vector_store import VectorStore
 from backend.storage import storage
 
 router = APIRouter()

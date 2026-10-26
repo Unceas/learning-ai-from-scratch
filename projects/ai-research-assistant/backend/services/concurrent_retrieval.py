@@ -2,8 +2,9 @@
 
 import asyncio
 import logging
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any
 
 from backend.config import settings
 
@@ -11,11 +12,11 @@ logger = logging.getLogger(__name__)
 
 
 def retrieve_queries_concurrent(
-    queries: List[str],
-    retrieve_fn: Callable[[str], List[Dict[str, Any]]],
-    max_workers: Optional[int] = None,
-    timeout: Optional[float] = None,
-) -> List[List[Dict[str, Any]]]:
+    queries: list[str],
+    retrieve_fn: Callable[[str], list[dict[str, Any]]],
+    max_workers: int | None = None,
+    timeout: float | None = None,
+) -> list[list[dict[str, Any]]]:
     """Execute independent candidate retrieval queries concurrently using a bounded thread pool.
 
     Guarantees:
@@ -56,7 +57,7 @@ def retrieve_queries_concurrent(
         else getattr(settings, "retrieval_timeout_seconds", 15.0)
     )
 
-    results: List[Optional[List[Dict[str, Any]]]] = [None] * len(queries)
+    results: list[list[dict[str, Any]] | None] = [None] * len(queries)
 
     with ThreadPoolExecutor(max_workers=workers) as executor:
         future_to_idx = {
@@ -82,11 +83,11 @@ def retrieve_queries_concurrent(
 
 
 async def retrieve_queries_async(
-    queries: List[str],
+    queries: list[str],
     retrieve_fn: Callable[[str], Any],
-    max_concurrency: Optional[int] = None,
-    timeout: Optional[float] = None,
-) -> List[List[Dict[str, Any]]]:
+    max_concurrency: int | None = None,
+    timeout: float | None = None,
+) -> list[list[dict[str, Any]]]:
     """Execute independent candidate retrieval queries concurrently using asyncio.
 
     Supports both coroutine and synchronous retrieval functions (offloaded to threadpool).
@@ -106,7 +107,7 @@ async def retrieve_queries_async(
         else getattr(settings, "retrieval_timeout_seconds", 15.0)
     )
 
-    async def _safe_retrieve_one(q: str) -> List[Dict[str, Any]]:
+    async def _safe_retrieve_one(q: str) -> list[dict[str, Any]]:
         async with sem:
             try:
                 if asyncio.iscoroutinefunction(retrieve_fn):
@@ -116,7 +117,7 @@ async def retrieve_queries_async(
 
                 res = await asyncio.wait_for(coro, timeout=exec_timeout)
                 return res if isinstance(res, list) else []
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 logger.warning("Async retrieval for query '%s' timed out after %.1fs", q, exec_timeout)
                 return []
             except Exception as exc:

@@ -1,6 +1,6 @@
 ﻿"""Retrieval evaluation metrics including Recall@K and Mean Recall@K."""
 
-from typing import List, Sequence
+from collections.abc import Sequence
 
 
 def recall_at_k(

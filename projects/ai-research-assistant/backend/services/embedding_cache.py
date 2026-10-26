@@ -3,7 +3,8 @@
 import hashlib
 import threading
 from collections import OrderedDict
-from typing import Any, Callable, Dict, List, Optional
+from collections.abc import Callable
+from typing import Any
 
 
 class EmbeddingCache:
@@ -19,7 +20,7 @@ class EmbeddingCache:
             raise ValueError("max_entries must be positive")
 
         self.max_entries = max_entries
-        self._cache: OrderedDict[str, List[float]] = OrderedDict()
+        self._cache: OrderedDict[str, list[float]] = OrderedDict()
         self._lock = threading.Lock()
 
         self.hits = 0
@@ -39,11 +40,11 @@ class EmbeddingCache:
     def get_or_compute(
         self,
         text: str,
-        compute: Callable[[str], List[float]],
+        compute: Callable[[str], list[float]],
         *,
         model_version: str,
         namespace: str = "default",
-    ) -> List[float]:
+    ) -> list[float]:
         """Retrieve cached embedding or compute, store, and return a fresh vector.
 
         The compute callback is executed outside the lock to minimize lock contention.
@@ -77,19 +78,19 @@ class EmbeddingCache:
 
     def get_or_compute_batch(
         self,
-        texts: List[str],
-        compute_batch: Callable[[List[str]], List[List[float]]],
+        texts: list[str],
+        compute_batch: Callable[[list[str]], list[list[float]]],
         *,
         model_version: str,
         namespace: str = "default",
-    ) -> List[List[float]]:
+    ) -> list[list[float]]:
         """Batch-aware embedding lookup and computation with LRU cache integration."""
         if not texts:
             return []
 
-        results: List[Optional[List[float]]] = [None] * len(texts)
-        missing_indices: List[int] = []
-        missing_texts: List[str] = []
+        results: list[list[float] | None] = [None] * len(texts)
+        missing_indices: list[int] = []
+        missing_texts: list[str] = []
 
         # 1. Fast cache lookup under lock
         with self._lock:
@@ -137,7 +138,7 @@ class EmbeddingCache:
             self.misses = 0
             self.evictions = 0
 
-    def stats(self) -> Dict[str, Any]:
+    def stats(self) -> dict[str, Any]:
         """Return operational cache telemetry metrics."""
         with self._lock:
             total_requests = self.hits + self.misses

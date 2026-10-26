@@ -1,8 +1,8 @@
 """Evaluation dataset for benchmarking RAG retrieval, citations, and answer generation."""
 
-from typing import Any, Dict, List
+from typing import Any
 
-EVAL_DATASET: List[Dict[str, Any]] = [
+EVAL_DATASET: list[dict[str, Any]] = [
     {
         "question": "What architecture does the paper propose?",
         "expected_documents": ["attention.pdf"],
@@ -95,7 +95,7 @@ EVAL_DATASET: List[Dict[str, Any]] = [
     },
 ]
 
-HYBRID_EVAL_CASES: List[Dict[str, Any]] = [
+HYBRID_EVAL_CASES: list[dict[str, Any]] = [
     {
         "category": "exact_terminology",
         "question": "What is the purpose of RFC 7231?",
@@ -126,7 +126,7 @@ HYBRID_EVAL_CASES: List[Dict[str, Any]] = [
     },
 ]
 
-EXPANSION_HYDE_EVAL_CASES: List[Dict[str, Any]] = [
+EXPANSION_HYDE_EVAL_CASES: list[dict[str, Any]] = [
     {
         "category": "short_query",
         "question": "What is LoRA?",

@@ -5,9 +5,9 @@ Provides an abstract Reranker interface and a CrossEncoder implementation to sco
 Preserves both vector_score and reranker_score on candidate chunks.
 """
 
-from abc import ABC, abstractmethod
 import logging
-from typing import Any, Dict, List, Optional, Union
+from abc import ABC, abstractmethod
+from typing import Any
 
 from backend.config import settings
 from backend.services.rag_context import RetrievedChunk
@@ -22,9 +22,9 @@ class Reranker(ABC):
     def rerank(
         self,
         query: str,
-        chunks: List[Union[RetrievedChunk, Dict[str, Any]]],
+        chunks: list[RetrievedChunk | dict[str, Any]],
         top_k: int = 5
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Rerank candidate chunks according to their relevance to the query.
 
         Args:
@@ -35,13 +35,12 @@ class Reranker(ABC):
         Returns:
             List of ranked chunk dictionaries sorted descending by relevance.
         """
-        pass
 
 
 class CrossEncoderReranker(Reranker):
     """Cross-encoder based reranker that jointly encodes (query, passage) pairs."""
 
-    def __init__(self, model_name: Optional[str] = None):
+    def __init__(self, model_name: str | None = None):
         self.model_name = model_name or settings.reranker_model_name
         self._model = None
 
@@ -64,15 +63,15 @@ class CrossEncoderReranker(Reranker):
     def rerank(
         self,
         query: str,
-        chunks: List[Union[RetrievedChunk, Dict[str, Any]]],
+        chunks: list[RetrievedChunk | dict[str, Any]],
         top_k: int = 5
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Jointly score (query, chunk) pairs and return top_k reranked results."""
         if not chunks or not query or not query.strip():
             return []
 
         # Extract text and preserve original metadata
-        prepared_chunks: List[Dict[str, Any]] = []
+        prepared_chunks: list[dict[str, Any]] = []
         for item in chunks:
             if isinstance(item, dict) and "chunk" in item:
                 chunk = item["chunk"]
@@ -155,10 +154,10 @@ class CrossEncoderReranker(Reranker):
             return prepared_chunks[:top_k]
 
 
-_reranker_singleton: Optional[Reranker] = None
+_reranker_singleton: Reranker | None = None
 
 
-def get_reranker(model_name: Optional[str] = None) -> Reranker:
+def get_reranker(model_name: str | None = None) -> Reranker:
     """Retrieve the singleton instance of the configured Reranker."""
     global _reranker_singleton
     if _reranker_singleton is None:

@@ -1,7 +1,8 @@
 """Service layer for conversation management and message persistence."""
 
-from typing import List, Optional
+
 from sqlalchemy.orm import Session
+
 from backend.models.conversation import Conversation, ConversationMessage
 
 MAX_HISTORY_MESSAGES = 10
@@ -10,7 +11,7 @@ MAX_HISTORY_MESSAGES = 10
 def create_conversation(
     db: Session,
     user_id: str,
-    title: Optional[str] = None
+    title: str | None = None
 ) -> Conversation:
     """Create a new conversation record for an authenticated user."""
     conversation = Conversation(
@@ -27,7 +28,7 @@ def get_conversation(
     db: Session,
     user_id: str,
     conversation_id: int
-) -> Optional[Conversation]:
+) -> Conversation | None:
     """Retrieve a conversation ensuring strict multi-tenant isolation.
     
     Security pattern:
@@ -49,7 +50,7 @@ def list_conversations(
     user_id: str,
     limit: int = 50,
     offset: int = 0
-) -> List[Conversation]:
+) -> list[Conversation]:
     """List conversations belonging to the authenticated user."""
     return (
         db.query(Conversation)
@@ -97,7 +98,7 @@ def get_recent_messages(
     db: Session,
     conversation_id: int,
     limit: int = MAX_HISTORY_MESSAGES,
-) -> List[ConversationMessage]:
+) -> list[ConversationMessage]:
     """Retrieve recent conversation history in chronological order.
     
     Caps history at `limit` (default: 10) to avoid unbounded context expansion.
@@ -121,7 +122,7 @@ def get_paginated_messages(
     conversation_id: int,
     limit: int = 50,
     offset: int = 0
-) -> Optional[dict]:
+) -> dict | None:
     """Retrieve paginated messages for a conversation after verifying user ownership.
     
     Returns None if conversation does not exist or does not belong to user_id.
@@ -161,13 +162,13 @@ def get_paginated_messages(
 class ConversationService:
     """Service class encapsulating conversation and message persistence operations."""
 
-    def create_conversation(self, db: Session, user_id: str, title: Optional[str] = None) -> Conversation:
+    def create_conversation(self, db: Session, user_id: str, title: str | None = None) -> Conversation:
         return create_conversation(db, user_id=user_id, title=title)
 
-    def get_conversation(self, db: Session, user_id: str, conversation_id: int) -> Optional[Conversation]:
+    def get_conversation(self, db: Session, user_id: str, conversation_id: int) -> Conversation | None:
         return get_conversation(db, user_id=user_id, conversation_id=conversation_id)
 
-    def list_conversations(self, db: Session, user_id: str, limit: int = 50, offset: int = 0) -> List[Conversation]:
+    def list_conversations(self, db: Session, user_id: str, limit: int = 50, offset: int = 0) -> list[Conversation]:
         return list_conversations(db, user_id=user_id, limit=limit, offset=offset)
 
     def delete_conversation(self, db: Session, user_id: str, conversation_id: int) -> bool:
@@ -176,10 +177,10 @@ class ConversationService:
     def add_message(self, db: Session, conversation_id: int, role: str, content: str) -> ConversationMessage:
         return add_message(db, conversation_id=conversation_id, role=role, content=content)
 
-    def get_recent_messages(self, db: Session, conversation_id: int, limit: int = MAX_HISTORY_MESSAGES) -> List[ConversationMessage]:
+    def get_recent_messages(self, db: Session, conversation_id: int, limit: int = MAX_HISTORY_MESSAGES) -> list[ConversationMessage]:
         return get_recent_messages(db, conversation_id=conversation_id, limit=limit)
 
-    def get_paginated_messages(self, db: Session, user_id: str, conversation_id: int, limit: int = 50, offset: int = 0) -> Optional[dict]:
+    def get_paginated_messages(self, db: Session, user_id: str, conversation_id: int, limit: int = 50, offset: int = 0) -> dict | None:
         return get_paginated_messages(db, user_id=user_id, conversation_id=conversation_id, limit=limit, offset=offset)
 
 

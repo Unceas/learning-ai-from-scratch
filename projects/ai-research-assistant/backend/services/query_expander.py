@@ -8,7 +8,7 @@ Supports both LLM-driven expansion and deterministic heuristic fallback.
 import json
 import logging
 import re
-from typing import Any, List, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +20,7 @@ def normalize_query(query: str) -> str:
     return " ".join(query.lower().split())
 
 
-def deduplicate_queries(queries: List[str]) -> List[str]:
+def deduplicate_queries(queries: list[str]) -> list[str]:
     """Deduplicate a list of query strings while preserving original order."""
     seen = set()
     result = []
@@ -37,7 +37,7 @@ def deduplicate_queries(queries: List[str]) -> List[str]:
 class QueryExpander:
     """Abstract base class for query expansion implementations."""
 
-    def expand(self, query: str) -> List[str]:
+    def expand(self, query: str) -> list[str]:
         """Expand user query into alternative search queries.
 
         Args:
@@ -49,7 +49,7 @@ class QueryExpander:
         raise NotImplementedError
 
 
-def heuristic_expand_query(query: str) -> List[str]:
+def heuristic_expand_query(query: str) -> list[str]:
     """Deterministically generate alternative search queries using terminology heuristics.
 
     Useful for offline testing and graceful fallback when LLM is unavailable.
@@ -59,7 +59,7 @@ def heuristic_expand_query(query: str) -> List[str]:
 
     q_clean = query.strip()
     q_lower = q_clean.lower()
-    alternatives: List[str] = []
+    alternatives: list[str] = []
 
     # 1. Domain-specific terminology rewrites
     if "remember things from far away" in q_lower or "far away in a sentence" in q_lower or "distant tokens" in q_lower:
@@ -117,11 +117,11 @@ def heuristic_expand_query(query: str) -> List[str]:
 class LLMQueryExpander(QueryExpander):
     """LLM-based query expander using structured JSON prompts."""
 
-    def __init__(self, llm: Optional[Any] = None):
+    def __init__(self, llm: Any | None = None):
         """Initialize with an optional LLM instance or callable."""
         self.llm = llm
 
-    def expand(self, query: str) -> List[str]:
+    def expand(self, query: str) -> list[str]:
         """Generate alternative search queries using LLM with heuristic fallback."""
         if not query or not query.strip():
             return []
@@ -198,8 +198,8 @@ Return JSON:
 
 def expand_query(
     query: str,
-    expander: Optional[QueryExpander] = None
-) -> List[str]:
+    expander: QueryExpander | None = None
+) -> list[str]:
     """Expand a query into a list containing the original query plus expanded alternatives.
 
     Always preserves the original query at index 0.

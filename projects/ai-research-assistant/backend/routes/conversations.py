@@ -1,25 +1,26 @@
 """Conversations API route handling conversation memory and query rewriting endpoints."""
 
-from typing import List
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+
 from backend.database import get_db
 from backend.dependencies import get_current_user
 from backend.schemas.conversations import (
+    ConversationChatResponse,
     ConversationCreate,
     ConversationMessageCreate,
-    ConversationResponse,
     ConversationMessagesPageResponse,
-    ConversationChatResponse,
-)
-from backend.services.conversation_service import (
-    create_conversation,
-    get_conversation,
-    list_conversations,
-    delete_conversation,
-    get_paginated_messages,
+    ConversationResponse,
 )
 from backend.services.chat_service import default_chat_service
+from backend.services.conversation_service import (
+    create_conversation,
+    delete_conversation,
+    get_conversation,
+    get_paginated_messages,
+    list_conversations,
+)
 
 router = APIRouter()
 
@@ -36,8 +37,8 @@ def create_new_conversation(
     return conv
 
 
-@router.get("", response_model=List[ConversationResponse], include_in_schema=False)
-@router.get("/", response_model=List[ConversationResponse])
+@router.get("", response_model=list[ConversationResponse], include_in_schema=False)
+@router.get("/", response_model=list[ConversationResponse])
 def get_user_conversations(
     limit: int = 50,
     offset: int = 0,
@@ -156,5 +157,5 @@ def send_conversation_message(
     except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Conversational RAG execution failed: {str(exc)}"
+            detail=f"Conversational RAG execution failed: {exc!s}"
         ) from exc

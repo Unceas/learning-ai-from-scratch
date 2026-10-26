@@ -1,7 +1,9 @@
 """Database service for managing document metadata and user ownership in SQLite."""
 
-from typing import Any, Dict, List, Optional
+from typing import Any
+
 from sqlalchemy.orm import Session
+
 from backend.models import Document
 
 
@@ -9,7 +11,7 @@ def get_document(
     db: Session,
     user_id: str,
     file_hash: str
-) -> Optional[Document]:
+) -> Document | None:
     """Retrieve document metadata record by user_id and file_hash."""
     return (
         db.query(Document)
@@ -25,7 +27,7 @@ def get_document_by_id(
     db: Session,
     user_id: str,
     document_id: int
-) -> Optional[Document]:
+) -> Document | None:
     """Retrieve document metadata record by user_id and document_id ensuring strict user isolation."""
     return (
         db.query(Document)
@@ -68,7 +70,7 @@ def create_document(
 def list_documents(
     db: Session,
     user_id: str
-) -> List[Document]:
+) -> list[Document]:
     """List all registered document records for a given user."""
     return (
         db.query(Document)
@@ -99,7 +101,7 @@ def delete_document(
 def get_indexed_document_ids(
     db: Session,
     user_id: str
-) -> List[int]:
+) -> list[int]:
     """Retrieve list of document IDs that belong to the user and have status == 'indexed'."""
     documents = (
         db.query(Document.id)
@@ -116,7 +118,7 @@ def get_owned_document(
     db: Session,
     user_id: str,
     document_id: int
-) -> Optional[Document]:
+) -> Document | None:
     """Retrieve an indexed document owned by user_id ensuring status is 'indexed'."""
     return (
         db.query(Document)
@@ -132,7 +134,7 @@ def get_owned_document(
 def get_indexed_documents(
     db: Session,
     user_id: str
-) -> List[Document]:
+) -> list[Document]:
     """Retrieve full Document records that belong to the user and have status == 'indexed'."""
     return (
         db.query(Document)
@@ -148,7 +150,7 @@ def get_indexed_documents(
 def get_eligible_indexed_documents(
     db: Session,
     user_id: str
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """Retrieve id and index_version for documents eligible for retrieval cache key generation."""
     documents = (
         db.query(Document.id, Document.index_version)

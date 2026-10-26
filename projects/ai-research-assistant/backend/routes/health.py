@@ -1,6 +1,7 @@
 """Health check routes for liveness, readiness, and service diagnostics."""
 
 import logging
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 

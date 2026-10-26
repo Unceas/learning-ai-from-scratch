@@ -1,8 +1,9 @@
 """FastAPI dependency providers for authentication and security scoping."""
 
 from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError
+
 from backend.services.auth_service import decode_access_token
 
 security = HTTPBearer()

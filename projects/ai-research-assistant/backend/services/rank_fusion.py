@@ -1,12 +1,12 @@
 """Reciprocal Rank Fusion (RRF) module for combining diverse retrieval result lists."""
 
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any
 
 
 def _extract_chunk_key(chunk: Any) -> Any:
     """Derive deterministic identity key for a chunk across dicts and objects."""
-    if hasattr(chunk, "document_id") and getattr(chunk, "document_id") is not None:
-        doc_id = getattr(chunk, "document_id")
+    if hasattr(chunk, "document_id") and chunk.document_id is not None:
+        doc_id = chunk.document_id
         c_idx = getattr(chunk, "chunk_index", getattr(chunk, "chunk_id", getattr(chunk, "chunk", 0)))
         return (doc_id, c_idx)
 
@@ -24,16 +24,16 @@ def _extract_chunk_key(chunk: Any) -> Any:
     if isinstance(chunk, (str, int)):
         return chunk
 
-    if hasattr(chunk, "id") and getattr(chunk, "id") is not None:
-        return getattr(chunk, "id")
+    if hasattr(chunk, "id") and chunk.id is not None:
+        return chunk.id
 
     return id(chunk)
 
 
 def reciprocal_rank_fusion(
-    result_lists: List[List[Any]],
+    result_lists: list[list[Any]],
     k: int = 60
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """Combine and rank multiple retrieval result sets using Reciprocal Rank Fusion (RRF).
 
     Scores are calculated as: score = sum(1.0 / (k + rank)) across all result lists.
@@ -47,8 +47,8 @@ def reciprocal_rank_fusion(
         List of dictionaries sorted descending by RRF score:
         [{"chunk": items[key], "score": score}, ...]
     """
-    scores: Dict[Any, float] = {}
-    items: Dict[Any, Any] = {}
+    scores: dict[Any, float] = {}
+    items: dict[Any, Any] = {}
 
     for results in result_lists:
         if not results:

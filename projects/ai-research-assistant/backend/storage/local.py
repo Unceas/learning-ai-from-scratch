@@ -1,7 +1,8 @@
 """Local filesystem implementation of the Storage interface."""
 
-from pathlib import Path
 import uuid
+from pathlib import Path
+
 from backend.storage.base import Storage
 
 

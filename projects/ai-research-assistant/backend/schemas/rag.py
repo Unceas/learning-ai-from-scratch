@@ -1,6 +1,7 @@
 """Pydantic schemas for RAG requests, responses, and citations."""
 
-from typing import Any, Dict, List, Optional
+from typing import Any
+
 from pydantic import BaseModel, Field
 
 
@@ -12,33 +13,33 @@ class Source(BaseModel):
     chunk_index: int
     score: float = 0.0
     text: str = ""
-    page: Optional[int] = None
-    vector_score: Optional[float] = None
-    reranker_score: Optional[float] = None
-    matched_queries: Optional[List[str]] = Field(default_factory=list)
+    page: int | None = None
+    vector_score: float | None = None
+    reranker_score: float | None = None
+    matched_queries: list[str] | None = Field(default_factory=list)
 
 
 class DocumentGroupedSource(BaseModel):
     """Document-level source grouping chunk indices for clean frontend display."""
     document_id: int
     filename: str
-    chunks: List[int] = Field(default_factory=list)
+    chunks: list[int] = Field(default_factory=list)
 
 
 class QueryInfo(BaseModel):
     original: str
-    rewritten: Optional[str] = None
+    rewritten: str | None = None
 
 
 class RAGResponse(BaseModel):
     """Structured response contract for RAG answer generation and citation attribution."""
     answer: str
-    sources: List[Source] = Field(default_factory=list)
-    citation_map: Optional[Dict[str, Source]] = None
-    invalid_citations: Optional[List[str]] = Field(default_factory=list)
-    document_sources: Optional[List[DocumentGroupedSource]] = None
-    subqueries: Optional[List[str]] = Field(default_factory=list)
-    expanded_queries: Optional[List[str]] = Field(default_factory=list)
-    used_hyde: Optional[bool] = False
-    query: Optional[Any] = None
-    conversation_id: Optional[int] = None
+    sources: list[Source] = Field(default_factory=list)
+    citation_map: dict[str, Source] | None = None
+    invalid_citations: list[str] | None = Field(default_factory=list)
+    document_sources: list[DocumentGroupedSource] | None = None
+    subqueries: list[str] | None = Field(default_factory=list)
+    expanded_queries: list[str] | None = Field(default_factory=list)
+    used_hyde: bool | None = False
+    query: Any | None = None
+    conversation_id: int | None = None

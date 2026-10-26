@@ -1,20 +1,22 @@
 """Document Service encapsulating PDF text extraction, chunking, embedding, deduplication, and vector store indexing."""
 
-from typing import Any, Dict, List, Optional
 from pathlib import Path
+from typing import Any
+
 from PyPDF2 import PdfReader
 from sqlalchemy.orm import Session
+
+from backend.database import SessionLocal
+from backend.exceptions import EmptyDocumentError
+from backend.models import User
 from backend.services.chunker import chunk_text
+from backend.services.document_db_service import create_document, get_document
+from backend.services.document_hash import calculate_file_hash
 from backend.services.embedding_service import EmbeddingService
 from backend.services.vector_store import VectorStore
-from backend.services.document_hash import calculate_file_hash
-from backend.exceptions import EmptyDocumentError
-from backend.services.document_db_service import get_document, create_document
-from backend.database import SessionLocal
-from backend.models import User, Document
 
 
-def extract_pdf_text_pages(file_or_path) -> List[Dict[str, Any]]:
+def extract_pdf_text_pages(file_or_path) -> list[dict[str, Any]]:
     """Extract text from PDF pages preserving page numbers."""
     if isinstance(file_or_path, (str, Path)):
         reader = PdfReader(str(file_or_path))
@@ -35,10 +37,10 @@ def extract_pdf_text_pages(file_or_path) -> List[Dict[str, Any]]:
 def process_document(
     file_path: str,
     user_id: str,
-    document_id: Optional[int] = None,
-    file_hash: Optional[str] = None,
-    filename: Optional[str] = None
-) -> List[Dict[str, Any]]:
+    document_id: int | None = None,
+    file_hash: str | None = None,
+    filename: str | None = None
+) -> list[dict[str, Any]]:
     """Process physical PDF file in background: extract text, chunk, embed, and index into ChromaDB.
     
     Guarantees idempotency and cleans up stale vectors before upserting.
@@ -120,7 +122,7 @@ class DocumentService:
         self.embedding_service = EmbeddingService()
         self.vector_store = VectorStore()
 
-    def extract_text(self, file) -> List[Dict[str, Any]]:
+    def extract_text(self, file) -> list[dict[str, Any]]:
         """Extract text from PDF pages while preserving page numbers."""
         return extract_pdf_text_pages(file)
 
@@ -129,8 +131,8 @@ class DocumentService:
         file,
         user_id: str,
         filename: str = "uploaded_document.pdf",
-        db: Optional[Session] = None
-    ) -> Dict[str, Any]:
+        db: Session | None = None
+    ) -> dict[str, Any]:
         """Extract pages, chunk content, generate dense embeddings, and index into ChromaDB & SQLite."""
         close_db = False
         if db is None:

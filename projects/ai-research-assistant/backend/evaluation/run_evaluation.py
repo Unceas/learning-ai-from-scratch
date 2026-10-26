@@ -1,22 +1,20 @@
 """Offline RAG evaluation script benchmarking retrieval configurations and citation metrics."""
 
-import json
-import os
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any
+
 from backend.evaluation.dataset import EVAL_DATASET
 from backend.evaluation.metrics import (
-    recall_at_k,
     citation_validity,
-    citation_precision,
+    recall_at_k,
 )
 
 
 def evaluate_configuration(
     config_name: str,
-    dataset: List[Dict[str, Any]],
+    dataset: list[dict[str, Any]],
     k: int = 5,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Run evaluation for a specified retrieval configuration across dataset items.
 
     Args:
@@ -83,7 +81,7 @@ def evaluate_configuration(
     }
 
 
-def run_comparative_evaluation(dataset: Optional[List[Dict[str, Any]]] = None) -> Dict[str, Any]:
+def run_comparative_evaluation(dataset: list[dict[str, Any]] | None = None) -> dict[str, Any]:
     """Run and compare all five retrieval configurations."""
     eval_set = dataset or EVAL_DATASET[:5]
     configs = [

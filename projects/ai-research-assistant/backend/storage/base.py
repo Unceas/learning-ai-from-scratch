@@ -12,7 +12,6 @@ class Storage(ABC):
         content: bytes
     ) -> str:
         """Save file content and return storage path / reference identifier."""
-        pass
 
     @abstractmethod
     def delete(
@@ -20,4 +19,3 @@ class Storage(ABC):
         file_path: str
     ) -> None:
         """Delete file by storage path / reference identifier."""
-        pass

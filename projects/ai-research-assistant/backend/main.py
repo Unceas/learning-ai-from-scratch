@@ -1,20 +1,21 @@
-from contextlib import asynccontextmanager
 import logging
 import time
 import uuid
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+
 from backend.config import settings
 from backend.exceptions import AppException
 from backend.routes.auth import router as auth_router
 from backend.routes.chat import router as chat_router
-from backend.routes.documents import router as documents_router
-from backend.routes.memory import router as memory_router
 from backend.routes.conversations import router as conversations_router
+from backend.routes.documents import router as documents_router
 from backend.routes.feedback import router as feedback_router
 from backend.routes.health import router as health_router
+from backend.routes.memory import router as memory_router
 from backend.services.health_service import validate_startup
 from backend.services.vector_store import reset_vector_store
 

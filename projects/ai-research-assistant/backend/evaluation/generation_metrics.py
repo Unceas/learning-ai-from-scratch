@@ -1,20 +1,20 @@
 ﻿"""Generation evaluation metrics for citations, precision, and answer grounding."""
 
 import re
-from typing import Any, Dict, List, Optional, Sequence, Set, Union
-from google import genai
+from collections.abc import Sequence
+
 from llm import get_client
 
 
-def extract_citation_ids(answer: str) -> List[str]:
+def extract_citation_ids(answer: str) -> list[str]:
     """Extract numeric citation IDs from [S#] patterns in answer text."""
     return re.findall(r"\[S(\d+)\]", answer)
 
 
 def validate_citations(
     answer: str,
-    valid_source_ids: Union[Set[str], Sequence[str]],
-) -> Dict[str, List[str]]:
+    valid_source_ids: set[str] | Sequence[str],
+) -> dict[str, list[str]]:
     """Validate citations against available source IDs.
 
     Args:
@@ -41,7 +41,7 @@ def validate_citations(
 
 def citation_precision(
     answer: str,
-    valid_source_ids: Union[Set[str], Sequence[str]],
+    valid_source_ids: set[str] | Sequence[str],
 ) -> float:
     """Calculate citation precision: proportion of generated citations that are valid.
 
@@ -64,7 +64,7 @@ def citation_precision(
 def evaluate_grounding(
     context: str,
     answer: str,
-    override_api_key: Optional[str] = None
+    override_api_key: str | None = None
 ) -> str:
     """Evaluate whether an answer is fully supported by the retrieved context.
 

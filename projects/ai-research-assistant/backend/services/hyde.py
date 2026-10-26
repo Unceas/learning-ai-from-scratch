@@ -7,7 +7,8 @@ is retrieval-only evidence that never enters the actual context.
 """
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any
+
 from backend.services.embedding_service import EmbeddingService
 
 logger = logging.getLogger(__name__)
@@ -18,8 +19,8 @@ class HyDE:
 
     def __init__(
         self,
-        llm: Optional[Any] = None,
-        embedding_model: Optional[Any] = None
+        llm: Any | None = None,
+        embedding_model: Any | None = None
     ):
         """Initialize HyDE with optional LLM generator and embedding model."""
         self.llm = llm
@@ -111,7 +112,7 @@ Question:
 
         return self._heuristic_hypothesis(query)
 
-    def embed_hypothesis(self, hypothesis: str, user_id: Optional[str] = None) -> List[float]:
+    def embed_hypothesis(self, hypothesis: str, user_id: str | None = None) -> list[float]:
         """Generate dense vector embedding for the hypothetical research passage.
 
         Args:
@@ -138,10 +139,10 @@ Question:
         self,
         query: str,
         user_id: str,
-        document_ids: Optional[List[int]] = None,
-        vector_store: Optional[Any] = None,
+        document_ids: list[int] | None = None,
+        vector_store: Any | None = None,
         top_k: int = 10
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Retrieve real candidate chunks from the vector store using hypothetical document embeddings.
 
         CRITICAL SECURITY & GROUNDING CONSTRAINTS:

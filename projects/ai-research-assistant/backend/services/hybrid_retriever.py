@@ -1,6 +1,7 @@
 """Hybrid Retriever service combining dense vector search and BM25 lexical search with RRF."""
 
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any
+
 from backend.services.rank_fusion import reciprocal_rank_fusion
 
 
@@ -24,7 +25,7 @@ class HybridRetriever:
         self.keyword_retriever = keyword_retriever
         self.rrf_k = rrf_k
 
-    def _call_retriever(self, retriever: Any, query: str, top_k: int) -> List[Any]:
+    def _call_retriever(self, retriever: Any, query: str, top_k: int) -> list[Any]:
         """Invoke retriever whether implemented as an object with .retrieve or a direct callable."""
         if hasattr(retriever, "retrieve"):
             return retriever.retrieve(query, top_k=top_k)
@@ -38,7 +39,7 @@ class HybridRetriever:
         dense_k: int = 10,
         keyword_k: int = 10,
         final_k: int = 10,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Retrieve and fuse candidate chunks using dense semantic and BM25 lexical search.
 
         Args:

@@ -1,18 +1,18 @@
 """Pydantic schemas for Conversation lifecycle and pagination."""
 
-from typing import List, Optional
+
 from pydantic import BaseModel, Field
 
 
 class ConversationCreate(BaseModel):
-    title: Optional[str] = None
+    title: str | None = None
 
 
 class MessageResponse(BaseModel):
     id: int
     role: str
     content: str
-    conversation_id: Optional[int] = None
+    conversation_id: int | None = None
 
     class Config:
         from_attributes = True
@@ -20,16 +20,16 @@ class MessageResponse(BaseModel):
 
 class ConversationResponse(BaseModel):
     id: int
-    title: Optional[str] = None
-    user_id: Optional[str] = None
-    messages: Optional[List[MessageResponse]] = None
+    title: str | None = None
+    user_id: str | None = None
+    messages: list[MessageResponse] | None = None
 
     class Config:
         from_attributes = True
 
 
 class ConversationMessagesPageResponse(BaseModel):
-    messages: List[MessageResponse] = Field(default_factory=list)
+    messages: list[MessageResponse] = Field(default_factory=list)
     limit: int
     offset: int
     has_more: bool

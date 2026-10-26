@@ -1,9 +1,14 @@
 """Memory API route handling long-term memory creation and retrieval endpoints."""
 
 from fastapi import APIRouter, Depends
-from backend.schemas.requests import MemoryRequest
-from backend.services.memory_service import store_user_memory, retrieve_user_memories, delete_user_memories
+
 from backend.dependencies import get_current_user
+from backend.schemas.requests import MemoryRequest
+from backend.services.memory_service import (
+    delete_user_memories,
+    retrieve_user_memories,
+    store_user_memory,
+)
 
 router = APIRouter()
 

@@ -2,9 +2,8 @@
 
 import json
 import os
-import time
 from statistics import mean, median
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 def summarize_latency(samples: list[float]) -> dict:
@@ -42,7 +41,7 @@ def summarize_latency(samples: list[float]) -> dict:
     }
 
 
-def generate_latency_report(records: List[Dict[str, Any]]) -> Dict[str, Any]:
+def generate_latency_report(records: list[dict[str, Any]]) -> dict[str, Any]:
     """Aggregate per-request telemetry records into a structured latency distribution report.
 
     Args:
@@ -69,8 +68,8 @@ def generate_latency_report(records: List[Dict[str, Any]]) -> Dict[str, Any]:
             "bottleneck_stage": None,
         }
 
-    total_samples: List[float] = []
-    stage_samples: Dict[str, List[float]] = {
+    total_samples: list[float] = []
+    stage_samples: dict[str, list[float]] = {
         "query_rewriting": [],
         "query_routing": [],
         "retrieval": [],
@@ -81,8 +80,8 @@ def generate_latency_report(records: List[Dict[str, Any]]) -> Dict[str, Any]:
 
     empty_retrieval_count = 0
     error_count = 0
-    candidate_counts: List[int] = []
-    reranked_counts: List[int] = []
+    candidate_counts: list[int] = []
+    reranked_counts: list[int] = []
 
     for r in records:
         # Extract metrics dictionary if embedded
@@ -142,20 +141,20 @@ def generate_latency_report(records: List[Dict[str, Any]]) -> Dict[str, Any]:
     }
 
 
-def save_latency_report(report: Dict[str, Any], filepath: str) -> None:
+def save_latency_report(report: dict[str, Any], filepath: str) -> None:
     """Save latency report to JSON file."""
     os.makedirs(os.path.dirname(os.path.abspath(filepath)), exist_ok=True)
     with open(filepath, "w", encoding="utf-8") as f:
         json.dump(report, f, indent=2)
 
 
-def load_latency_report(filepath: str) -> Dict[str, Any]:
+def load_latency_report(filepath: str) -> dict[str, Any]:
     """Load latency report from JSON file."""
     with open(filepath, "r", encoding="utf-8") as f:
         return json.load(f)
 
 
-def run_baseline_benchmark(output_path: Optional[str] = None) -> Dict[str, Any]:
+def run_baseline_benchmark(output_path: str | None = None) -> dict[str, Any]:
     """Run baseline latency benchmark across representative request archetypes.
 
     Simulates and evaluates:

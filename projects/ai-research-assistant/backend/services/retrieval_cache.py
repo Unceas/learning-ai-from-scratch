@@ -5,7 +5,7 @@ import json
 import threading
 from collections import OrderedDict
 from copy import deepcopy
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 class RetrievalCache:
@@ -26,7 +26,7 @@ class RetrievalCache:
             raise ValueError("max_entries must be positive")
 
         self.max_entries = max_entries
-        self._cache: OrderedDict[str, List[Dict[str, Any]]] = OrderedDict()
+        self._cache: OrderedDict[str, list[dict[str, Any]]] = OrderedDict()
         self._lock = threading.Lock()
 
         self.hits = 0
@@ -37,9 +37,9 @@ class RetrievalCache:
     def make_key(
         *,
         user_id: str,
-        eligible_documents: List[Dict[str, Any]],
+        eligible_documents: list[dict[str, Any]],
         query: str,
-        retrieval_config: Dict[str, Any],
+        retrieval_config: dict[str, Any],
     ) -> str:
         """Construct a deterministic SHA-256 hash key for a retrieval request."""
         payload = {
@@ -60,7 +60,7 @@ class RetrievalCache:
 
         return hashlib.sha256(serialized.encode("utf-8")).hexdigest()
 
-    def get(self, key: str) -> Optional[List[Dict[str, Any]]]:
+    def get(self, key: str) -> list[dict[str, Any]] | None:
         """Retrieve deep-copied candidates from cache on hit, or None on miss."""
         with self._lock:
             if key not in self._cache:
@@ -71,7 +71,7 @@ class RetrievalCache:
             self._cache.move_to_end(key)
             return deepcopy(self._cache[key])
 
-    def set(self, key: str, candidates: List[Dict[str, Any]]) -> None:
+    def set(self, key: str, candidates: list[dict[str, Any]]) -> None:
         """Store deep-copied candidates into LRU cache with capacity enforcement."""
         with self._lock:
             self._cache[key] = deepcopy(candidates)
@@ -93,7 +93,7 @@ class RetrievalCache:
             self.misses = 0
             self.evictions = 0
 
-    def stats(self) -> Dict[str, Any]:
+    def stats(self) -> dict[str, Any]:
         """Return operational telemetry metrics."""
         with self._lock:
             total_requests = self.hits + self.misses

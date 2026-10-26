@@ -1,11 +1,12 @@
 """Chat API route handling query generation and conversation chat orchestration."""
 
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+
 from backend.database import get_db
+from backend.dependencies import get_current_user
 from backend.schemas.chat import ChatRequest, ChatResponse
 from backend.services.chat_service import default_chat_service
-from backend.dependencies import get_current_user
 
 router = APIRouter()
 chat_service = default_chat_service
@@ -41,5 +42,5 @@ def chat(
     except Exception as exc:
         raise HTTPException(
             status_code=500,
-            detail=f"AI processing failed: {str(exc)}"
+            detail=f"AI processing failed: {exc!s}"
         ) from exc

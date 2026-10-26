@@ -1,24 +1,24 @@
 """RAG Evaluation framework package."""
 
 from backend.evaluation.dataset import EVAL_DATASET
-from backend.evaluation.retrieval_metrics import recall_at_k, mean_recall
 from backend.evaluation.generation_metrics import citation_precision, evaluate_grounding
-from backend.evaluation.metrics import citation_validity, citation_coverage
 from backend.evaluation.latency_report import (
-    summarize_latency,
     generate_latency_report,
     run_baseline_benchmark,
+    summarize_latency,
 )
+from backend.evaluation.metrics import citation_coverage, citation_validity
+from backend.evaluation.retrieval_metrics import mean_recall, recall_at_k
 
 __all__ = [
     "EVAL_DATASET",
-    "recall_at_k",
-    "mean_recall",
+    "citation_coverage",
     "citation_precision",
     "citation_validity",
-    "citation_coverage",
     "evaluate_grounding",
-    "summarize_latency",
     "generate_latency_report",
+    "mean_recall",
+    "recall_at_k",
     "run_baseline_benchmark",
+    "summarize_latency",
 ]

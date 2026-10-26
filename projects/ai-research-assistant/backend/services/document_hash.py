@@ -1,10 +1,9 @@
 """SHA-256 document hashing module for content-based fingerprinting."""
 
 import hashlib
-from typing import Union
 
 
-def calculate_file_hash(file_or_content: Union[bytes, bytearray, object]) -> str:
+def calculate_file_hash(file_or_content: bytes | bytearray | object) -> str:
     """Calculate deterministic SHA-256 hex digest for a file object or raw bytes."""
     if isinstance(file_or_content, (bytes, bytearray)):
         content = file_or_content

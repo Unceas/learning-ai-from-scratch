@@ -1,11 +1,12 @@
 """Database service for storing, updating, and aggregating answer feedback."""
 
-from typing import Dict, Optional
+
 from fastapi import HTTPException, status
 from sqlalchemy import func
 from sqlalchemy.orm import Session
-from backend.models.feedback import AnswerFeedback
+
 from backend.models.conversation import Conversation, ConversationMessage
+from backend.models.feedback import AnswerFeedback
 
 
 def submit_feedback(
@@ -13,8 +14,8 @@ def submit_feedback(
     user_id: str,
     message_id: int,
     rating: str,
-    reason: Optional[str] = None,
-    comment: Optional[str] = None,
+    reason: str | None = None,
+    comment: str | None = None,
 ) -> AnswerFeedback:
     """Create or update answer feedback with strict ownership and assistant-role validation."""
     # 1. Verify message exists
@@ -84,7 +85,7 @@ def get_feedback_by_message(
     db: Session,
     user_id: str,
     message_id: int,
-) -> Optional[AnswerFeedback]:
+) -> AnswerFeedback | None:
     """Retrieve feedback for a specific message belonging to the authenticated user."""
     return (
         db.query(AnswerFeedback)
@@ -99,7 +100,7 @@ def get_feedback_by_message(
 def get_feedback_summary(
     db: Session,
     user_id: str,
-) -> Dict[str, int]:
+) -> dict[str, int]:
     """Aggregate answer feedback metrics for the authenticated user."""
     rows = (
         db.query(

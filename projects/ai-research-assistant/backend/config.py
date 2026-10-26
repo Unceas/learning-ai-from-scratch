@@ -1,7 +1,8 @@
 """Centralized application configuration settings using Pydantic Settings."""
 
 from functools import lru_cache
-from typing import Any, List, Literal, Optional, Union
+from typing import Any, Literal
+
 from pydantic import AliasChoices, Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -42,13 +43,13 @@ class Settings(BaseSettings):
     )
 
     # Secrets
-    llm_api_key: Optional[SecretStr] = Field(
+    llm_api_key: SecretStr | None = Field(
         default=None,
         validation_alias=AliasChoices(
             "llm_api_key", "LLM_API_KEY", "gemini_api_key", "GEMINI_API_KEY"
         ),
     )
-    jwt_secret_key: Optional[SecretStr] = Field(
+    jwt_secret_key: SecretStr | None = Field(
         default=None,
         validation_alias=AliasChoices("jwt_secret_key", "JWT_SECRET_KEY"),
     )
@@ -115,7 +116,7 @@ class Settings(BaseSettings):
     max_history_messages: int = 10
 
     # CORS Origins
-    cors_origins: List[str] = Field(
+    cors_origins: list[str] = Field(
         default_factory=lambda: [
             "http://localhost:5173",
             "http://127.0.0.1:5173",

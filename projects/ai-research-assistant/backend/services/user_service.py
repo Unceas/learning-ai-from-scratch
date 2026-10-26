@@ -1,11 +1,9 @@
 """Database-backed user store service for persistent authentication."""
 
 from sqlalchemy.orm import Session
+
 from backend.models import User
-from backend.services.auth_service import (
-    hash_password,
-    verify_password
-)
+from backend.services.auth_service import hash_password, verify_password
 
 
 def create_user(

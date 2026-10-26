@@ -1,4 +1,4 @@
-from typing import List, Optional
+
 from backend.config import get_settings
 from backend.services.embedding_cache import EmbeddingCache
 
@@ -22,7 +22,7 @@ class EmbeddingService:
             EmbeddingService._model = SentenceTransformer(settings.embedding_model)
         return EmbeddingService._model
 
-    def embed_documents(self, texts: list, user_id: Optional[str] = None) -> list:
+    def embed_documents(self, texts: list, user_id: str | None = None) -> list:
         """Generate dense vector embeddings for a list of document text chunks via cache."""
         if not texts:
             return []
@@ -35,7 +35,7 @@ class EmbeddingService:
             namespace=namespace,
         )
 
-    def embed_query(self, query: str, user_id: Optional[str] = None) -> list:
+    def embed_query(self, query: str, user_id: str | None = None) -> list:
         """Generate dense vector embedding for a single search query via cache."""
         if not query or not query.strip():
             return []
@@ -52,6 +52,6 @@ class EmbeddingService:
 default_embedding_service = EmbeddingService()
 
 
-def embed_text(text: str, user_id: str = "default") -> List[float]:
+def embed_text(text: str, user_id: str = "default") -> list[float]:
     """Helper to embed single text through the bounded embedding cache."""
     return default_embedding_service.embed_query(text, user_id=user_id)

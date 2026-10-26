@@ -7,14 +7,15 @@ treated as retrieval evidence.
 
 import logging
 import re
-from typing import Any, List, Optional, Union
+from typing import Any
+
 from backend.models.conversation import ConversationMessage
 from llm import get_client
 
 logger = logging.getLogger(__name__)
 
 
-def format_conversation_history(history: Union[List[Any], str, None]) -> str:
+def format_conversation_history(history: list[Any] | str | None) -> str:
     """Format conversation messages or raw list/string into a clear conversation transcript."""
     if not history:
         return ""
@@ -66,7 +67,7 @@ def is_standalone_query(query: str) -> bool:
     return True
 
 
-def heuristic_rewrite_query(query: str, history: Union[List[Any], str, None]) -> str:
+def heuristic_rewrite_query(query: str, history: list[Any] | str | None) -> str:
     """Deterministically rewrite a query using conversation history for testing and fallback."""
     if not query or not query.strip():
         return query
@@ -91,7 +92,6 @@ def heuristic_rewrite_query(query: str, history: Union[List[Any], str, None]) ->
             user_queries.append(line)
 
     last_query = user_queries[-1] if user_queries else (lines[-1] if lines else "")
-    last_q_lower = last_query.lower()
 
     # Pattern A: Prior was comparison "Compare X and Y" or "Compare X vs Y"
     comp_match = re.search(
@@ -155,11 +155,11 @@ def heuristic_rewrite_query(query: str, history: Union[List[Any], str, None]) ->
 class QueryRewriter:
     """Rewrites conversational queries into self-contained standalone research queries."""
 
-    def __init__(self, llm: Optional[Any] = None):
+    def __init__(self, llm: Any | None = None):
         """Initialize QueryRewriter with an optional LLM generator."""
         self.llm = llm
 
-    def rewrite(self, query: str, history: Union[List[Any], str, None]) -> str:
+    def rewrite(self, query: str, history: list[Any] | str | None) -> str:
         """Rewrite query into a standalone research query using conversation history.
 
         Args:

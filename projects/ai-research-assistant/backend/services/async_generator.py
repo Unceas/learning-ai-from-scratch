@@ -2,7 +2,7 @@
 
 import asyncio
 import logging
-from typing import Any, AsyncGenerator as AsyncGenType, Callable, Dict, Optional, Union
+from typing import Any
 
 from backend.config import settings
 
@@ -21,9 +21,9 @@ class AsyncGenerator:
 
     def __init__(
         self,
-        client: Optional[Any] = None,
-        max_concurrency: Optional[int] = None,
-        timeout: Optional[float] = None,
+        client: Any | None = None,
+        max_concurrency: int | None = None,
+        timeout: float | None = None,
     ):
         concurrency = (
             max_concurrency
@@ -56,7 +56,7 @@ class AsyncGenerator:
     async def generate(
         self,
         prompt: str,
-        system_instruction: Optional[str] = None,
+        system_instruction: str | None = None,
         model: str = "gemini-2.5-flash",
     ) -> str:
         """Execute an asynchronous generation request bounded by the concurrency semaphore."""
@@ -71,7 +71,7 @@ class AsyncGenerator:
                 )
                 self.completed_requests += 1
                 return result
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 self.timeouts += 1
                 logger.error(
                     "Async LLM generation timed out after %.1f seconds",
@@ -88,7 +88,7 @@ class AsyncGenerator:
     async def _call_client(
         self,
         prompt: str,
-        system_instruction: Optional[str] = None,
+        system_instruction: str | None = None,
         model: str = "gemini-2.5-flash",
     ) -> str:
         """Internal dispatch to LLM client."""
@@ -131,7 +131,7 @@ class AsyncGenerator:
 
         raise TypeError(f"Unsupported LLM client type: {type(self.client)}")
 
-    def stats(self) -> Dict[str, Any]:
+    def stats(self) -> dict[str, Any]:
         """Return operational telemetry for async generator."""
         return {
             "max_concurrency": self.max_concurrency,

@@ -4,7 +4,8 @@ import json
 import os
 import sys
 import time
-from typing import Any, Callable, Dict, List, Optional
+from collections.abc import Callable
+from typing import Any
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
@@ -13,15 +14,15 @@ from backend.services.retrieval_cache import RetrievalCache
 
 
 def run_retrieval_benchmark(
-    retrieve_fn: Optional[Callable[[str], List[Dict[str, Any]]]] = None,
-    queries: Optional[List[str]] = None,
+    retrieve_fn: Callable[[str], list[dict[str, Any]]] | None = None,
+    queries: list[str] | None = None,
     user_id: str = "benchmark_researcher",
-    eligible_docs: Optional[List[Dict[str, Any]]] = None,
-    retrieval_config: Optional[Dict[str, Any]] = None,
+    eligible_docs: list[dict[str, Any]] | None = None,
+    retrieval_config: dict[str, Any] | None = None,
     trials: int = 5,
     max_entries: int = 128,
-    output_path: Optional[str] = None,
-) -> Dict[str, Any]:
+    output_path: str | None = None,
+) -> dict[str, Any]:
     """Execute comparative benchmark between cache-disabled and cache-enabled retrieval.
 
     Args:
@@ -39,7 +40,7 @@ def run_retrieval_benchmark(
         Structured benchmark report with latencies, speedups, and cache statistics.
     """
     if retrieve_fn is None:
-        def simulated_retrieve(query_text: str) -> List[Dict[str, Any]]:
+        def simulated_retrieve(query_text: str) -> list[dict[str, Any]]:
             # Simulate embedding lookup + ChromaDB vector search + SQLite doc join
             time.sleep(0.005)  # 5ms simulated retrieval latency
             return [

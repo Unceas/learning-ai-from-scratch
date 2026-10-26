@@ -1,9 +1,8 @@
 """Text chunker module for word-based sliding window chunking."""
 
-from typing import List
 
 
-def chunk_text(text: str, chunk_size: int = 800, overlap: int = 100) -> List[str]:
+def chunk_text(text: str, chunk_size: int = 800, overlap: int = 100) -> list[str]:
     """Split text string into overlapping word chunks.
 
     Args:

@@ -1,0 +1,79 @@
+name: Research Assistant CI
+
+"on":
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  backend-ci:
+    name: Backend CI
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: projects/ai-research-assistant
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: projects/ai-research-assistant/requirements.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest ruff
+
+      - name: Lint with Ruff
+        run: ruff check backend tests
+
+      - name: Validate database migrations
+        env:
+          DATABASE_URL: sqlite:///./ci_test.db
+        run: |
+          alembic upgrade head
+          rm -f ci_test.db
+
+      - name: Run unit & route tests
+        env:
+          ENVIRONMENT: test
+          DATABASE_URL: sqlite:///./app.db
+          JWT_SECRET_KEY: ci-test-secret-key-32-chars-long
+          LLM_API_KEY: ci-test-llm-key
+        run: pytest -q
+
+  frontend-ci:
+    name: Frontend CI
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: projects/ai-research-assistant/frontend
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: projects/ai-research-assistant/frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build frontend
+        env:
+          VITE_API_URL: https://api.example.invalid
+        run: npm run build

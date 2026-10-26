@@ -1,12 +1,14 @@
 """Evaluation metrics for RAG retrieval quality, citation validity, and grounding."""
 
 import re
-from typing import Any, Dict, List, Optional, Sequence, Set, Union
-from backend.evaluation.retrieval_metrics import recall_at_k, mean_recall
+from collections.abc import Sequence
+from typing import Any
+
 from backend.evaluation.generation_metrics import citation_precision, evaluate_grounding
+from backend.evaluation.retrieval_metrics import mean_recall, recall_at_k
 
 
-def citation_validity(answer: str, valid_ids: Union[Set[str], Sequence[str]]) -> float:
+def citation_validity(answer: str, valid_ids: set[str] | Sequence[str]) -> float:
     """Measure proportion of generated citations [S#] that reference verified source IDs.
 
     Args:
@@ -51,13 +53,13 @@ def citation_coverage(answer: str, expected_citations: int = 1) -> float:
 
 
 def calculate_rag_metrics(
-    retrieved_docs: List[str],
-    expected_docs: List[str],
+    retrieved_docs: list[str],
+    expected_docs: list[str],
     answer: str,
-    valid_source_ids: Set[str],
+    valid_source_ids: set[str],
     latency_ms: float = 0.0,
     k: int = 5,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Compute comprehensive metrics for an individual RAG evaluation query."""
     rec = recall_at_k(retrieved_docs, expected_docs, k=k)
     cit_val = citation_validity(answer, valid_source_ids)
@@ -73,11 +75,11 @@ def calculate_rag_metrics(
 
 
 __all__ = [
-    "citation_validity",
-    "citation_coverage",
     "calculate_rag_metrics",
-    "recall_at_k",
-    "mean_recall",
+    "citation_coverage",
     "citation_precision",
+    "citation_validity",
     "evaluate_grounding",
+    "mean_recall",
+    "recall_at_k",
 ]

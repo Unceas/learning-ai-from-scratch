@@ -1,6 +1,7 @@
 """Pydantic schemas for API response validation and documentation contracts."""
 
-from typing import Any, Dict, List, Optional
+from typing import Any
+
 from pydantic import BaseModel
 
 
@@ -11,12 +12,12 @@ class ErrorResponse(BaseModel):
 
 class DocumentResponse(BaseModel):
     status: str
-    document_id: Optional[int] = None
-    id: Optional[int] = None
-    filename: Optional[str] = None
-    pages: Optional[int] = None
-    chunks: Optional[int] = None
-    error_message: Optional[str] = None
+    document_id: int | None = None
+    id: int | None = None
+    filename: str | None = None
+    pages: int | None = None
+    chunks: int | None = None
+    error_message: str | None = None
 
 
 class DocumentStatusResponse(BaseModel):
@@ -25,12 +26,12 @@ class DocumentStatusResponse(BaseModel):
     file_hash: str
     chunks: int
     status: str
-    error_message: Optional[str] = None
-    processing_attempts: Optional[int] = None
+    error_message: str | None = None
+    processing_attempts: int | None = None
 
 
 class DocumentListResponse(BaseModel):
-    documents: List[Dict[str, Any]]
+    documents: list[dict[str, Any]]
 
 
 class TokenResponse(BaseModel):
@@ -41,15 +42,15 @@ class TokenResponse(BaseModel):
 class UserResponse(BaseModel):
     id: str
     username: str
-    user_id: Optional[str] = None
+    user_id: str | None = None
 
 
 class ChunkPreviewResponse(BaseModel):
-    id: Optional[str] = None
+    id: str | None = None
     document_id: int
     filename: str
     chunk_index: int
     text: str
-    page: Optional[int] = None
-    score: Optional[float] = None
+    page: int | None = None
+    score: float | None = None
 

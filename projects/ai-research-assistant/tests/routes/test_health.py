@@ -1,17 +1,13 @@
 """Health endpoint tests for liveness, readiness, and deployment boundaries."""
 
-import os
-import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
+
+import pytest
 from fastapi.testclient import TestClient
 from pydantic import ValidationError
-import pytest
 
-from backend.main import app
-from backend.database import get_db
 from backend.config import Settings
-from backend.services.health_service import validate_startup
-
+from backend.main import app
 
 client = TestClient(app)
 
