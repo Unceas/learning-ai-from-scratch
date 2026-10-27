@@ -52,7 +52,8 @@ TEST_SCRIPTS = [
     "test_async_execution_and_concurrency.py",
     "test_production_configuration_and_secrets.py",
     "test_deployment_readiness_and_health.py",
-    "test_ci_cd_pipeline_and_automation.py"
+    "test_ci_cd_pipeline_and_automation.py",
+    "test_release_engineering_and_rollback.py"
 ]
 
 

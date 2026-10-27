@@ -1704,6 +1704,49 @@ Key Architectural Principles:
 - **Secrets Hygiene & Least Privilege**: The CI workflow runs with `permissions: contents: read` and uses test-only placeholder credentials without exposing production API keys.
 - **Automated Smoke Testing**: `smoke_test.py` and `scripts/smoke_test.sh` provide standardized post-deployment verification for automated rollout pipelines.
 
+## Release Engineering & Rollback Strategy (Day 170)
+
+Day 170 operationalizes release management and disaster recovery for the AI Research Assistant. It establishes semantic versioning conventions, an immutable artifact tracking pipeline, comprehensive release checklists, an Expand-and-Contract database schema migration strategy, multi-store state recovery, and automated release verification gates.
+
+### Release & Rollback Architecture
+
+```text
+Staging Release Candidate (v1.0.0 @ 56f8bdd)
+                 │
+                 ▼
+Gate 1: Pre-Release Validation (RELEASE_CHECKLIST.md)
+  ├── 52 Backend unit & route tests pass (pytest -q)
+  ├── Ruff linter clean across backend & tests (0 errors)
+  ├── Frontend production bundle built (314 modules)
+  └── Disposable DB migrations verified from base to head
+                 │
+                 ▼
+Gate 2: Staging Verification & Health Gates
+  ├── GET /health/live ──► HTTP 200 {"alive"}
+  ├── GET /health/ready ──► HTTP 200 {"ready"}
+  ├── User isolation & document ingestion verified
+  └── Automated smoke test passes (smoke_test.py)
+                 │
+                 ▼
+Gate 3: Controlled Production Deployment
+  ├── Single-execution migration (alembic upgrade head)
+  ├── Versioned immutable artifact deployment
+  └── 15-minute soak monitoring (5xx rate < 0.1%, p95 < baseline)
+                 │
+   ┌─────────────┴─────────────────────────────────────────┐
+   ▼                                                       ▼
+Release Healthy                                  Rollback Triggered
+(Recorded in docs/releases/v1.0.0.md)            (ROLLBACK_STRATEGY.md)
+                                                 ├── Compatible schema? ──► Revert code artifact
+                                                 └── Incompatible? ──► Alembic downgrade / restore
+```
+
+Key Architectural Principles:
+- **Semantic Versioning & Immutable Releases**: Releases adhere to `vMAJOR.MINOR.PATCH` with Git tags recording the exact commit SHA, dependency lockfiles, and migration lineage.
+- **The Expand-and-Contract Pattern**: All database schema changes decouple expansion (Phase A: adding nullable columns/tables) from contraction (Phase C: removing obsolete schema), ensuring old code versions remain fully functional if a rollback is triggered.
+- **Multi-Store State Recovery**: Disaster recovery runbooks explicitly manage state across the relational database (SQLite), vector database (ChromaDB), and document uploads without blind vector wipes or data loss.
+- **Automated Release Verification Gate**: `scripts/verify_release.py` validates SemVer strings, Git commit hashes, release documentation, schema migration head, and live health gates prior to production promotion.
+
 ## Project Structure
 
 ```text
@@ -1955,15 +1998,24 @@ ai-research-assistant/
 ├── test_production_configuration_and_secrets.py
 ├── test_deployment_readiness_and_health.py
 ├── test_ci_cd_pipeline_and_automation.py
+├── test_release_engineering_and_rollback.py
 ├── test_full_suite.py
 ├── tests/
 │   ├── routes/
 │   │   └── test_health.py
 │   ├── test_config.py
 │   ├── test_schema_migrations.py
-│   └── test_smoke_test.py
+│   ├── test_smoke_test.py
+│   └── test_release_engineering.py
+├── docs/
+│   └── releases/
+│       ├── RELEASE_CHECKLIST.md
+│       ├── RELEASE_NOTES_TEMPLATE.md
+│       ├── ROLLBACK_STRATEGY.md
+│       └── v1.0.0.md
 ├── scripts/
-│   └── smoke_test.sh
+│   ├── smoke_test.sh
+│   └── verify_release.py
 ├── smoke_test.py
 ├── pyproject.toml
 ├── pytest.ini
