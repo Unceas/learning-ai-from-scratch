@@ -1,23 +1,23 @@
 """Document API route handling document upload, listing, status, retry, and deletion lifecycle endpoints."""
 
-from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile
+from pathlib import Path
+
+from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, Request, UploadFile
 from sqlalchemy.orm import Session
 
 from backend.config import settings
 from backend.database import get_db
 from backend.dependencies import get_current_user
-from backend.exceptions import DocumentNotFoundError
 from backend.schemas.responses import (
     ChunkPreviewResponse,
     DocumentListResponse,
     DocumentResponse,
     DocumentStatusResponse,
 )
+from backend.services.authorization import get_owned_document
 from backend.services.document_db_service import (
     create_document,
     get_document,
-    get_document_by_id,
-    get_owned_document,
     list_documents,
 )
 from backend.services.document_db_service import (
@@ -26,8 +26,9 @@ from backend.services.document_db_service import (
 from backend.services.document_hash import calculate_file_hash
 from backend.services.document_processor import process_document_background
 from backend.services.document_service import DocumentService
+from backend.services.rate_limiter import rate_limiter
 from backend.services.vector_store import VectorStore
-from backend.storage import storage
+from backend.storage import has_pdf_signature, storage
 
 router = APIRouter()
 document_service = DocumentService()
@@ -60,15 +61,31 @@ def get_documents(
 
 @router.post("/upload", response_model=DocumentResponse)
 async def upload_document(
+    http_request: Request,
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
     user_id: str = Depends(get_current_user)
 ):
     """Upload PDF, register document in processing state, and enqueue background indexing."""
-    filename = file.filename or "uploaded_document.pdf"
+    rate_limiter.enforce(
+        http_request,
+        scope="upload",
+        limit=getattr(settings, "upload_rate_limit_per_minute", 30),
+        user_id=user_id,
+    )
+    raw_filename = file.filename or "uploaded_document.pdf"
+    # Defense against directory traversal: sanitize to basename
+    filename = Path(raw_filename).name or "uploaded_document.pdf"
 
-    if file.content_type != "application/pdf" and not filename.lower().endswith(".pdf"):
+    if not filename.lower().endswith(".pdf"):
+        raise HTTPException(
+            status_code=400,
+            detail="Only PDF files are supported."
+        )
+
+    allowed_mimes = {"application/pdf", "application/x-pdf", "binary/octet-stream"}
+    if file.content_type and file.content_type not in allowed_mimes:
         raise HTTPException(
             status_code=400,
             detail="Only PDF files are supported."
@@ -80,6 +97,12 @@ async def upload_document(
         raise HTTPException(
             status_code=413,
             detail="File is too large."
+        )
+
+    if not has_pdf_signature(content):
+        raise HTTPException(
+            status_code=400,
+            detail="File does not have a valid PDF signature."
         )
 
     file_hash = calculate_file_hash(content)
@@ -143,14 +166,11 @@ def get_document_status(
     user_id: str = Depends(get_current_user)
 ):
     """Retrieve document status by ID with strict user-scoped isolation."""
-    document = get_document_by_id(
+    document = get_owned_document(
         db,
         user_id,
         document_id
     )
-
-    if not document:
-        raise DocumentNotFoundError()
 
     return {
         "id": document.id,
@@ -178,12 +198,12 @@ def get_document_chunk(
     Verifies authenticated user document ownership and 'indexed' status before
     retrieving the chunk from the vector store.
     """
-    document = get_owned_document(db, user_id=user_id, document_id=document_id)
-    if not document:
-        raise HTTPException(
-            status_code=404,
-            detail="Document not found or not indexed."
-        )
+    document = get_owned_document(
+        db,
+        user_id=user_id,
+        document_id=document_id,
+        require_indexed=True
+    )
 
     chunk = vector_store.get_chunk(
         document_id=document.id,
@@ -219,20 +239,24 @@ def get_document_chunk(
     response_model=DocumentStatusResponse
 )
 def retry_document(
+    http_request: Request,
     document_id: int,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     user_id: str = Depends(get_current_user)
 ):
     """Retry ingestion for a failed document belonging to the authenticated user."""
-    document = get_document_by_id(
+    rate_limiter.enforce(
+        http_request,
+        scope="retry",
+        limit=getattr(settings, "retry_rate_limit_per_minute", 30),
+        user_id=user_id,
+    )
+    document = get_owned_document(
         db,
         user_id,
         document_id
     )
-
-    if not document:
-        raise DocumentNotFoundError()
 
     if document.status != "failed":
         raise HTTPException(
@@ -267,14 +291,7 @@ def delete_document(
     user_id: str = Depends(get_current_user)
 ):
     """Delete document entry from SQLite, purge stored file via storage abstraction, and delete vectors from ChromaDB."""
-    document = None
-    if identifier.isdigit():
-        document = get_document_by_id(db, user_id, int(identifier))
-    if not document:
-        document = get_document(db, user_id, identifier)
-
-    if not document:
-        raise DocumentNotFoundError()
+    document = get_owned_document(db, user_id, identifier)
 
     if document.storage_path:
         storage.delete(document.storage_path)

@@ -4,6 +4,7 @@
 from sqlalchemy.orm import Session
 
 from backend.models.conversation import Conversation, ConversationMessage
+from backend.services.authorization import get_owned_conversation
 
 MAX_HISTORY_MESSAGES = 10
 
@@ -167,6 +168,9 @@ class ConversationService:
 
     def get_conversation(self, db: Session, user_id: str, conversation_id: int) -> Conversation | None:
         return get_conversation(db, user_id=user_id, conversation_id=conversation_id)
+
+    def get_owned_conversation(self, db: Session, user_id: str, conversation_id: int | str) -> Conversation:
+        return get_owned_conversation(db, user_id=user_id, conversation_id=conversation_id)
 
     def list_conversations(self, db: Session, user_id: str, limit: int = 50, offset: int = 0) -> list[Conversation]:
         return list_conversations(db, user_id=user_id, limit=limit, offset=offset)

@@ -5,8 +5,8 @@ from fastapi import HTTPException, status
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from backend.models.conversation import Conversation, ConversationMessage
 from backend.models.feedback import AnswerFeedback
+from backend.services.authorization import get_owned_message
 
 
 def submit_feedback(
@@ -18,17 +18,8 @@ def submit_feedback(
     comment: str | None = None,
 ) -> AnswerFeedback:
     """Create or update answer feedback with strict ownership and assistant-role validation."""
-    # 1. Verify message exists
-    message = (
-        db.query(ConversationMessage)
-        .filter(ConversationMessage.id == message_id)
-        .first()
-    )
-    if not message:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Message not found.",
-        )
+    # 1. Verify message exists and belongs to the authenticated user's conversation
+    message = get_owned_message(db, user_id=user_id, message_id=message_id)
 
     # 2. Reject non-assistant messages
     if message.role != "assistant":
@@ -37,22 +28,7 @@ def submit_feedback(
             detail="Feedback can only be submitted for assistant messages.",
         )
 
-    # 3. Verify conversation ownership
-    conversation = (
-        db.query(Conversation)
-        .filter(
-            Conversation.id == message.conversation_id,
-            Conversation.user_id == user_id,
-        )
-        .first()
-    )
-    if not conversation:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Message or conversation not found.",
-        )
-
-    # 4. Upsert feedback record
+    # 3. Upsert feedback record
     existing = (
         db.query(AnswerFeedback)
         .filter(AnswerFeedback.message_id == message_id)
@@ -69,7 +45,7 @@ def submit_feedback(
 
     feedback = AnswerFeedback(
         user_id=user_id,
-        conversation_id=conversation.id,
+        conversation_id=message.conversation_id,
         message_id=message.id,
         rating=rating,
         reason=reason,
@@ -87,6 +63,9 @@ def get_feedback_by_message(
     message_id: int,
 ) -> AnswerFeedback | None:
     """Retrieve feedback for a specific message belonging to the authenticated user."""
+    # Ensure message is owned by user first (raises 404 if not found or unauthorized)
+    get_owned_message(db, user_id=user_id, message_id=message_id)
+
     return (
         db.query(AnswerFeedback)
         .filter(

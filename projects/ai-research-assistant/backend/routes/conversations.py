@@ -1,9 +1,10 @@
 """Conversations API route handling conversation memory and query rewriting endpoints."""
 
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
+from backend.config import settings
 from backend.database import get_db
 from backend.dependencies import get_current_user
 from backend.schemas.conversations import (
@@ -13,14 +14,15 @@ from backend.schemas.conversations import (
     ConversationMessagesPageResponse,
     ConversationResponse,
 )
+from backend.services.authorization import get_owned_conversation
 from backend.services.chat_service import default_chat_service
 from backend.services.conversation_service import (
     create_conversation,
     delete_conversation,
-    get_conversation,
     get_paginated_messages,
     list_conversations,
 )
+from backend.services.rate_limiter import rate_limiter
 
 router = APIRouter()
 
@@ -59,13 +61,7 @@ def get_conversation_details(
     
     Enforces multi-tenant isolation: accessing another user's conversation yields 404.
     """
-    conv = get_conversation(db, user_id=user_id, conversation_id=conversation_id)
-    if not conv:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Conversation {conversation_id} not found."
-        )
-    return conv
+    return get_owned_conversation(db, user_id=user_id, conversation_id=conversation_id)
 
 
 @router.delete("/{conversation_id}")
@@ -79,6 +75,7 @@ def delete_user_conversation(
     Enforces multi-tenant isolation: deleting another user's conversation yields 404.
     Cascades to delete conversation messages while leaving documents intact.
     """
+    get_owned_conversation(db, user_id=user_id, conversation_id=conversation_id)
     deleted = delete_conversation(db, user_id=user_id, conversation_id=conversation_id)
     if not deleted:
         raise HTTPException(
@@ -100,6 +97,7 @@ def get_conversation_messages_paginated(
     
     Enforces multi-tenant isolation: accessing another user's messages yields 404.
     """
+    get_owned_conversation(db, user_id=user_id, conversation_id=conversation_id)
     page_data = get_paginated_messages(
         db,
         user_id=user_id,
@@ -117,6 +115,7 @@ def get_conversation_messages_paginated(
 
 @router.post("/{conversation_id}/messages", response_model=ConversationChatResponse)
 def send_conversation_message(
+    http_request: Request,
     conversation_id: int,
     payload: ConversationMessageCreate,
     db: Session = Depends(get_db),
@@ -127,6 +126,13 @@ def send_conversation_message(
     Orchestrates query rewriting, RAG retrieval, answer generation, and message
     persistence via ChatService.
     """
+    rate_limiter.enforce(
+        http_request,
+        scope="chat",
+        limit=getattr(settings, "chat_rate_limit_per_minute", 60),
+        user_id=user_id,
+    )
+    get_owned_conversation(db, user_id=user_id, conversation_id=conversation_id)
     try:
         result = default_chat_service.chat(
             db=db,

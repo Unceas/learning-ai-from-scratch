@@ -58,7 +58,11 @@ def normalize_chunk(chunk: RetrievedChunk | dict[str, Any]) -> RetrievedChunk:
 
 
 def build_context(chunks: list[RetrievedChunk]) -> str:
-    """Format structured evidence sections for LLM ingestion with explicit [S1], [S2] source markers."""
+    """Format structured evidence sections for LLM ingestion with explicit [S1], [S2] source markers
+    clearly delimited within untrusted reference material boundaries.
+    """
+    if not chunks:
+        return ""
     sections = []
     for i, chunk in enumerate(chunks, start=1):
         sections.append(
@@ -68,7 +72,8 @@ Chunk: {chunk.chunk_index}
 
 {chunk.text}""".strip()
         )
-    return "\n\n".join(sections)
+    body = "\n\n".join(sections)
+    return f"BEGIN UNTRUSTED REFERENCE MATERIAL\n\n{body}\n\nEND UNTRUSTED REFERENCE MATERIAL"
 
 
 def validate_citations(
@@ -125,6 +130,18 @@ def validate_citations(
         "invalid_citations": invalid_citations,
         "is_valid": len(invalid_citations) == 0
     }
+
+
+def sanitize_citations(
+    answer: str,
+    sources_or_map: list[Any] | dict[str, Any] | int
+) -> str:
+    """Safely strip invalid citation markers from the generated answer."""
+    validation = validate_citations(answer, sources_or_map)
+    sanitized = answer
+    for inv in validation["invalid_citations"]:
+        sanitized = sanitized.replace(inv, "")
+    return sanitized
 
 
 def build_rag_context(

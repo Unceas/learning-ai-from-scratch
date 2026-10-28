@@ -81,7 +81,7 @@ def run_rag_pipeline(
             with measure_stage("query_rewriting", metrics):
                 rewriter = QueryRewriter()
                 active_query = rewriter.rewrite(original_query, history_messages)
-            logger.info("Rewrote conversational query: '%s' -> '%s'", original_query, active_query)
+            logger.info("Rewrote conversational query: original_len=%d -> active_len=%d", len(original_query), len(active_query))
 
         # 0. Query Routing: Classify query archetype and resolve retrieval configuration on active_query
         with measure_stage("query_routing", metrics):
@@ -123,8 +123,8 @@ def run_rag_pipeline(
             subqueries=subqueries
         )
         logger.info(
-            "Query routing: query='%s', type=%s, candidate_k=%d, final_k=%d, subqueries=%s",
-            active_query, query_type.value, candidate_k, final_k, subqueries
+            "Query routing: type=%s, candidate_k=%d, final_k=%d, subqueries_count=%d",
+            query_type.value, candidate_k, final_k, len(subqueries)
         )
         start_time = time.time()
 

@@ -120,15 +120,11 @@ def get_owned_document(
     document_id: int
 ) -> Document | None:
     """Retrieve an indexed document owned by user_id ensuring status is 'indexed'."""
-    return (
-        db.query(Document)
-        .filter(
-            Document.id == document_id,
-            Document.user_id == user_id,
-            Document.status == "indexed",
-        )
-        .first()
-    )
+    try:
+        from backend.services.authorization import get_owned_document as _auth_get_owned
+        return _auth_get_owned(db, user_id=user_id, document_id=document_id, require_indexed=True)
+    except Exception:
+        return None
 
 
 def get_indexed_documents(

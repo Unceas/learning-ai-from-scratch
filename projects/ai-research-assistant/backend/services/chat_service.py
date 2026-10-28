@@ -6,6 +6,7 @@ from typing import Any
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
+from backend.services.authorization import get_owned_conversation
 from backend.services.conversation_service import (
     MAX_HISTORY_MESSAGES,
     ConversationService,
@@ -75,13 +76,7 @@ class ChatService:
             conversation_id = conv.id
             logger.info("Created new conversation id=%d for user=%s", conversation_id, user_id)
         else:
-            conv = self.conversation_service.get_conversation(db, user_id=user_id, conversation_id=conversation_id)
-            if not conv:
-                logger.warning("Conversation %s not found for user %s", conversation_id, user_id)
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail=f"Conversation {conversation_id} not found."
-                )
+            conv = get_owned_conversation(db, user_id=user_id, conversation_id=conversation_id)
 
         # 2. Load recent conversation history
         history = self.conversation_service.get_recent_messages(
@@ -94,7 +89,7 @@ class ChatService:
         metrics: dict[str, Any] = {}
         with measure_stage("query_rewriting", metrics):
             rewritten_query = self.query_rewriter.rewrite(clean_msg, history)
-        logger.info("Original: '%s' -> Standalone: '%s'", clean_msg, rewritten_query)
+        logger.info("Query rewritten: original_len=%d standalone_len=%d", len(clean_msg), len(rewritten_query))
 
         # 4. Execute retrieval and answer generation
         try:

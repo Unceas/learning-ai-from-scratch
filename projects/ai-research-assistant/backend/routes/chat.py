@@ -1,12 +1,14 @@
 """Chat API route handling query generation and conversation chat orchestration."""
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
+from backend.config import settings
 from backend.database import get_db
 from backend.dependencies import get_current_user
 from backend.schemas.chat import ChatRequest, ChatResponse
 from backend.services.chat_service import default_chat_service
+from backend.services.rate_limiter import rate_limiter
 
 router = APIRouter()
 chat_service = default_chat_service
@@ -15,11 +17,18 @@ chat_service = default_chat_service
 @router.post("", response_model=ChatResponse, include_in_schema=False)
 @router.post("/", response_model=ChatResponse)
 def chat(
+    http_request: Request,
     request: ChatRequest,
     db: Session = Depends(get_db),
     user_id: str = Depends(get_current_user)
 ):
     """Execute chat query via ChatService layer with conversation management and error handling."""
+    rate_limiter.enforce(
+        http_request,
+        scope="chat",
+        limit=getattr(settings, "chat_rate_limit_per_minute", 60),
+        user_id=user_id,
+    )
     try:
         message = request.get_message()
     except ValueError as val_err:

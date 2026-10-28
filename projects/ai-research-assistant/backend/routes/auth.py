@@ -1,13 +1,15 @@
 """Authentication API routes for user registration and JWT login."""
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
+from backend.config import settings
 from backend.database import get_db
 from backend.dependencies import get_current_user
 from backend.schemas.requests import LoginRequest, RegisterRequest
 from backend.schemas.responses import TokenResponse, UserResponse
 from backend.services.auth_service import create_access_token
+from backend.services.rate_limiter import rate_limiter
 from backend.services.user_service import authenticate_user, create_user
 
 router = APIRouter()
@@ -15,10 +17,16 @@ router = APIRouter()
 
 @router.post("/register", response_model=TokenResponse)
 def register(
+    http_request: Request,
     request: RegisterRequest,
     db: Session = Depends(get_db)
 ):
     """Register a new user in persistent database and return JWT bearer token."""
+    rate_limiter.enforce(
+        http_request,
+        scope="auth",
+        limit=getattr(settings, "auth_rate_limit_per_minute", 30),
+    )
     created = create_user(
         db,
         request.user_id,
@@ -39,10 +47,16 @@ def register(
 
 @router.post("/login", response_model=TokenResponse)
 def login(
+    http_request: Request,
     request: LoginRequest,
     db: Session = Depends(get_db)
 ):
     """Authenticate user credentials against persistent database and return JWT bearer token."""
+    rate_limiter.enforce(
+        http_request,
+        scope="auth",
+        limit=getattr(settings, "auth_rate_limit_per_minute", 30),
+    )
     authenticated = authenticate_user(
         db,
         request.user_id,

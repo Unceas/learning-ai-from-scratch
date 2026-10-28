@@ -115,6 +115,20 @@ class Settings(BaseSettings):
     query_rewriting_enabled: bool = True
     max_history_messages: int = 10
 
+    # Rate Limiting & Proxy Trust
+    rate_limit_enabled: bool = True
+    rate_limit_requests_per_minute: int = 120
+    auth_rate_limit_per_minute: int = 30
+    upload_rate_limit_per_minute: int = 30
+    chat_rate_limit_per_minute: int = 60
+    retry_rate_limit_per_minute: int = 30
+    trusted_proxies: list[str] = Field(
+        default_factory=lambda: [
+            "127.0.0.1",
+            "::1",
+        ]
+    )
+
     # CORS Origins
     cors_origins: list[str] = Field(
         default_factory=lambda: [
@@ -129,6 +143,13 @@ class Settings(BaseSettings):
     def assemble_cors_origins(cls, v: Any) -> Any:
         if isinstance(v, str):
             return [origin.strip() for origin in v.split(",") if origin.strip()]
+        return v
+
+    @field_validator("trusted_proxies", mode="before")
+    @classmethod
+    def assemble_trusted_proxies(cls, v: Any) -> Any:
+        if isinstance(v, str):
+            return [proxy.strip() for proxy in v.split(",") if proxy.strip()]
         return v
 
     @property
