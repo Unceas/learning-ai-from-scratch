@@ -31,6 +31,14 @@ class Settings(BaseSettings):
 
     # AI Models
     embedding_model: str = "all-MiniLM-L6-v2"
+    embedding_batch_size: int = Field(
+        default=32,
+        ge=1,
+        le=512,
+        validation_alias=AliasChoices(
+            "embedding_batch_size", "EMBEDDING_BATCH_SIZE"
+        ),
+    )
     reranker_model: str = Field(
         default="cross-encoder/ms-marco-MiniLM-L-6-v2",
         validation_alias=AliasChoices(
@@ -108,6 +116,8 @@ class Settings(BaseSettings):
     max_subqueries: int = 4
     hybrid_retrieval_enabled: bool = True
     bm25_enabled: bool = True
+    bm25_cache_enabled: bool = True
+    bm25_cache_entries: int = 32
     rrf_k: int = 60
     query_expansion_enabled: bool = True
     max_expanded_queries: int = 2

@@ -144,9 +144,42 @@ def sanitize_citations(
     return sanitized
 
 
+def deduplicate_near_identical_chunks(
+    chunks: list[RetrievedChunk],
+    min_jaccard_similarity: float = 0.85
+) -> list[RetrievedChunk]:
+    """Filter out near-duplicate chunks while preserving evidence diversity and highest scoring representative."""
+    if len(chunks) <= 1:
+        return list(chunks)
+
+    selected: list[RetrievedChunk] = []
+    token_sets: list[set[str]] = []
+
+    for chunk in chunks:
+        text_clean = re.sub(r"\s+", " ", chunk.text.strip().lower())
+        words = set(text_clean.split())
+        if not words:
+            continue
+
+        is_duplicate = False
+        for existing_words in token_sets:
+            intersection = len(words & existing_words)
+            union = len(words | existing_words)
+            if union > 0 and (intersection / union) >= min_jaccard_similarity:
+                is_duplicate = True
+                break
+
+        if not is_duplicate:
+            selected.append(chunk)
+            token_sets.append(words)
+
+    return selected
+
+
 def build_rag_context(
     chunks: list[RetrievedChunk | dict[str, Any]],
-    max_chunks: int = MAX_CONTEXT_CHUNKS
+    max_chunks: int = MAX_CONTEXT_CHUNKS,
+    deduplicate: bool = True
 ) -> dict[str, Any]:
     """Transform retrieved chunks into structured context, citation map, and grouped document sources.
 
@@ -170,6 +203,8 @@ def build_rag_context(
         }
 
     normalized = [normalize_chunk(c) for c in chunks]
+    if deduplicate:
+        normalized = deduplicate_near_identical_chunks(normalized)
     limited_chunks = normalized[:max_chunks]
 
     context_str = build_context(limited_chunks)

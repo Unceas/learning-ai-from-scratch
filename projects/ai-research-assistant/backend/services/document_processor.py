@@ -66,6 +66,15 @@ def process_document_background(
         doc_check.index_version = (doc_check.index_version or 0) + 1
         doc_check.error_message = None
         db.commit()
+
+        # Invalidate BM25 and retrieval caches for user on corpus index update
+        try:
+            from backend.services.keyword_retriever import bm25_cache
+            from backend.services.retrieval_cache import retrieval_cache
+            bm25_cache.invalidate_user(doc_check.user_id)
+            retrieval_cache.invalidate_user(doc_check.user_id)
+        except Exception:
+            pass
     except Exception as exc:
         db.rollback()
 

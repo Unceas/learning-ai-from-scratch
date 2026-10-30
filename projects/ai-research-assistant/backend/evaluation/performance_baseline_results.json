@@ -1,0 +1,51 @@
+{
+  "pdf_parsing": {
+    "file": "eval_quantum.pdf",
+    "mean_ms": 0.68,
+    "p50_ms": 0.49,
+    "p95_ms": 2.88
+  },
+  "embedding": {
+    "unbatched_mean_ms": 121.61,
+    "unbatched_p95_ms": 129.84,
+    "batched_mean_ms": 2.54,
+    "batched_p95_ms": 12.5,
+    "speedup_ratio": 47.88
+  },
+  "retrieval": {
+    "uncached_mean_ms": 0.24,
+    "uncached_p95_ms": 0.28,
+    "cached_mean_ms": 0.06,
+    "cached_p95_ms": 0.08,
+    "speedup_ratio": 4.0
+  },
+  "reranking": {
+    "unbounded_mean_ms": 71.63,
+    "unbounded_p95_ms": 192.2,
+    "bounded_mean_ms": 6.79,
+    "bounded_p95_ms": 7.11,
+    "speedup_ratio": 10.55
+  },
+  "context_building": {
+    "raw_mean_ms": 0.06,
+    "raw_p95_ms": 0.06,
+    "dedup_mean_ms": 0.14,
+    "dedup_p95_ms": 0.15
+  },
+  "llm": {
+    "ttft_mean_ms": 0.0,
+    "ttft_p95_ms": 0.01,
+    "total_mean_ms": 0.0,
+    "total_p95_ms": 0.01
+  },
+  "pipeline_stages": {
+    "request_validation": 0.0,
+    "query_routing": 0.0,
+    "retrieval": 0.13,
+    "reranking": 6.21,
+    "context_assembly": 0.09,
+    "generation": 0.01,
+    "response_validation": 0.0,
+    "total_pipeline": 6.51
+  }
+}

@@ -5,9 +5,10 @@
  * and click propagation.
  */
 
+import { memo } from "react";
 import SourceCard from "./SourceCard";
 
-export default function SourceList({
+function SourceList({
   sources = [],
   selectedSource,
   onSourceClick,
@@ -44,3 +45,5 @@ export default function SourceList({
     </div>
   );
 }
+
+export default memo(SourceList);

@@ -6,6 +6,7 @@
  * accessible source buttons while protecting code blocks and unrecognized citations.
  */
 
+import { memo, useMemo } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { getSourceMap } from "../../utils/citations";
@@ -35,13 +36,16 @@ export function transformCitations(markdown, sourceMap = {}) {
     .join("");
 }
 
-export default function MarkdownAnswer({
+function MarkdownAnswer({
   content,
   sources = [],
   onSourceClick,
 }) {
-  const sourceMap = getSourceMap(sources);
-  const markdown = transformCitations(content, sourceMap);
+  const sourceMap = useMemo(() => getSourceMap(sources), [sources]);
+  const markdown = useMemo(
+    () => transformCitations(content, sourceMap),
+    [content, sourceMap]
+  );
 
   return (
     <div className="markdown-content">
@@ -83,3 +87,5 @@ export default function MarkdownAnswer({
     </div>
   );
 }
+
+export default memo(MarkdownAnswer);

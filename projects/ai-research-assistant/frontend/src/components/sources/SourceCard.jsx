@@ -5,7 +5,9 @@
  * selected highlighting, filename, chunk metadata, and score representation.
  */
 
-export default function SourceCard({
+import { memo } from "react";
+
+function SourceCard({
   source,
   index = 0,
   selected = false,
@@ -45,3 +47,5 @@ export default function SourceCard({
     </button>
   );
 }
+
+export default memo(SourceCard);

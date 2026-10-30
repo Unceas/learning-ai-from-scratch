@@ -1,5 +1,8 @@
-"""Lexical Keyword Retriever module using BM25Okapi."""
+"""Lexical Keyword Retriever module using BM25Okapi with safe in-memory caching."""
 
+import hashlib
+import threading
+from collections import OrderedDict
 from typing import Any
 
 from rank_bm25 import BM25Okapi
@@ -78,3 +81,94 @@ class KeywordRetriever:
                 break
 
         return results
+
+
+class KeywordRetrieverCache:
+    """Thread-safe bounded LRU cache for KeywordRetriever instances to avoid index rebuilds on every query."""
+
+    def __init__(self, max_entries: int = 32):
+        self.max_entries = max_entries
+        self._cache: OrderedDict[str, KeywordRetriever] = OrderedDict()
+        self._lock = threading.Lock()
+        self.hits = 0
+        self.misses = 0
+
+    @staticmethod
+    def compute_signature(document_ids: list[int | str], chunk_count: int, version: int | str = 0) -> str:
+        """Create a deterministic hash signature representing a specific corpus snapshot."""
+        sorted_ids = sorted(str(d) for d in document_ids)
+        raw = f"{','.join(sorted_ids)}:{chunk_count}:{version}"
+        return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+
+    def get(self, user_id: str, signature: str) -> KeywordRetriever | None:
+        """Retrieve cached retriever if available."""
+        key = f"{user_id}:{signature}"
+        with self._lock:
+            if key in self._cache:
+                self.hits += 1
+                self._cache.move_to_end(key)
+                return self._cache[key]
+            self.misses += 1
+            return None
+
+    def put(self, user_id: str, signature: str, retriever: KeywordRetriever) -> None:
+        """Store retriever in LRU cache."""
+        key = f"{user_id}:{signature}"
+        with self._lock:
+            self._cache[key] = retriever
+            self._cache.move_to_end(key)
+            if len(self._cache) > self.max_entries:
+                self._cache.popitem(last=False)
+
+    def invalidate_user(self, user_id: str) -> None:
+        """Invalidate all cached retrievers belonging to a given user."""
+        prefix = f"{user_id}:"
+        with self._lock:
+            keys_to_del = [k for k in self._cache if k.startswith(prefix)]
+            for k in keys_to_del:
+                del self._cache[k]
+
+    def clear(self) -> None:
+        """Purge all entries."""
+        with self._lock:
+            self._cache.clear()
+            self.hits = 0
+            self.misses = 0
+
+    def stats(self) -> dict[str, Any]:
+        """Return cache telemetry."""
+        with self._lock:
+            total = self.hits + self.misses
+            hit_ratio = round(self.hits / total, 4) if total > 0 else 0.0
+            return {
+                "entries": len(self._cache),
+                "max_entries": self.max_entries,
+                "hits": self.hits,
+                "misses": self.misses,
+                "hit_ratio": hit_ratio,
+            }
+
+
+bm25_cache = KeywordRetrieverCache(max_entries=32)
+
+
+def get_or_build_keyword_retriever(
+    user_id: str,
+    chunks: list[Any],
+    document_ids: list[int | str] | None = None,
+    version: int | str = 0,
+    use_cache: bool = True,
+) -> KeywordRetriever:
+    """Get an existing cached KeywordRetriever or build and cache a new one."""
+    if not use_cache or not chunks:
+        return KeywordRetriever(chunks)
+
+    doc_ids = document_ids or []
+    signature = bm25_cache.compute_signature(doc_ids, len(chunks), version)
+    cached = bm25_cache.get(user_id, signature)
+    if cached is not None:
+        return cached
+
+    retriever = KeywordRetriever(chunks)
+    bm25_cache.put(user_id, signature, retriever)
+    return retriever

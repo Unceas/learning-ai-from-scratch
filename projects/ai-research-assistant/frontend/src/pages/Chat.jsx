@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Profiler, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import ConversationSidebar from "../components/sidebar/ConversationSidebar";
 import ChatWindow from "../components/chat/ChatWindow";
@@ -80,6 +80,17 @@ export default function Chat() {
     }
   }
 
+  function onChatRender(id, phase, actualDuration, baseDuration) {
+    if (import.meta.env?.DEV) {
+      console.debug({
+        id,
+        phase,
+        actualDuration: Math.round(actualDuration * 100) / 100,
+        baseDuration: Math.round(baseDuration * 100) / 100,
+      });
+    }
+  }
+
   return (
     <div className="chat-page">
       <ConversationSidebar
@@ -104,13 +115,15 @@ export default function Chat() {
             {loadingConversation ? (
               <LoadingState message="Loading conversation..." />
             ) : (
-              <ChatWindow
-                messages={messages}
-                sending={sending}
-                onRetry={retryMessage}
-                selectedSource={selectedSource}
-                onSourceClick={handleSourceClick}
-              />
+              <Profiler id="ChatMessages" onRender={onChatRender}>
+                <ChatWindow
+                  messages={messages}
+                  sending={sending}
+                  onRetry={retryMessage}
+                  selectedSource={selectedSource}
+                  onSourceClick={handleSourceClick}
+                />
+              </Profiler>
             )}
 
             {error && (

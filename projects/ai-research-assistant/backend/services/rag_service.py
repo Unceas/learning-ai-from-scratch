@@ -17,7 +17,7 @@ from backend.services.conversation_service import (
 )
 from backend.services.document_db_service import get_indexed_document_ids
 from backend.services.hyde import HyDE
-from backend.services.keyword_retriever import KeywordRetriever
+from backend.services.keyword_retriever import KeywordRetriever, bm25_cache
 from backend.services.observability import measure_stage
 from backend.services.query_decomposer import decompose_query
 from backend.services.query_expander import expand_query
@@ -64,10 +64,15 @@ def run_rag_pipeline(
             session = None
 
     try:
-        # Step -1. Conversation Memory & Query Rewriting
-        original_query = query.strip()
-        active_query = original_query
-        history_messages = conversation_history
+        # Step -2. Request Validation (T1)
+        with measure_stage("request_validation", metrics):
+            if not query or not query.strip():
+                raise ValueError("Query string cannot be empty")
+            original_query = query.strip()
+            active_query = original_query
+            history_messages = conversation_history
+
+        # Step -1. Conversation Memory & Query Rewriting (T2)
 
         if conversation_id is not None and session is not None:
             conv = get_conversation(session, user_id=user_id, conversation_id=conversation_id)
@@ -140,9 +145,17 @@ def run_rag_pipeline(
                     if indexed_doc_ids:
                         vector_store = VectorStore()
                         if getattr(settings, "hybrid_retrieval_enabled", True) and getattr(settings, "bm25_enabled", True):
-                            user_chunks = vector_store.get_user_chunks(user_id=user_id, document_ids=indexed_doc_ids)
-                            if user_chunks:
-                                keyword_retriever = KeywordRetriever(user_chunks)
+                            use_bm25_cache = getattr(settings, "bm25_cache_enabled", True)
+                            bm25_sig = bm25_cache.compute_signature(indexed_doc_ids, chunk_count=0, version=0) if use_bm25_cache else ""
+                            cached_retriever = bm25_cache.get(user_id, bm25_sig) if use_bm25_cache else None
+                            if cached_retriever is not None:
+                                keyword_retriever = cached_retriever
+                            else:
+                                user_chunks = vector_store.get_user_chunks(user_id=user_id, document_ids=indexed_doc_ids)
+                                if user_chunks:
+                                    keyword_retriever = KeywordRetriever(user_chunks)
+                                    if use_bm25_cache:
+                                        bm25_cache.put(user_id, bm25_sig, keyword_retriever)
                 except Exception as e:
                     logger.debug("Failed initializing retrieval resources: %s", e)
                     keyword_retriever = None
@@ -374,7 +387,9 @@ def run_rag_pipeline(
             full_answer = "".join(answer_chunks)
         metrics["generation_outcome"] = "success"
 
-        validation = validate_citations(full_answer, rag_payload["citation_map"])
+        # 7. Response validation against retrieved source map (T7)
+        with measure_stage("response_validation", metrics):
+            validation = validate_citations(full_answer, rag_payload["citation_map"])
         trace.sources = rag_payload["sources"]
         save_trace(trace)
 

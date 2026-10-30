@@ -5,12 +5,13 @@
  * and assistant responses (with rich Markdown rendering and interactive source attribution).
  */
 
+import { memo } from "react";
 import MarkdownAnswer from "./MarkdownAnswer";
 import SourceList from "../sources/SourceList";
 import FailedMessage from "./FailedMessage";
 import AnswerFeedback from "./AnswerFeedback";
 
-export default function MessageBubble({
+function MessageBubble({
   message,
   onRetry,
   selectedSource,
@@ -63,3 +64,5 @@ export default function MessageBubble({
     </div>
   );
 }
+
+export default memo(MessageBubble);

@@ -300,6 +300,15 @@ def delete_document(
     vector_store.delete_document(user_id, document.file_hash)
     delete_document_record(db, user_id, document.file_hash)
 
+    # Invalidate retrieval and BM25 caches for user
+    try:
+        from backend.services.keyword_retriever import bm25_cache
+        from backend.services.retrieval_cache import retrieval_cache
+        bm25_cache.invalidate_user(user_id)
+        retrieval_cache.invalidate_user(user_id)
+    except Exception:
+        pass
+
     return {
         "status": "deleted",
         "id": document.id,
