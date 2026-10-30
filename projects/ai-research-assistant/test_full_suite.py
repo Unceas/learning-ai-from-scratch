@@ -54,7 +54,8 @@ TEST_SCRIPTS = [
     "test_deployment_readiness_and_health.py",
     "test_ci_cd_pipeline_and_automation.py",
     "test_release_engineering_and_rollback.py",
-    "test_security_hardening_and_threat_modeling.py"
+    "test_security_hardening_and_threat_modeling.py",
+    "test_adversarial_testing_and_reliability.py"
 ]
 
 

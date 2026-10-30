@@ -45,10 +45,26 @@ def process_document_background(
                 filename=document.filename
             )
 
-        document.chunks = len(chunks)
-        document.status = "indexed"
-        document.index_version = (document.index_version or 0) + 1
-        document.error_message = None
+        # Re-verify document still exists in database and was not deleted concurrently
+        doc_check = (
+            db.query(Document)
+            .filter(Document.id == document_id)
+            .first()
+        )
+        if not doc_check:
+            # Document was deleted concurrently while indexing was in progress.
+            # Clean up any newly written vectors and exit without resurrecting.
+            try:
+                vector_store = VectorStore()
+                vector_store.delete_by_document_id(document_id)
+            except Exception:
+                pass
+            return
+
+        doc_check.chunks = len(chunks)
+        doc_check.status = "indexed"
+        doc_check.index_version = (doc_check.index_version or 0) + 1
+        doc_check.error_message = None
         db.commit()
     except Exception as exc:
         db.rollback()
@@ -67,7 +83,10 @@ def process_document_background(
         )
         if document:
             document.status = "failed"
-            document.error_message = str(exc)
+            safe_err = str(exc)
+            if len(safe_err) > 200:
+                safe_err = safe_err[:200] + "..."
+            document.error_message = safe_err
             db.commit()
     finally:
         db.close()

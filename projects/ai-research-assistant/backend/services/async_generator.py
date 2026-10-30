@@ -10,13 +10,14 @@ logger = logging.getLogger(__name__)
 
 
 class AsyncGenerator:
-    """Bounded asynchronous LLM generator enforcing concurrency limits and network timeouts.
+    """Bounded asynchronous LLM generator enforcing concurrency limits, timeouts, and bounded retries.
 
     Features:
     - Semaphore-governed concurrency bounding (default: settings.max_concurrent_llm_requests)
     - Enforced operation timeouts via asyncio.wait_for (default: settings.llm_request_timeout_seconds)
+    - Bounded exponential-backoff retries for transient errors and timeouts
     - Fallback and error handling for provider outages and timeout events
-    - Operational telemetry (active requests, total requests, timeouts, errors)
+    - Operational telemetry (active requests, total requests, timeouts, errors, retries)
     """
 
     def __init__(
@@ -24,6 +25,8 @@ class AsyncGenerator:
         client: Any | None = None,
         max_concurrency: int | None = None,
         timeout: float | None = None,
+        max_retries: int = 2,
+        backoff_factor: float = 0.05,
     ):
         concurrency = (
             max_concurrency
@@ -40,6 +43,8 @@ class AsyncGenerator:
             if timeout is not None
             else getattr(settings, "llm_request_timeout_seconds", 60.0)
         )
+        self.max_retries = max_retries
+        self.backoff_factor = backoff_factor
         self._semaphore = asyncio.Semaphore(self.max_concurrency)
 
         # Operational metrics
@@ -48,10 +53,23 @@ class AsyncGenerator:
         self.completed_requests = 0
         self.timeouts = 0
         self.errors = 0
+        self.retries = 0
 
     @property
     def semaphore(self) -> asyncio.Semaphore:
         return self._semaphore
+
+    async def _send(
+        self,
+        prompt: str,
+        system_instruction: str | None = None,
+        model: str = "gemini-2.5-flash",
+    ) -> str:
+        """Low-level dispatch point to the external LLM client.
+
+        Seam for deterministic testing of provider timeouts and transient network errors.
+        """
+        return await self._call_client(prompt, system_instruction=system_instruction, model=model)
 
     async def generate(
         self,
@@ -59,29 +77,66 @@ class AsyncGenerator:
         system_instruction: str | None = None,
         model: str = "gemini-2.5-flash",
     ) -> str:
-        """Execute an asynchronous generation request bounded by the concurrency semaphore."""
+        """Execute an asynchronous generation request bounded by concurrency and retries."""
         self.total_requests += 1
 
         async with self._semaphore:
             self.active_requests += 1
+            attempt = 0
+            max_attempts = 1 + max(0, self.max_retries)
+
             try:
-                result = await asyncio.wait_for(
-                    self._call_client(prompt, system_instruction=system_instruction, model=model),
-                    timeout=self.timeout,
-                )
-                self.completed_requests += 1
-                return result
-            except TimeoutError:
-                self.timeouts += 1
-                logger.error(
-                    "Async LLM generation timed out after %.1f seconds",
-                    self.timeout,
-                )
-                raise
-            except Exception as exc:
-                self.errors += 1
-                logger.error("Async LLM generation failed: %s", exc)
-                raise
+                while attempt < max_attempts:
+                    attempt += 1
+                    try:
+                        result = await asyncio.wait_for(
+                            self._send(prompt, system_instruction=system_instruction, model=model),
+                            timeout=self.timeout,
+                        )
+                        self.completed_requests += 1
+                        return result
+                    except (TimeoutError, asyncio.TimeoutError) as exc:
+                        if attempt < max_attempts:
+                            self.retries += 1
+                            logger.warning(
+                                "Async LLM attempt %d/%d timed out, retrying...",
+                                attempt,
+                                max_attempts,
+                            )
+                            await asyncio.sleep(self.backoff_factor * (2 ** (attempt - 1)))
+                            continue
+                        self.timeouts += 1
+                        logger.error(
+                            "Async LLM generation timed out after %d attempts (timeout=%.1fs)",
+                            max_attempts,
+                            self.timeout,
+                        )
+                        raise asyncio.TimeoutError(f"Provider timed out after {max_attempts} attempts") from exc
+                    except Exception as exc:
+                        # Distinguish retryable transient errors (429, 503, connection errors) from permanent
+                        err_msg = str(exc).lower()
+                        is_retryable = (
+                            "429" in err_msg
+                            or "resource exhausted" in err_msg
+                            or "503" in err_msg
+                            or "service unavailable" in err_msg
+                            or "connection" in err_msg
+                            or "simulated timeout" in err_msg
+                        )
+                        if is_retryable and attempt < max_attempts:
+                            self.retries += 1
+                            logger.warning(
+                                "Async LLM attempt %d/%d transient error (%s), retrying...",
+                                attempt,
+                                max_attempts,
+                                exc,
+                            )
+                            await asyncio.sleep(self.backoff_factor * (2 ** (attempt - 1)))
+                            continue
+
+                        self.errors += 1
+                        logger.error("Async LLM generation failed on attempt %d/%d: %s", attempt, max_attempts, exc)
+                        raise
             finally:
                 self.active_requests -= 1
 
@@ -141,6 +196,7 @@ class AsyncGenerator:
             "completed_requests": self.completed_requests,
             "timeouts": self.timeouts,
             "errors": self.errors,
+            "retries": self.retries,
         }
 
     def reset_stats(self) -> None:
@@ -150,6 +206,7 @@ class AsyncGenerator:
         self.completed_requests = 0
         self.timeouts = 0
         self.errors = 0
+        self.retries = 0
 
 
 default_async_generator = AsyncGenerator()

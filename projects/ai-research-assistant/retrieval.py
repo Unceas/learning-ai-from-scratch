@@ -125,50 +125,55 @@ def retrieve_candidates(
     strategy = config.get("strategy", "dense")
     retrieved: List[Dict[str, Any]] = []
 
-    if strategy == "dense":
-        embedding_service = EmbeddingService()
-        query_embedding = embedding_service.embed_query(query, user_id=user_id)
+    try:
+        if strategy == "dense":
+            embedding_service = EmbeddingService()
+            query_embedding = embedding_service.embed_query(query, user_id=user_id)
 
-        vector_store = VectorStore()
-        results = vector_store.search(
-            query_embedding=query_embedding,
-            user_id=user_id,
-            document_ids=indexed_document_ids,
-            top_k=config.get("top_k", top_k),
-        )
+            vector_store = VectorStore()
+            results = vector_store.search(
+                query_embedding=query_embedding,
+                user_id=user_id,
+                document_ids=indexed_document_ids,
+                top_k=config.get("top_k", top_k),
+            )
 
-        documents = results.get("documents", [[]])[0]
-        metadatas = results.get("metadatas", [[]])[0]
-        distances = results.get("distances", [[]])[0]
+            documents = results.get("documents", [[]])[0]
+            metadatas = results.get("metadatas", [[]])[0]
+            distances = results.get("distances", [[]])[0]
 
-        for doc_text, metadata, distance in zip(documents, metadatas, distances):
-            metadata = metadata or {}
-            score = round(max(0.0, 1.0 - float(distance)), 4)
-            retrieved.append({
-                "text": doc_text,
-                "score": score,
-                "vector_score": score,
-                "document_id": metadata.get("document_id"),
-                "filename": metadata.get("filename", metadata.get("document", "Unknown")),
-                "chunk_index": metadata.get("chunk_index", metadata.get("chunk_id", 0)),
-                "page": metadata.get("page", 1),
-                "file_hash": metadata.get("file_hash"),
-            })
-    elif strategy == "keyword":
-        retrieved = db_keyword_retrieve(db=db, user_id=user_id, query=query, top_k=config.get("top_k", top_k))
-    elif strategy == "hybrid":
-        retrieved = db_hybrid_retrieve(
-            db=db,
-            user_id=user_id,
-            query=query,
-            dense_k=config.get("dense_k", 10),
-            keyword_k=config.get("keyword_k", 10),
-            top_k=config.get("top_k", top_k),
-            rrf_k=config.get("rrf_k", 60),
-        )
+            for doc_text, metadata, distance in zip(documents, metadatas, distances):
+                metadata = metadata or {}
+                score = round(max(0.0, 1.0 - float(distance)), 4)
+                retrieved.append({
+                    "text": doc_text,
+                    "score": score,
+                    "vector_score": score,
+                    "document_id": metadata.get("document_id"),
+                    "filename": metadata.get("filename", metadata.get("document", "Unknown")),
+                    "chunk_index": metadata.get("chunk_index", metadata.get("chunk_id", 0)),
+                    "page": metadata.get("page", 1),
+                    "file_hash": metadata.get("file_hash"),
+                })
+        elif strategy == "keyword":
+            retrieved = db_keyword_retrieve(db=db, user_id=user_id, query=query, top_k=config.get("top_k", top_k))
+        elif strategy == "hybrid":
+            retrieved = db_hybrid_retrieve(
+                db=db,
+                user_id=user_id,
+                query=query,
+                dense_k=config.get("dense_k", 10),
+                keyword_k=config.get("keyword_k", 10),
+                top_k=config.get("top_k", top_k),
+                rrf_k=config.get("rrf_k", 60),
+            )
 
-    if use_cache and key is not None:
-        retrieval_cache.set(key, retrieved)
+        if use_cache and key is not None and retrieved:
+            retrieval_cache.set(key, retrieved)
+    except Exception as exc:
+        import logging
+        logging.getLogger(__name__).warning("Underlying retrieval failed gracefully: %s", exc)
+        retrieved = []
 
     return retrieved
 
