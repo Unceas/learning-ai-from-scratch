@@ -56,7 +56,8 @@ TEST_SCRIPTS = [
     "test_release_engineering_and_rollback.py",
     "test_security_hardening_and_threat_modeling.py",
     "test_adversarial_testing_and_reliability.py",
-    "test_performance_profiling_and_optimization.py"
+    "test_performance_profiling_and_optimization.py",
+    "test_scalability_and_horizontal_architecture.py"
 ]
 
 

@@ -50,7 +50,9 @@ jobs:
           DATABASE_URL: sqlite:///./app.db
           JWT_SECRET_KEY: ci-test-secret-key-32-chars-long
           LLM_API_KEY: ci-test-llm-key
-        run: pytest -q
+        run: |
+          alembic upgrade head
+          pytest -q
 
   frontend-ci:
     name: Frontend CI

@@ -57,6 +57,28 @@ class LocalStorage(Storage):
 
         return str(file_path)
 
+    def read(
+        self,
+        file_path: str
+    ) -> bytes:
+        path = safe_storage_path(self.base_path, Path(file_path).name) if not Path(file_path).is_absolute() else Path(file_path).resolve()
+        root = self.base_path.resolve()
+        if not path.is_relative_to(root) or not path.exists():
+            raise FileNotFoundError(f"File not found at {file_path}")
+        with open(path, "rb") as file:
+            return file.read()
+
+    def exists(
+        self,
+        file_path: str
+    ) -> bool:
+        try:
+            path = safe_storage_path(self.base_path, Path(file_path).name) if not Path(file_path).is_absolute() else Path(file_path).resolve()
+            root = self.base_path.resolve()
+            return path.is_relative_to(root) and path.exists()
+        except Exception:
+            return False
+
     def delete(
         self,
         file_path: str

@@ -8,12 +8,20 @@ from backend.config import get_settings
 settings = get_settings()
 DATABASE_URL = settings.database_url
 
-connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
-
-engine = create_engine(
-    DATABASE_URL,
-    connect_args=connect_args
-)
+if DATABASE_URL.startswith("sqlite"):
+    engine = create_engine(
+        DATABASE_URL,
+        connect_args={"check_same_thread": False}
+    )
+else:
+    # Production connection pool for concurrent multi-worker environments (e.g., PostgreSQL)
+    engine = create_engine(
+        DATABASE_URL,
+        pool_size=settings.db_pool_size,
+        max_overflow=settings.db_max_overflow,
+        pool_timeout=settings.db_pool_timeout,
+        pool_pre_ping=settings.db_pool_pre_ping,
+    )
 
 SessionLocal = sessionmaker(
     autocommit=False,

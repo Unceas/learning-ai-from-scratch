@@ -23,11 +23,55 @@ class Settings(BaseSettings):
 
     # Database & Storage
     database_url: str = "sqlite:///./app.db"
+    db_pool_size: int = Field(
+        default=10,
+        ge=1,
+        le=100,
+        validation_alias=AliasChoices("db_pool_size", "DB_POOL_SIZE"),
+    )
+    db_max_overflow: int = Field(
+        default=5,
+        ge=0,
+        le=100,
+        validation_alias=AliasChoices("db_max_overflow", "DB_MAX_OVERFLOW"),
+    )
+    db_pool_timeout: float = Field(
+        default=30.0,
+        gt=0,
+        validation_alias=AliasChoices("db_pool_timeout", "DB_POOL_TIMEOUT"),
+    )
+    db_pool_pre_ping: bool = Field(
+        default=True,
+        validation_alias=AliasChoices("db_pool_pre_ping", "DB_POOL_PRE_PING"),
+    )
     storage_type: Literal["local", "s3"] = "local"
     storage_path: str = "uploads"
+    s3_bucket_name: str = "ai-research-documents"
+    s3_endpoint_url: str | None = None
+    s3_region: str = "us-east-1"
+    s3_access_key: SecretStr | None = None
+    s3_secret_key: SecretStr | None = None
     chroma_path: str = "./document_db"
+    chroma_server_host: str | None = None
+    chroma_server_port: int | None = None
+    chroma_server_ssl: bool = False
     memory_path: str = "./memory_db"
     max_upload_size_mb: int = 20
+
+    # Distributed Queue & Caching (Redis)
+    redis_url: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("redis_url", "REDIS_URL"),
+    )
+    use_distributed_queue: bool = Field(
+        default=False,
+        validation_alias=AliasChoices(
+            "use_distributed_queue", "USE_DISTRIBUTED_QUEUE"
+        ),
+    )
+    distributed_queue_name: str = "document-indexing"
+    distributed_cache_enabled: bool = False
+    distributed_cache_ttl: int = 300
 
     # AI Models
     embedding_model: str = "all-MiniLM-L6-v2"

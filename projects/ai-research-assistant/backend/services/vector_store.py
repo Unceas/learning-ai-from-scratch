@@ -10,7 +10,16 @@ from backend.config import settings
 class VectorStore:
 
     def __init__(self):
-        self.client = chromadb.PersistentClient(path=settings.chroma_path)
+        if settings.chroma_server_host:
+            # Multi-worker shared ChromaDB server deployment
+            self.client = chromadb.HttpClient(
+                host=settings.chroma_server_host,
+                port=settings.chroma_server_port or 8000,
+                ssl=settings.chroma_server_ssl
+            )
+        else:
+            # Local persistent ChromaDB deployment
+            self.client = chromadb.PersistentClient(path=settings.chroma_path)
         self.collection = self.client.get_or_create_collection(name="documents")
 
     def upsert_documents(

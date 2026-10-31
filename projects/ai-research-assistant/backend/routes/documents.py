@@ -144,10 +144,20 @@ async def upload_document(
             status="processing"
         )
 
-    background_tasks.add_task(
-        process_document_background,
-        document.id
-    )
+    if getattr(settings, "use_distributed_queue", False):
+        try:
+            from backend.jobs.queue import enqueue_document_job
+            enqueue_document_job(document.id)
+        except Exception:
+            background_tasks.add_task(
+                process_document_background,
+                document.id
+            )
+    else:
+        background_tasks.add_task(
+            process_document_background,
+            document.id
+        )
 
     return {
         "status": "processing",
@@ -268,10 +278,20 @@ def retry_document(
     document.error_message = None
     db.commit()
 
-    background_tasks.add_task(
-        process_document_background,
-        document.id
-    )
+    if getattr(settings, "use_distributed_queue", False):
+        try:
+            from backend.jobs.queue import enqueue_document_job
+            enqueue_document_job(document.id)
+        except Exception:
+            background_tasks.add_task(
+                process_document_background,
+                document.id
+            )
+    else:
+        background_tasks.add_task(
+            process_document_background,
+            document.id
+        )
 
     return {
         "id": document.id,

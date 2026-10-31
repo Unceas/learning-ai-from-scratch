@@ -83,7 +83,21 @@ def verify_release(version: str, base_url: str = None) -> bool:
 
     # 5. Database Migration State
     try:
-        res = subprocess.run(["alembic", "current"], cwd=project_dir, capture_output=True, text=True)
+        env = os.environ.copy()
+        if "DATABASE_URL" not in env:
+            try:
+                from backend.config import get_settings
+
+                env["DATABASE_URL"] = get_settings().database_url
+            except Exception:
+                pass
+        res = subprocess.run(
+            [sys.executable, "-m", "alembic", "current"],
+            cwd=project_dir,
+            env=env,
+            capture_output=True,
+            text=True,
+        )
         if res.returncode == 0 and "head" in res.stdout:
             print(f"[PASS] Database schema is at Alembic head: {res.stdout.strip()}")
         else:
