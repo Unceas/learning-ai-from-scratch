@@ -1,5 +1,6 @@
 """Document API route handling document upload, listing, status, retry, and deletion lifecycle endpoints."""
 
+import uuid
 from pathlib import Path
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, Request, UploadFile
@@ -8,6 +9,9 @@ from sqlalchemy.orm import Session
 from backend.config import settings
 from backend.database import get_db
 from backend.dependencies import get_current_user
+from backend.events.dispatcher import dispatch_pending_events
+from backend.events.publisher import create_document_with_event, record_outbox_event
+from backend.models import Document
 from backend.schemas.responses import (
     ChunkPreviewResponse,
     DocumentListResponse,
@@ -127,27 +131,50 @@ async def upload_document(
         content
     )
 
+    correlation_id = (
+        http_request.headers.get("x-correlation-id")
+        or http_request.headers.get("x-request-id")
+        or f"corr_{uuid.uuid4().hex[:12]}"
+    )
+
     if existing and existing.status == "failed":
         existing.status = "processing"
         existing.storage_path = file_path
         existing.error_message = None
+        record_outbox_event(
+            db=db,
+            event_type="document.uploaded",
+            aggregate_id=existing.id,
+            payload={
+                "document_id": existing.id,
+                "user_id": str(user_id),
+                "filename": existing.filename,
+                "file_hash": existing.file_hash,
+                "storage_path": file_path,
+            },
+            correlation_id=correlation_id,
+        )
         db.commit()
         document = existing
     else:
-        document = create_document(
-            db=db,
+        new_doc = Document(
             user_id=user_id,
             file_hash=file_hash,
             filename=filename,
             storage_path=file_path,
             chunks=0,
-            status="processing"
+            status="processing",
+        )
+        document = create_document_with_event(
+            db=db,
+            document=new_doc,
+            user_id=user_id,
+            correlation_id=correlation_id,
         )
 
     if getattr(settings, "use_distributed_queue", False):
         try:
-            from backend.jobs.queue import enqueue_document_job
-            enqueue_document_job(document.id)
+            dispatch_pending_events(db)
         except Exception:
             background_tasks.add_task(
                 process_document_background,

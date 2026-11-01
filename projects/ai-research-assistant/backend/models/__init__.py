@@ -6,6 +6,7 @@ from sqlalchemy.orm import relationship
 from backend.database import Base
 from backend.models.conversation import Conversation, ConversationMessage
 from backend.models.feedback import AnswerFeedback
+from backend.models.outbox_event import OutboxEvent
 
 
 class User(Base):
@@ -102,4 +103,4 @@ class Document(Base):
     )
 
 
-__all__ = ["AnswerFeedback", "Base", "Conversation", "ConversationMessage", "Document", "User"]
+__all__ = ["AnswerFeedback", "Base", "Conversation", "ConversationMessage", "Document", "OutboxEvent", "User"]

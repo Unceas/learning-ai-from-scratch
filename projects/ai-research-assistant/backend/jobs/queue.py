@@ -71,6 +71,7 @@ def get_queue(name: str | None = None):
 def enqueue_document_job(
     document_id: int,
     file_path: str | None = None,
+    correlation_id: str | None = None,
     queue_name: str | None = None,
     job_timeout: int = 900,
 ) -> str:
@@ -89,9 +90,10 @@ def enqueue_document_job(
                 "backend.jobs.tasks.index_document_job",
                 document_id,
                 file_path=file_path,
+                correlation_id=correlation_id,
                 job_timeout=job_timeout,
             )
-            logger.info("Enqueued document %d to Redis queue '%s' (job_id=%s)", document_id, target_queue_name, job.id)
+            logger.info("Enqueued document %d (corr=%s) to Redis queue '%s' (job_id=%s)", document_id, correlation_id, target_queue_name, job.id)
             return str(job.id)
         except Exception as exc:
             logger.warning("Failed enqueueing to Redis queue, using fallback queue: %s", exc)
@@ -102,9 +104,10 @@ def enqueue_document_job(
         "job_id": job_id,
         "document_id": document_id,
         "file_path": file_path,
+        "correlation_id": correlation_id,
         "queue": target_queue_name,
     })
-    logger.info("Enqueued document %d to fallback queue (job_id=%s)", document_id, job_id)
+    logger.info("Enqueued document %d (corr=%s) to fallback queue (job_id=%s)", document_id, correlation_id, job_id)
     return job_id
 
 

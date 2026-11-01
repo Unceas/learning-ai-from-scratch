@@ -57,7 +57,8 @@ TEST_SCRIPTS = [
     "test_security_hardening_and_threat_modeling.py",
     "test_adversarial_testing_and_reliability.py",
     "test_performance_profiling_and_optimization.py",
-    "test_scalability_and_horizontal_architecture.py"
+    "test_scalability_and_horizontal_architecture.py",
+    "test_distributed_systems_and_event_driven_architecture.py",
 ]
 
 
