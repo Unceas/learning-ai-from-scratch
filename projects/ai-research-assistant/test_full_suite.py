@@ -59,6 +59,7 @@ TEST_SCRIPTS = [
     "test_performance_profiling_and_optimization.py",
     "test_scalability_and_horizontal_architecture.py",
     "test_distributed_systems_and_event_driven_architecture.py",
+    "test_system_design_and_architecture_review.py",
 ]
 
 
