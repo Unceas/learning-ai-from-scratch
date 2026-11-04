@@ -1,0 +1,185 @@
+# Root Docker Compose Topology for AI Research Assistant
+services:
+  migration:
+    build:
+      context: projects/ai-research-assistant
+      dockerfile: backend/Dockerfile
+    env_file:
+      - projects/ai-research-assistant/.env.example
+    environment:
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-research_user}:${POSTGRES_PASSWORD:-research_pass_secure_123}@postgres:5432/${POSTGRES_DB:-research_db}
+    command: ["alembic", "upgrade", "head"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - backend_net
+    restart: "no"
+
+  api:
+    build:
+      context: projects/ai-research-assistant
+      dockerfile: backend/Dockerfile
+    env_file:
+      - projects/ai-research-assistant/.env.example
+    environment:
+      ENVIRONMENT: production
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-research_user}:${POSTGRES_PASSWORD:-research_pass_secure_123}@postgres:5432/${POSTGRES_DB:-research_db}
+      REDIS_URL: redis://redis:6379/0
+      USE_DISTRIBUTED_QUEUE: "true"
+      DISTRIBUTED_QUEUE_NAME: document-indexing
+      CHROMA_SERVER_HOST: chroma
+      CHROMA_SERVER_PORT: 8000
+      STORAGE_TYPE: ${STORAGE_TYPE:-local}
+      STORAGE_PATH: /app/uploads
+      S3_ENDPOINT_URL: ${S3_ENDPOINT_URL:-http://minio:9000}
+      S3_BUCKET_NAME: ${S3_BUCKET_NAME:-ai-research-documents}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-replace-with-a-very-secure-32-char-secret-key}
+      LLM_API_KEY: ${LLM_API_KEY:-replace-with-provider-key}
+    ports:
+      - "8000:8000"
+    volumes:
+      - uploads_data:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migration:
+        condition: service_completed_successfully
+      chroma:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health/live || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - frontend_net
+      - backend_net
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: projects/ai-research-assistant
+      dockerfile: backend/Dockerfile
+    env_file:
+      - projects/ai-research-assistant/.env.example
+    environment:
+      ENVIRONMENT: production
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-research_user}:${POSTGRES_PASSWORD:-research_pass_secure_123}@postgres:5432/${POSTGRES_DB:-research_db}
+      REDIS_URL: redis://redis:6379/0
+      USE_DISTRIBUTED_QUEUE: "true"
+      DISTRIBUTED_QUEUE_NAME: document-indexing
+      CHROMA_SERVER_HOST: chroma
+      CHROMA_SERVER_PORT: 8000
+      STORAGE_TYPE: ${STORAGE_TYPE:-local}
+      STORAGE_PATH: /app/uploads
+      S3_ENDPOINT_URL: ${S3_ENDPOINT_URL:-http://minio:9000}
+      S3_BUCKET_NAME: ${S3_BUCKET_NAME:-ai-research-documents}
+      LLM_API_KEY: ${LLM_API_KEY:-replace-with-provider-key}
+    command: ["python", "-m", "backend.worker"]
+    volumes:
+      - uploads_data:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migration:
+        condition: service_completed_successfully
+      chroma:
+        condition: service_started
+    networks:
+      - backend_net
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: projects/ai-research-assistant/frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8000}
+    ports:
+      - "3000:80"
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - frontend_net
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-research_db}
+      POSTGRES_USER: ${POSTGRES_USER:-research_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-research_pass_secure_123}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-research_user} -d ${POSTGRES_DB:-research_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - backend_net
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redis_pass_secure_123}
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-redis_pass_secure_123}
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-redis_pass_secure_123}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - backend_net
+    restart: unless-stopped
+
+  chroma:
+    image: chromadb/chroma:0.6.3
+    environment:
+      IS_PERSISTENT: "TRUE"
+      ANONYMIZED_TELEMETRY: "FALSE"
+    volumes:
+      - chroma_data:/chroma/chroma
+    ports:
+      - "8001:8000"
+    networks:
+      - backend_net
+    restart: unless-stopped
+
+  minio:
+    image: minio/minio:RELEASE.2024-11-07T00-52-28Z
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY:-minio_admin}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY:-minio_secret_secure_123}
+    volumes:
+      - minio_data:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    networks:
+      - backend_net
+    restart: unless-stopped
+
+networks:
+  frontend_net:
+    driver: bridge
+  backend_net:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
+  chroma_data:
+  minio_data:
+  uploads_data:

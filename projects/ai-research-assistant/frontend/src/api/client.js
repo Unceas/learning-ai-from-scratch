@@ -6,7 +6,7 @@
 import { getToken, setToken, removeToken } from "../auth/storage";
 
 const env = (typeof import.meta !== "undefined" && import.meta.env) ? import.meta.env : {};
-const API_BASE_URL = env.VITE_API_URL || "http://localhost:8000";
+const API_BASE_URL = env.VITE_API_BASE_URL || env.VITE_API_URL || "http://localhost:8000";
 
 const DEFAULT_TIMEOUT_MS = 60_000;
 

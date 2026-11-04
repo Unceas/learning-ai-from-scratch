@@ -19,5 +19,6 @@ alembic
 rank-bm25
 redis
 rq
+psycopg2-binary
 ruff
 pytest
