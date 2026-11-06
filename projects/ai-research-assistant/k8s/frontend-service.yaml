@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: research-frontend
+  namespace: research-assistant
+  labels:
+    app.kubernetes.io/name: ai-research-assistant
+    app.kubernetes.io/component: frontend
+    app: research-frontend
+spec:
+  type: ClusterIP
+  selector:
+    app: research-frontend
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+      protocol: TCP
