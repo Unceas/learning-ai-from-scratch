@@ -20,7 +20,6 @@ from backend.schemas.responses import (
 )
 from backend.services.authorization import get_owned_document
 from backend.services.document_db_service import (
-    create_document,
     get_document,
     list_documents,
 )

@@ -6,6 +6,8 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from unittest.mock import patch
 
+import pytest
+
 # Ensure project root is in sys.path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
@@ -16,6 +18,24 @@ from backend.events.schemas import create_event
 from backend.jobs.retry_policy import RetryPolicy
 from backend.jobs.tasks import index_document_job
 from backend.models import Document, OutboxEvent
+
+
+@pytest.fixture(autouse=True)
+def clean_outbox_events():
+    """Ensure OutboxEvent table is clean before and after each event-driven test."""
+    db = SessionLocal()
+    try:
+        db.query(OutboxEvent).delete()
+        db.commit()
+    finally:
+        db.close()
+    yield
+    db = SessionLocal()
+    try:
+        db.query(OutboxEvent).delete()
+        db.commit()
+    finally:
+        db.close()
 
 
 # ============================================================================
