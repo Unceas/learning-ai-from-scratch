@@ -62,6 +62,7 @@ TEST_SCRIPTS = [
     "test_system_design_and_architecture_review.py",
     "test_production_deployment_and_infrastructure.py",
     "test_kubernetes_and_container_orchestration.py",
+    "test_cloud_infrastructure_and_aws_architecture.py",
 ]
 
 
