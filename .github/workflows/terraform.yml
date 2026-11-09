@@ -1,0 +1,38 @@
+name: Terraform Validation
+
+"on":
+  pull_request:
+    paths:
+      - "projects/ai-research-assistant/infrastructure/terraform/**"
+      - "infrastructure/terraform/**"
+  push:
+    branches:
+      - main
+    paths:
+      - "projects/ai-research-assistant/infrastructure/terraform/**"
+      - "infrastructure/terraform/**"
+
+jobs:
+  validate:
+    name: Terraform Format & Validation
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: projects/ai-research-assistant/infrastructure/terraform
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.9.0"
+
+      - name: Terraform Format Check
+        run: terraform fmt -check -recursive
+
+      - name: Terraform Init (No Backend)
+        run: terraform init -backend=false
+
+      - name: Terraform Validate
+        run: terraform validate

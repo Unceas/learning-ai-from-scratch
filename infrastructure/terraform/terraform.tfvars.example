@@ -1,0 +1,14 @@
+# ==============================================================================
+# Sample Terraform Variables (Rename to terraform.tfvars or pass via CLI)
+# ==============================================================================
+
+aws_region            = "ap-south-1"
+environment           = "dev"
+documents_bucket_name = "ai-research-assistant-dev-documents-unique-12345"
+enable_versioning     = true
+
+vpc_cidr           = "10.0.0.0/16"
+availability_zones = ["ap-south-1a", "ap-south-1b"]
+public_subnets     = ["10.0.1.0/24", "10.0.2.0/24"]
+private_subnets    = ["10.0.11.0/24", "10.0.12.0/24"]
+database_subnets   = ["10.0.21.0/24", "10.0.22.0/24"]
