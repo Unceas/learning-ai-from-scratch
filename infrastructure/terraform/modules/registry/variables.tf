@@ -1,3 +1,9 @@
+variable "repository_name" {
+  description = "Single ECR repository name (optional; if set, used instead of repository_names)"
+  type        = string
+  default     = ""
+}
+
 variable "repository_names" {
   description = "List of ECR repository names to create"
   type        = list(string)

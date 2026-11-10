@@ -16,6 +16,7 @@ module "networking" {
   source = "./modules/networking"
 
   name               = local.name_prefix
+  aws_region         = var.aws_region
   vpc_cidr           = var.vpc_cidr
   availability_zones = var.availability_zones
   public_subnets     = var.public_subnets
@@ -24,7 +25,29 @@ module "networking" {
   tags               = local.common_tags
 }
 
-# Container Image Registry Module (ECR)
+# Dedicated Container Registries (ECR) for Microservices
+module "api_registry" {
+  source = "./modules/registry"
+
+  repository_name = "${local.name_prefix}-api"
+  tags            = local.common_tags
+}
+
+module "worker_registry" {
+  source = "./modules/registry"
+
+  repository_name = "${local.name_prefix}-worker"
+  tags            = local.common_tags
+}
+
+module "frontend_registry" {
+  source = "./modules/registry"
+
+  repository_name = "${local.name_prefix}-frontend"
+  tags            = local.common_tags
+}
+
+# Unified Container Registry Module
 module "container_registry" {
   source = "./modules/registry"
 

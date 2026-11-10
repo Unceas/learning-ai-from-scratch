@@ -1,13 +1,19 @@
 output "repository_urls" {
-  description = "Map of ECR repository URLs"
-  value = {
-    for idx, repo in aws_ecr_repository.this : repo.name => repo.repository_url
-  }
+  description = "List of all ECR repository URLs created by this module"
+  value       = aws_ecr_repository.this[*].repository_url
 }
 
 output "repository_arns" {
-  description = "Map of ECR repository ARNs"
-  value = {
-    for idx, repo in aws_ecr_repository.this : repo.name => repo.arn
-  }
+  description = "List of all ECR repository ARNs created by this module"
+  value       = aws_ecr_repository.this[*].arn
+}
+
+output "repository_url" {
+  description = "The primary or single ECR repository URL"
+  value       = try(aws_ecr_repository.this[0].repository_url, "")
+}
+
+output "repository_arn" {
+  description = "The primary or single ECR repository ARN"
+  value       = try(aws_ecr_repository.this[0].arn, "")
 }
