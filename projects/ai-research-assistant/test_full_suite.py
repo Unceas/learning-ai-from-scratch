@@ -65,6 +65,7 @@ TEST_SCRIPTS = [
     "test_cloud_infrastructure_and_aws_architecture.py",
     "test_terraform_iac_foundations.py",
     "test_aws_infrastructure_networking.py",
+    "test_final_engineering_audit_and_project_closure.py",
 ]
 
 
